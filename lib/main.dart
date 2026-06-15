@@ -10,8 +10,8 @@ import 'package:provider/provider.dart';
 // Provider de autenticación
 import 'providers/auth_provider.dart';
 
-// Pantalla de registro
-import 'features/auth/screens/register_screen.dart';
+// Pantalla de inicio de sesión
+import 'features/auth/screens/login_screen.dart';
 
 void main() {
   // Configuración necesaria para Windows
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(colorSchemeSeed: Colors.blue, useMaterial3: true),
 
       // Primera pantalla de la aplicación
-      home: const RegisterScreen(),
+      home: const LoginScreen(),
     );
   }
 }

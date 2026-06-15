@@ -78,6 +78,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ? const CircularProgressIndicator()
                   : const Text('Registrar'),
             ),
+            const SizedBox(height: 16),
+
+            // Navegar a Login
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text('¿Ya tienes cuenta? Inicia sesión'),
+            ),
           ],
         ),
       ),
