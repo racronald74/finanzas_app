@@ -13,6 +13,8 @@ import 'providers/auth_provider.dart';
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
 
+import 'shared/themes/app_theme.dart';
+
 void main() {
   // Configuración necesaria para Windows
   if (Platform.isWindows) {
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
 
       title: 'Finanzas App',
 
-      theme: ThemeData(colorSchemeSeed: Colors.blue, useMaterial3: true),
+      theme: AppTheme.lightTheme,
 
       // Primera pantalla de la aplicación
       home: const LoginScreen(),
