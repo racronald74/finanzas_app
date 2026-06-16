@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../../providers/auth_provider.dart';
 import '../../dashboard/dashboard_screen.dart';
+import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/widgets/custom_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,22 +33,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
         child: Column(
           children: [
-            TextField(
-              controller: _correoController,
-              decoration: const InputDecoration(labelText: 'Correo'),
-            ),
+            CustomTextField(controller: _correoController, label: 'Correo'),
 
             const SizedBox(height: 16),
 
-            TextField(
+            CustomTextField(
               controller: _contrasenaController,
+              label: 'Contraseña',
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
             ),
 
             const SizedBox(height: 24),
 
-            ElevatedButton(
+            CustomButton(
+              text: 'Iniciar sesión',
+
               onPressed: () async {
                 final success = await authProvider.login(
                   correo: _correoController.text,
@@ -73,8 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 }
               },
-
-              child: const Text('Iniciar sesión'),
             ),
             const SizedBox(height: 16),
 

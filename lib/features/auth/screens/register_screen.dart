@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/auth_provider.dart';
+import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/widgets/custom_text_field.dart';
+import '../../../features/dashboard/dashboard_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -40,43 +43,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
 
             // Campo correo
-            TextField(
-              controller: _correoController,
-              decoration: const InputDecoration(labelText: 'Correo'),
-            ),
+            CustomTextField(controller: _correoController, label: 'Correo'),
 
             const SizedBox(height: 16),
 
             // Campo contraseña
-            TextField(
+            CustomTextField(
               controller: _contrasenaController,
+              label: 'Contraseña',
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
             ),
 
             const SizedBox(height: 24),
 
             // Botón registrar
-            ElevatedButton(
-              onPressed: authProvider.isLoading
-                  ? null
-                  : () async {
-                      await authProvider.registerUser(
-                        nombre: _nombreController.text,
-                        correo: _correoController.text,
-                        contrasena: _contrasenaController.text,
-                      );
+            CustomButton(
+              text: 'Iniciar sesión',
 
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(authProvider.message)),
-                        );
-                      }
-                    },
+              onPressed: () async {
+                final success = await authProvider.login(
+                  correo: _correoController.text,
+                  contrasena: _contrasenaController.text,
+                );
 
-              child: authProvider.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Registrar'),
+                if (!context.mounted) return;
+
+                if (success) {
+                  Navigator.pushReplacement(
+                    context,
+
+                    MaterialPageRoute(
+                      builder: (_) => DashboardScreen(
+                        nombreUsuario: authProvider.currentUser?.nombre ?? '',
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Correo o contraseña incorrectos'),
+                    ),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 16),
 
