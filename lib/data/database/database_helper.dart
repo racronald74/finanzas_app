@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(path, version: 2, onCreate: _createDB);
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -33,6 +33,78 @@ class DatabaseHelper {
         fecha_registro TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE categoria (
+        id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        es_sistema INTEGER NOT NULL,
+        id_usuario INTEGER,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+      )
+    ''');
+
+    await db.insert('categoria', {
+      'nombre': 'Salario',
+      'tipo': 'INGRESO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Negocio',
+      'tipo': 'INGRESO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Freelance',
+      'tipo': 'INGRESO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Otros',
+      'tipo': 'INGRESO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Alimentación',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Transporte',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Salud',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Educación',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Vivienda',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
+
+    await db.insert('categoria', {
+      'nombre': 'Entretenimiento',
+      'tipo': 'GASTO',
+      'es_sistema': 1,
+    });
   }
 
   Future<void> close() async {

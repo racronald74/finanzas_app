@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
-import '../../../features/dashboard/dashboard_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -58,30 +57,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // Botón registrar
             CustomButton(
-              text: 'Iniciar sesión',
+              text: 'Registrarse',
 
               onPressed: () async {
-                final success = await authProvider.login(
+                await authProvider.registerUser(
+                  nombre: _nombreController.text,
                   correo: _correoController.text,
                   contrasena: _contrasenaController.text,
                 );
 
                 if (!context.mounted) return;
 
-                if (success) {
-                  Navigator.pushReplacement(
-                    context,
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(authProvider.message)));
 
-                    MaterialPageRoute(
-                      builder: (_) => DashboardScreen(
-                        nombreUsuario: authProvider.currentUser?.nombre ?? '',
-                      ),
-                    ),
-                  );
+                if (authProvider.message ==
+                    'Usuario registrado correctamente') {
+                  Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Correo o contraseña incorrectos'),
+                      content: Text('El correo ya está registrado'),
                     ),
                   );
                 }
