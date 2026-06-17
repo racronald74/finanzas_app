@@ -61,4 +61,37 @@ class UserRepository {
     // Si no existe retorna null
     return null;
   }
+
+  /// Actualiza los datos de un usuario existente
+  Future<int> updateUser(Map<String, dynamic> user) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.update(
+      'usuario',
+
+      user,
+
+      where: 'id_usuario = ?',
+
+      whereArgs: [user['id_usuario']],
+    );
+  }
+
+  /// Actualiza la contraseña del usuario
+  Future<int> updatePassword({
+    required int idUsuario,
+    required String nuevaContrasena,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.update(
+      'usuario',
+
+      {'contrasena': nuevaContrasena},
+
+      where: 'id_usuario = ?',
+
+      whereArgs: [idUsuario],
+    );
+  }
 }

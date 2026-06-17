@@ -42,4 +42,32 @@ class AuthService {
   }) async {
     return await _userRepository.login(correo, contrasena);
   }
+
+  /// Actualiza información del usuario
+  Future<bool> updateUser({
+    required int idUsuario,
+    required String nombre,
+    required String correo,
+  }) async {
+    final result = await _userRepository.updateUser({
+      'id_usuario': idUsuario,
+      'nombre': nombre,
+      'correo': correo,
+    });
+
+    return result > 0;
+  }
+
+  /// Actualiza la contraseña del usuario
+  Future<bool> updatePassword({
+    required int idUsuario,
+    required String nuevaContrasena,
+  }) async {
+    final result = await _userRepository.updatePassword(
+      idUsuario: idUsuario,
+      nuevaContrasena: nuevaContrasena,
+    );
+
+    return result > 0;
+  }
 }

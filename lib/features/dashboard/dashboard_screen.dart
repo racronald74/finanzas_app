@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../perfil/screens/profile_screen.dart';
+import '../../shared/widgets/custom_button.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String nombreUsuario;
@@ -26,6 +28,20 @@ class DashboardScreen extends StatelessWidget {
             Text(
               'Bienvenido $nombreUsuario',
               style: const TextStyle(fontSize: 24),
+            ),
+
+            const SizedBox(height: 20),
+
+            CustomButton(
+              text: 'Mi Perfil',
+
+              onPressed: () {
+                Navigator.push(
+                  context,
+
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              },
             ),
 
             const SizedBox(height: 30),

@@ -77,4 +77,47 @@ class AuthProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  /// Actualiza datos del usuario autenticado
+  Future<bool> updateProfile({
+    required String nombre,
+    required String correo,
+  }) async {
+    if (_currentUser == null) return false;
+
+    final success = await _authService.updateUser(
+      idUsuario: _currentUser!.idUsuario!,
+      nombre: nombre,
+      correo: correo,
+    );
+
+    if (success) {
+      _currentUser = _currentUser!.copyWith(nombre: nombre, correo: correo);
+
+      notifyListeners();
+    }
+
+    return success;
+  }
+
+  /// Cambia la contraseña del usuario actual
+  Future<bool> updatePassword(String nuevaContrasena) async {
+    if (_currentUser == null) {
+      return false;
+    }
+
+    final success = await _authService.updatePassword(
+      idUsuario: _currentUser!.idUsuario!,
+
+      nuevaContrasena: nuevaContrasena,
+    );
+
+    if (success) {
+      _currentUser = _currentUser!.copyWith(contrasena: nuevaContrasena);
+
+      notifyListeners();
+    }
+
+    return success;
+  }
 }

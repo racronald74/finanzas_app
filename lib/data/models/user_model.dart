@@ -32,4 +32,22 @@ class UserModel {
       fechaRegistro: map['fecha_registro'],
     );
   }
+
+  /// Crea una copia del usuario modificando únicamente
+  /// los campos enviados como parámetro.
+  UserModel copyWith({
+    int? idUsuario,
+    String? nombre,
+    String? correo,
+    String? contrasena,
+    String? fechaRegistro,
+  }) {
+    return UserModel(
+      idUsuario: idUsuario ?? this.idUsuario,
+      nombre: nombre ?? this.nombre,
+      correo: correo ?? this.correo,
+      contrasena: contrasena ?? this.contrasena,
+      fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+    );
+  }
 }
