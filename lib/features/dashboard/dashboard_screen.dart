@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../perfil/screens/profile_screen.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../income/screens/incomes_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String nombreUsuario;
@@ -32,6 +33,7 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
+            // Agrega un botón para ir al perfil
             CustomButton(
               text: 'Mi Perfil',
 
@@ -46,6 +48,7 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 30),
 
+            // Agrega un botón para cerrar sesión
             ElevatedButton(
               onPressed: () {
                 // Obtiene el provider
@@ -68,6 +71,17 @@ class DashboardScreen extends StatelessWidget {
               },
 
               child: const Text('Cerrar sesión'),
+            ),
+
+            // Agrega un botón para ir a la pantalla de ingresos
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const IncomesScreen()),
+                );
+              },
+              child: const Text('Ingresos'),
             ),
           ],
         ),

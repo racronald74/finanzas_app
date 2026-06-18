@@ -11,4 +11,8 @@ class CategoryService {
   Future<List<CategoryModel>> getCategories() async {
     return await _repository.getCategories();
   }
+
+  Future<List<CategoryModel>> getCategoriesByType(String tipo) async {
+    return await _repository.getCategoriesByType(tipo);
+  }
 }

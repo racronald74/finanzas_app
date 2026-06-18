@@ -17,4 +17,17 @@ class CategoryRepository {
 
     return result.map((e) => CategoryModel.fromMap(e)).toList();
   }
+
+  /// Obtener categorías por tipo
+  Future<List<CategoryModel>> getCategoriesByType(String tipo) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'categoria',
+      where: 'tipo = ?',
+      whereArgs: [tipo],
+    );
+
+    return result.map((e) => CategoryModel.fromMap(e)).toList();
+  }
 }

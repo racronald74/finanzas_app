@@ -9,9 +9,11 @@ import 'package:provider/provider.dart';
 
 // Provider de autenticación
 import 'providers/auth_provider.dart';
+import 'providers/income_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
+//import 'features/income/screens/incomes_screen.dart';
 
 import 'shared/themes/app_theme.dart';
 
@@ -22,9 +24,18 @@ void main() {
 
     databaseFactory = databaseFactoryFfi;
   }
+
+  // Ejecutar la aplicación con los proveedores
   runApp(
-    // Inyección de dependencias
-    ChangeNotifierProvider(create: (_) => AuthProvider(), child: const MyApp()),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+
+        ChangeNotifierProvider(create: (_) => IncomeProvider()),
+      ],
+
+      child: const MyApp(),
+    ),
   );
 }
 
