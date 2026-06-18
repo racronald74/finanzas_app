@@ -94,4 +94,22 @@ class UserRepository {
       whereArgs: [idUsuario],
     );
   }
+
+  ///Metodo para actualizar el ingreso fijo mensual del usuario
+  Future<int> updateFixedIncome({
+    required int idUsuario,
+    required double ingresoFijoMensual,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.update(
+      'usuario',
+
+      {'ingreso_fijo_mensual': ingresoFijoMensual},
+
+      where: 'id_usuario = ?',
+
+      whereArgs: [idUsuario],
+    );
+  }
 }

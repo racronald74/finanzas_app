@@ -28,7 +28,7 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
-  /// Registrar usuario
+  /// Metodo para registrar usuario
   Future<void> registerUser({
     required String nombre,
     required String correo,
@@ -50,7 +50,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Iniciar sesión
+  /// Metodo para iniciar sesión
   Future<bool> login({
     required String correo,
     required String contrasena,
@@ -71,14 +71,14 @@ class AuthProvider extends ChangeNotifier {
     return _currentUser != null;
   }
 
-  /// Cerrar sesión
+  /// Metodo para cerrar sesión
   void logout() {
     _currentUser = null;
 
     notifyListeners();
   }
 
-  /// Actualiza datos del usuario autenticado
+  /// Metodo para actualizar datos del usuario autenticado
   Future<bool> updateProfile({
     required String nombre,
     required String correo,
@@ -100,7 +100,7 @@ class AuthProvider extends ChangeNotifier {
     return success;
   }
 
-  /// Cambia la contraseña del usuario actual
+  /// Metodo para cambiar la contraseña del usuario actual
   Future<bool> updatePassword(String nuevaContrasena) async {
     if (_currentUser == null) {
       return false;
@@ -114,6 +114,28 @@ class AuthProvider extends ChangeNotifier {
 
     if (success) {
       _currentUser = _currentUser!.copyWith(contrasena: nuevaContrasena);
+
+      notifyListeners();
+    }
+
+    return success;
+  }
+
+  /// Metodo para actualizar el ingreso fijo mensual del usuario
+  Future<bool> updateFixedIncome(double ingresoFijoMensual) async {
+    if (_currentUser == null) {
+      return false;
+    }
+
+    final success = await _authService.updateFixedIncome(
+      idUsuario: _currentUser!.idUsuario!,
+      ingresoFijoMensual: ingresoFijoMensual,
+    );
+
+    if (success) {
+      _currentUser = _currentUser!.copyWith(
+        ingresoFijoMensual: ingresoFijoMensual,
+      );
 
       notifyListeners();
     }

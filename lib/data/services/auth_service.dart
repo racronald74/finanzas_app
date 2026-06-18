@@ -8,13 +8,13 @@ class AuthService {
   // Instancia del repositorio
   final UserRepository _userRepository = UserRepository();
 
-  /// Registrar nuevo usuario
+  /// Metodo para registrar nuevo usuario
   Future<String> registerUser({
     required String nombre,
     required String correo,
     required String contrasena,
   }) async {
-    // Verifica si ya existe un usuario con ese correo
+    /// Verifica si ya existe un usuario con ese correo
     final existingUser = await _userRepository.getUserByEmail(correo);
 
     if (existingUser != null) {
@@ -26,6 +26,7 @@ class AuthService {
       nombre: nombre,
       correo: correo,
       contrasena: contrasena,
+      ingresoFijoMensual: 0, // Valor inicial por defecto
       fechaRegistro: DateTime.now().toIso8601String(),
     );
 
@@ -35,7 +36,7 @@ class AuthService {
     return 'Usuario registrado correctamente';
   }
 
-  /// Inicio de sesión
+  /// Metodo para iniciar sesión
   Future<UserModel?> login({
     required String correo,
     required String contrasena,
@@ -43,11 +44,12 @@ class AuthService {
     return await _userRepository.login(correo, contrasena);
   }
 
-  /// Actualiza información del usuario
+  /// Metodo para actualizar la información del usuario
   Future<bool> updateUser({
     required int idUsuario,
     required String nombre,
     required String correo,
+    double? ingresoFijoMensual,
   }) async {
     final result = await _userRepository.updateUser({
       'id_usuario': idUsuario,
@@ -58,7 +60,7 @@ class AuthService {
     return result > 0;
   }
 
-  /// Actualiza la contraseña del usuario
+  /// Metodo para actualizar la contraseña del usuario
   Future<bool> updatePassword({
     required int idUsuario,
     required String nuevaContrasena,
@@ -66,6 +68,19 @@ class AuthService {
     final result = await _userRepository.updatePassword(
       idUsuario: idUsuario,
       nuevaContrasena: nuevaContrasena,
+    );
+
+    return result > 0;
+  }
+
+  /// Metodo para actualizar el ingreso fijo mensual del usuario
+  Future<bool> updateFixedIncome({
+    required int idUsuario,
+    required double ingresoFijoMensual,
+  }) async {
+    final result = await _userRepository.updateFixedIncome(
+      idUsuario: idUsuario,
+      ingresoFijoMensual: ingresoFijoMensual,
     );
 
     return result > 0;

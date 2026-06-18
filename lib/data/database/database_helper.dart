@@ -12,7 +12,7 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
 
-    _database = await _initDB('finanzas_app.v4.db');
+    _database = await _initDB('finanzas_app_v5.db');
     return _database!;
   }
 
@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 4, onCreate: _createDB);
+    return await openDatabase(path, version: 5, onCreate: _createDB);
   }
 
   // Crear tablas y datos iniciales
@@ -34,6 +34,7 @@ class DatabaseHelper {
         nombre TEXT NOT NULL,
         correo TEXT NOT NULL UNIQUE,
         contrasena TEXT NOT NULL,
+        ingreso_fijo_mensual REAL DEFAULT 0,
         fecha_registro TEXT NOT NULL
       )
     ''');
