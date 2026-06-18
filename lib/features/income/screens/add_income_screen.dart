@@ -1,44 +1,58 @@
 import 'package:flutter/material.dart';
-
-import '../../../data/services/category_service.dart';
-import '../../../data/models/category_model.dart';
-
 import 'package:provider/provider.dart';
 
+import '../../../data/models/category_model.dart';
+import '../../../data/models/income_model.dart';
+import '../../../data/services/category_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
 
-import '../../../data/models/income_model.dart';
-
 class AddIncomeScreen extends StatefulWidget {
-  const AddIncomeScreen({super.key});
+  final IncomeModel? initialIncome;
+
+  const AddIncomeScreen({super.key, this.initialIncome});
 
   @override
   State<AddIncomeScreen> createState() => _AddIncomeScreenState();
 }
 
 class _AddIncomeScreenState extends State<AddIncomeScreen> {
-  // Controlador monto
   final TextEditingController _montoController = TextEditingController();
-
-  // Controlador descripción
   final TextEditingController _descripcionController = TextEditingController();
-
-  // Fecha seleccionada
-  DateTime _fechaSeleccionada = DateTime.now();
-
-  // Categoría seleccionada
-  String? _categoriaSeleccionada;
-
-  /// Servicio de categorías
   final CategoryService _categoryService = CategoryService();
 
-  /// Categorías cargadas desde SQLite
+  DateTime _fechaSeleccionada = DateTime.now();
+  String? _categoriaSeleccionada;
   List<CategoryModel> _categorias = [];
 
-  /// Cargar categorías de ingreso
+  bool get _isEditing => widget.initialIncome != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final income = widget.initialIncome;
+    if (income != null) {
+      _montoController.text = income.monto.toStringAsFixed(0);
+      _descripcionController.text = income.descripcion;
+      _fechaSeleccionada = DateTime.tryParse(income.fecha) ?? DateTime.now();
+      _categoriaSeleccionada = income.idCategoria?.toString();
+    }
+
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _montoController.dispose();
+    _descripcionController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCategories() async {
     final categorias = await _categoryService.getCategoriesByType('INGRESO');
+
+    if (!mounted) return;
 
     setState(() {
       _categorias = categorias;
@@ -46,51 +60,34 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    _loadCategories();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Agregar ingreso')),
-
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Editar ingreso' : 'Agregar ingreso'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
-            // MONTO
             TextField(
               controller: _montoController,
-
-              keyboardType: TextInputType.number,
-
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Monto'),
             ),
-
             const SizedBox(height: 16),
-
-            // FECHA
             ListTile(
               title: Text(
                 '${_fechaSeleccionada.day}/${_fechaSeleccionada.month}/${_fechaSeleccionada.year}',
               ),
-
               leading: const Icon(Icons.calendar_month),
-
               onTap: () async {
                 final fecha = await showDatePicker(
                   context: context,
-
                   initialDate: _fechaSeleccionada,
-
                   firstDate: DateTime(2020),
-
                   lastDate: DateTime(2100),
                 );
 
@@ -101,119 +98,100 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                 }
               },
             ),
-
             const SizedBox(height: 16),
-
-            // CATEGORIA
             DropdownButtonFormField<String>(
               initialValue: _categoriaSeleccionada,
-
-              decoration: const InputDecoration(labelText: 'Categoría'),
-
+              decoration: const InputDecoration(labelText: 'Categoria'),
               items: _categorias.map((categoria) {
                 return DropdownMenuItem<String>(
                   value: categoria.idCategoria.toString(),
-
                   child: Text(categoria.nombre),
                 );
               }).toList(),
-
               onChanged: (value) {
                 setState(() {
                   _categoriaSeleccionada = value;
                 });
               },
             ),
-
             const SizedBox(height: 16),
-
-            // DESCRIPCIÓN
             TextField(
               controller: _descripcionController,
-
               decoration: const InputDecoration(
-                labelText: 'Descripción (Opcional)',
+                labelText: 'Descripcion (opcional)',
               ),
             ),
-
             const SizedBox(height: 32),
-
             SizedBox(
               width: double.infinity,
-
               child: ElevatedButton(
-                onPressed: () async {
-                  // Validar monto
-                  if (_montoController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ingrese un monto')),
-                    );
-
-                    return;
-                  }
-
-                  // Validar categoría
-                  if (_categoriaSeleccionada == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Seleccione una categoría')),
-                    );
-
-                    return;
-                  }
-
-                  final authProvider = Provider.of<AuthProvider>(
-                    context,
-                    listen: false,
-                  );
-
-                  final user = authProvider.currentUser;
-
-                  if (user == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Usuario no autenticado')),
-                    );
-
-                    return;
-                  }
-
-                  final income = IncomeModel(
-                    descripcion: _descripcionController.text.trim(),
-
-                    monto: double.parse(_montoController.text),
-
-                    fecha: _fechaSeleccionada.toIso8601String(),
-
-                    tipo: 'ADICIONAL',
-
-                    idCategoria: int.parse(_categoriaSeleccionada!),
-
-                    idUsuario: user.idUsuario!,
-                  );
-
-                  final incomeProvider = Provider.of<IncomeProvider>(
-                    context,
-                    listen: false,
-                  );
-
-                  await incomeProvider.createIncome(income);
-
-                  if (!context.mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ingreso registrado correctamente'),
-                    ),
-                  );
-
-                  Navigator.pop(context);
-                },
-
-                child: const Text('Guardar ingreso'),
+                onPressed: _saveIncome,
+                child: Text(_isEditing ? 'Guardar cambios' : 'Guardar ingreso'),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveIncome() async {
+    final monto = double.tryParse(_montoController.text.trim());
+
+    if (monto == null || monto <= 0) {
+      _showMessage('Ingrese un monto valido mayor a cero');
+      return;
+    }
+
+    if (_categoriaSeleccionada == null) {
+      _showMessage('Seleccione una categoria');
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.currentUser;
+
+    if (user == null) {
+      _showMessage('Usuario no autenticado');
+      return;
+    }
+
+    final income = IncomeModel(
+      idIngreso: widget.initialIncome?.idIngreso,
+      descripcion: _descripcionController.text.trim(),
+      monto: monto,
+      fecha: _fechaSeleccionada.toIso8601String(),
+      tipo: widget.initialIncome?.tipo ?? 'ADICIONAL',
+      fuente: widget.initialIncome?.fuente,
+      origen: widget.initialIncome?.origen ?? 'Manual',
+      idCategoria: int.parse(_categoriaSeleccionada!),
+      idUsuario: user.idUsuario!,
+      fechaRegistro: widget.initialIncome?.fechaRegistro,
+    );
+
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final success = _isEditing
+        ? await incomeProvider.updateIncome(income)
+        : await incomeProvider.createIncome(income);
+
+    if (!mounted) return;
+
+    if (!success) {
+      _showMessage(incomeProvider.errorMessage ?? 'No fue posible guardar');
+      return;
+    }
+
+    _showMessage(
+      _isEditing
+          ? 'Ingreso actualizado correctamente'
+          : 'Ingreso registrado correctamente',
+    );
+    Navigator.pop(context);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

@@ -11,23 +11,76 @@ class IncomeProvider extends ChangeNotifier {
 
   bool _isLoading = false;
 
+  String? _errorMessage;
+
   List<IncomeModel> get incomes => _incomes;
 
   bool get isLoading => _isLoading;
 
+  String? get errorMessage => _errorMessage;
+
   /// Crear ingreso
-  Future<void> createIncome(IncomeModel income) async {
+  Future<bool> createIncome(IncomeModel income) async {
     _isLoading = true;
+    _errorMessage = null;
 
     notifyListeners();
 
-    await _incomeService.createIncome(income);
+    try {
+      await _incomeService.createIncome(income);
 
-    await loadIncomes(income.idUsuario);
+      await loadIncomeData(income.idUsuario);
 
-    _isLoading = false;
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
 
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateIncome(IncomeModel income) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      await _incomeService.updateIncome(income);
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteIncome(IncomeModel income) async {
+    if (income.idIngreso == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _incomeService.deleteIncome(
+        idIngreso: income.idIngreso!,
+        idUsuario: income.idUsuario,
+      );
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Cargar ingresos de un usuario
@@ -60,13 +113,9 @@ class IncomeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Total de ingresos del usuario
+  /// Total de ingresos adicionales del usuario.
   double get totalIncome {
     double total = 0;
-
-    if (_fixedIncome != null) {
-      total += _fixedIncome!.monto;
-    }
 
     for (final income in _additionalIncomes) {
       total += income.monto;

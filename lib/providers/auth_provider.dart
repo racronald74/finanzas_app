@@ -92,7 +92,10 @@ class AuthProvider extends ChangeNotifier {
     );
 
     if (success) {
-      _currentUser = _currentUser!.copyWith(nombre: nombre, correo: correo);
+      _currentUser = _currentUser!.copyWith(
+        nombre: nombre.trim(),
+        correo: correo.trim().toLowerCase(),
+      );
 
       notifyListeners();
     }
@@ -113,12 +116,26 @@ class AuthProvider extends ChangeNotifier {
     );
 
     if (success) {
-      _currentUser = _currentUser!.copyWith(contrasena: nuevaContrasena);
-
       notifyListeners();
     }
 
     return success;
+  }
+
+  Future<void> resetPassword({
+    required String correo,
+    required String nuevaContrasena,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    _message = await _authService.resetPassword(
+      correo: correo,
+      nuevaContrasena: nuevaContrasena,
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   /// Metodo para actualizar el ingreso fijo mensual del usuario

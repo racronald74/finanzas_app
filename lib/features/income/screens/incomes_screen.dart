@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
-import 'add_income_screen.dart';
 import 'package:provider/provider.dart';
 
+import '../../../data/models/income_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
+import 'add_income_screen.dart';
 
 class IncomesScreen extends StatefulWidget {
   const IncomesScreen({super.key});
@@ -19,168 +19,80 @@ class _IncomesScreenState extends State<IncomesScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      final user = authProvider.currentUser;
-
-      if (user != null) {
-        Provider.of<IncomeProvider>(
-          context,
-          listen: false,
-        ).loadIncomeData(user.idUsuario!);
-      }
+      _loadIncomeData();
     });
+  }
+
+  Future<void> _loadIncomeData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.currentUser;
+
+    if (user == null) return;
+
+    await Provider.of<IncomeProvider>(
+      context,
+      listen: false,
+    ).loadIncomeData(user.idUsuario!);
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final incomeProvider = Provider.of<IncomeProvider>(context);
+    final fixedIncome = authProvider.currentUser?.ingresoFijoMensual ?? 0;
+    final monthlyTotal = fixedIncome + incomeProvider.totalIncome;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Ingresos')),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
-            // Ingreso fijo mensual
             Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Text('Ingreso fijo mensual'),
-
-                    SizedBox(height: 8),
-
-                    // Monto del ingreso fijo mensual
+                    const Text('Ingreso fijo mensual'),
+                    const SizedBox(height: 8),
                     Text(
-                      '\$${Provider.of<AuthProvider>(context).currentUser?.ingresoFijoMensual.toStringAsFixed(0) ?? '0'}',
-
+                      '\$${fixedIncome.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    SizedBox(height: 8),
-
-                    // Botón para modificar ingreso fijo mensual
+                    const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () async {
-                        final controller = TextEditingController();
-
-                        final authProvider = Provider.of<AuthProvider>(
-                          context,
-                          listen: false,
-                        );
-
-                        controller.text =
-                            authProvider.currentUser?.ingresoFijoMensual
-                                .toString() ??
-                            '0';
-
-                        final resultado = await showDialog<double>(
-                          context: context,
-
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Ingreso fijo mensual'),
-
-                              content: TextField(
-                                controller: controller,
-
-                                keyboardType: TextInputType.number,
-
-                                decoration: const InputDecoration(
-                                  labelText: 'Monto',
-                                ),
-                              ),
-
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-
-                                  child: const Text('Cancelar'),
-                                ),
-
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pop(
-                                      context,
-
-                                      double.tryParse(controller.text),
-                                    );
-                                  },
-
-                                  child: const Text('Guardar'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-
-                        if (resultado == null) {
-                          return;
-                        }
-
-                        await authProvider.updateFixedIncome(resultado);
-                      },
-
+                      onPressed: _editFixedIncome,
                       child: const Text('Modificar'),
                     ),
                   ],
                 ),
               ),
             ),
-
-            SizedBox(height: 24),
-
-            Text('Historial de ingresos adicionales'),
-
-            SizedBox(height: 12),
-
-            if (incomeProvider.additionalIncomes.isEmpty)
+            const SizedBox(height: 24),
+            const Text('Historial de ingresos adicionales'),
+            const SizedBox(height: 12),
+            if (incomeProvider.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (incomeProvider.additionalIncomes.isEmpty)
               const Card(
                 child: ListTile(title: Text('Sin ingresos registrados')),
               )
             else
-              ...incomeProvider.additionalIncomes.map((income) {
-                return Card(
-                  child: ListTile(
-                    title: Text(
-                      income.descripcion.isEmpty
-                          ? 'Ingreso'
-                          : income.descripcion,
-                    ),
-
-                    subtitle: Text(income.fecha.split('T').first),
-
-                    trailing: Text('\$${income.monto.toStringAsFixed(0)}'),
-                  ),
-                );
-              }),
-
-            SizedBox(height: 24),
-
+              ...incomeProvider.additionalIncomes.map(_incomeTile),
+            const SizedBox(height: 24),
             Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Text('Total ingresos del mes'),
-
-                    SizedBox(height: 8),
-
+                    const Text('Total ingresos del mes'),
+                    const SizedBox(height: 8),
                     Text(
-                      '\$${((Provider.of<AuthProvider>(context).currentUser?.ingresoFijoMensual ?? 0) + incomeProvider.totalIncome).toStringAsFixed(0)}',
-
+                      '\$${monthlyTotal.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -193,8 +105,6 @@ class _IncomesScreenState extends State<IncomesScreen> {
           ],
         ),
       ),
-
-      // Botón para agregar nuevo ingreso adicional
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.push(
@@ -202,25 +112,170 @@ class _IncomesScreenState extends State<IncomesScreen> {
             MaterialPageRoute(builder: (_) => const AddIncomeScreen()),
           );
 
-          if (!context.mounted) return;
-
-          final authProvider = Provider.of<AuthProvider>(
-            context,
-            listen: false,
-          );
-
-          final user = authProvider.currentUser;
-
-          if (user != null) {
-            await Provider.of<IncomeProvider>(
-              context,
-              listen: false,
-            ).loadIncomeData(user.idUsuario!);
-          }
+          if (!mounted) return;
+          await _loadIncomeData();
         },
-
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Widget _incomeTile(IncomeModel income) {
+    return Card(
+      child: ListTile(
+        title: Text(
+          income.descripcion.isEmpty ? 'Ingreso' : income.descripcion,
+        ),
+        subtitle: Text(income.fecha.split('T').first),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('\$${income.monto.toStringAsFixed(0)}'),
+            IconButton(
+              tooltip: 'Editar',
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddIncomeScreen(initialIncome: income),
+                  ),
+                );
+
+                if (!mounted) return;
+                await _loadIncomeData();
+              },
+            ),
+            IconButton(
+              tooltip: 'Eliminar',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _confirmDelete(income),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editFixedIncome() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final initialValue =
+        authProvider.currentUser?.ingresoFijoMensual.toString() ?? '0';
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (_) => _FixedIncomeDialog(initialValue: initialValue),
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+
+    final success = await authProvider.updateFixedIncome(result);
+
+    if (!mounted) return;
+
+    _showMessage(
+      success ? 'Ingreso fijo actualizado' : 'No fue posible actualizar',
+    );
+  }
+
+  Future<void> _confirmDelete(IncomeModel income) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar ingreso'),
+          content: const Text('Esta accion no se puede deshacer.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final success = await incomeProvider.deleteIncome(income);
+
+    if (!mounted) return;
+
+    _showMessage(success ? 'Ingreso eliminado' : 'No fue posible eliminar');
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _FixedIncomeDialog extends StatefulWidget {
+  final String initialValue;
+
+  const _FixedIncomeDialog({required this.initialValue});
+
+  @override
+  State<_FixedIncomeDialog> createState() => _FixedIncomeDialogState();
+}
+
+class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Ingreso fijo mensual'),
+      content: TextField(
+        controller: _controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        autofocus: true,
+        decoration: InputDecoration(labelText: 'Monto', errorText: _errorText),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(onPressed: _save, child: const Text('Guardar')),
+      ],
+    );
+  }
+
+  void _save() {
+    final value = double.tryParse(_controller.text.trim());
+
+    if (value == null || value < 0) {
+      setState(() {
+        _errorText = 'Ingrese un monto valido';
+      });
+      return;
+    }
+
+    Navigator.pop(context, value);
   }
 }

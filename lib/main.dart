@@ -39,6 +39,7 @@ void main() {
   );
 }
 
+/// Widget principal de la aplicación
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

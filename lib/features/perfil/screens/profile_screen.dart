@@ -13,29 +13,33 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Controladores de los campos
   final TextEditingController _nombreController = TextEditingController();
-
   final TextEditingController _correoController = TextEditingController();
-
   final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
 
-    // Esperamos a que el widget termine de construirse
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).currentUser;
 
-      final user = authProvider.currentUser;
+      if (user == null) return;
 
-      if (user != null) {
-        _nombreController.text = user.nombre;
-
-        _correoController.text = user.correo;
-      }
+      _nombreController.text = user.nombre;
+      _correoController.text = user.correo;
     });
+  }
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _correoController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -43,67 +47,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi Perfil')),
-
-      body: Padding(
+      appBar: AppBar(title: const Text('Mi perfil')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           children: [
             const SizedBox(height: 20),
-
             const Icon(Icons.account_circle, size: 100),
-
             const SizedBox(height: 30),
-
             CustomTextField(controller: _nombreController, label: 'Nombre'),
-
             const SizedBox(height: 16),
-
             CustomTextField(controller: _correoController, label: 'Correo'),
-
-            const SizedBox(height: 30),
-
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _passwordController,
-              label: 'Nueva contraseña',
+              label: 'Nueva contrasena',
               obscureText: true,
             ),
-
+            const SizedBox(height: 24),
             CustomButton(
-              text: 'Guardar cambios',
-
-              onPressed: () async {
-                bool success = await authProvider.updateProfile(
-                  nombre: _nombreController.text,
-
-                  correo: _correoController.text,
-                );
-
-                if (_passwordController.text.trim().isNotEmpty) {
-                  success = await authProvider.updatePassword(
-                    _passwordController.text,
-                  );
-                }
-
-                if (!context.mounted) return;
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Perfil actualizado'
-                          : 'No fue posible actualizar',
-                    ),
-                  ),
-                );
-              },
+              text: authProvider.isLoading ? 'Guardando...' : 'Guardar cambios',
+              onPressed: authProvider.isLoading ? null : _saveProfile,
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveProfile() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    var success = await authProvider.updateProfile(
+      nombre: _nombreController.text,
+      correo: _correoController.text,
+    );
+
+    if (success && _passwordController.text.trim().isNotEmpty) {
+      success = await authProvider.updatePassword(_passwordController.text);
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Perfil actualizado'
+              : 'Revise los datos ingresados; la contrasena requiere 8 caracteres',
+        ),
+      ),
+    );
+
+    if (success) {
+      _passwordController.clear();
+    }
   }
 }

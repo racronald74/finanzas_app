@@ -1,30 +1,61 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-
+import 'package:finanzas_app/data/services/password_hasher.dart';
+import 'package:finanzas_app/data/models/income_model.dart';
 import 'package:finanzas_app/main.dart';
+import 'package:finanzas_app/providers/auth_provider.dart';
+import 'package:finanzas_app/providers/income_provider.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUpAll(() {
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('PasswordHasher stores a hash and verifies the original password', () {
+    const password = 'contrasena-segura';
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final hash = PasswordHasher.hash(password);
+
+    expect(hash, isNot(password));
+    expect(hash.startsWith(r'pbkdf2$'), isTrue);
+    expect(PasswordHasher.verify(password, hash), isTrue);
+    expect(PasswordHasher.verify('otra-contrasena', hash), isFalse);
+  });
+
+  test('IncomeModel does not send null default columns to SQLite', () {
+    final income = IncomeModel(
+      descripcion: '',
+      monto: 500000,
+      fecha: DateTime(2026, 6, 18).toIso8601String(),
+      tipo: 'ADICIONAL',
+      idCategoria: 2,
+      idUsuario: 1,
+    );
+
+    final map = income.toMap();
+
+    expect(map.containsKey('fecha_registro'), isFalse);
+    expect(map.containsKey('id_ingreso'), isFalse);
+    expect(map['monto'], 500000);
+  });
+
+  testWidgets('App starts on the login screen', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => IncomeProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
+
+    expect(find.text('Iniciar sesion'), findsWidgets);
+    expect(find.text('Correo'), findsOneWidget);
+    expect(find.text('Contrasena'), findsOneWidget);
+    expect(find.text('No tienes cuenta? Registrate'), findsOneWidget);
   });
 }

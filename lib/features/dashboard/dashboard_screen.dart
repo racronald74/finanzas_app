@@ -14,20 +14,23 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.watch<AuthProvider>().currentUser;
+    final displayName = currentUser?.nombre ?? nombreUsuario;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-
+          //
           children: [
             const Icon(Icons.account_circle, size: 100),
 
             const SizedBox(height: 20),
 
             Text(
-              'Bienvenido $nombreUsuario',
+              'Bienvenido $displayName',
               style: const TextStyle(fontSize: 24),
             ),
 

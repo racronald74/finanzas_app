@@ -10,6 +10,30 @@ class IncomeRepository {
     return await db.insert('ingreso', income.toMap());
   }
 
+  Future<int> updateIncome(IncomeModel income) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.update(
+      'ingreso',
+      income.toMap(),
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [income.idIngreso, income.idUsuario],
+    );
+  }
+
+  Future<int> deleteIncome({
+    required int idIngreso,
+    required int idUsuario,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.delete(
+      'ingreso',
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [idIngreso, idUsuario],
+    );
+  }
+
   /// Obtener ingresos de un usuario
   Future<List<IncomeModel>> getIncomesByUser(int idUsuario) async {
     final db = await DatabaseHelper.instance.database;
@@ -20,6 +44,8 @@ class IncomeRepository {
       where: 'id_usuario = ?',
 
       whereArgs: [idUsuario],
+
+      orderBy: 'fecha DESC',
     );
 
     return result.map((e) => IncomeModel.fromMap(e)).toList();
