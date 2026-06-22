@@ -6,6 +6,7 @@ import '../auth/screens/login_screen.dart';
 import '../perfil/screens/profile_screen.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../income/screens/incomes_screen.dart';
+import '../expense/screens/add_expense_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String nombreUsuario;
@@ -85,6 +86,16 @@ class DashboardScreen extends StatelessWidget {
                 );
               },
               child: const Text('Ingresos'),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+                );
+              },
+              child: const Text('Registrar gasto'),
             ),
           ],
         ),

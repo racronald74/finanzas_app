@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 // Provider de autenticación
 import 'providers/auth_provider.dart';
 import 'providers/income_provider.dart';
+import 'providers/expense_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -29,9 +30,14 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        /// Gestión de autenticación
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
+        /// Gestión del módulo de ingresos
         ChangeNotifierProvider(create: (_) => IncomeProvider()),
+
+        /// Gestión del módulo de gastos
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
       ],
 
       child: const MyApp(),

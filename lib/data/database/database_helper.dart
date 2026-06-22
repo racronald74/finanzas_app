@@ -57,6 +57,7 @@ class DatabaseHelper {
       )
     ''');
 
+    /// Crea la tabla de categorías
     await db.execute('''
       CREATE TABLE IF NOT EXISTS categoria (
         id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +70,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de ingresos
     await db.execute('''
       CREATE TABLE IF NOT EXISTS ingreso (
         id_ingreso INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,29 +91,32 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de gastos
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS gasto (
-        id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
-        monto REAL NOT NULL CHECK (monto > 0),
-        fecha TEXT NOT NULL,
-        descripcion TEXT,
-        origen TEXT NOT NULL DEFAULT 'Manual',
-        id_usuario INTEGER NOT NULL,
-        id_categoria INTEGER NOT NULL,
-        id_pago INTEGER,
-        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (id_usuario)
-          REFERENCES usuario(id_usuario)
-          ON DELETE CASCADE,
-        FOREIGN KEY (id_categoria)
-          REFERENCES categoria(id_categoria),
-        FOREIGN KEY (id_pago)
-          REFERENCES pago(id_pago)
-          ON DELETE SET NULL
-      )
-    ''');
+  CREATE TABLE IF NOT EXISTS gasto (
+    id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    monto REAL NOT NULL CHECK (monto > 0),
+    fecha TEXT NOT NULL,
+    descripcion TEXT,
+    origen TEXT NOT NULL DEFAULT 'MANUAL',
+    id_usuario INTEGER NOT NULL,
+    id_categoria INTEGER NOT NULL,
+    id_pago INTEGER,
+    fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario)
+      REFERENCES usuario(id_usuario)
+      ON DELETE CASCADE,
 
+    FOREIGN KEY (id_categoria)
+      REFERENCES categoria(id_categoria),
+
+    FOREIGN KEY (id_pago)
+      REFERENCES pago(id_pago)
+      ON DELETE SET NULL
+  )
+''');
+    // Crea la tabla de metas
     await db.execute('''
       CREATE TABLE IF NOT EXISTS meta (
         id_meta INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,7 +136,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de aportes a metas
     await db.execute('''
       CREATE TABLE IF NOT EXISTS aporte (
         id_aporte INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,7 +150,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de deudas
     await db.execute('''
       CREATE TABLE IF NOT EXISTS deuda (
         id_deuda INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,7 +169,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de pagos de deudas
     await db.execute('''
       CREATE TABLE IF NOT EXISTS pago (
         id_pago INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,7 +184,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de obligaciones recurrentes
     await db.execute('''
       CREATE TABLE IF NOT EXISTS obligacion (
         id_obligacion INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,7 +208,7 @@ class DatabaseHelper {
           ON DELETE SET NULL
       )
     ''');
-
+    // Crea la tabla de presupuestos
     await db.execute('''
       CREATE TABLE IF NOT EXISTS presupuesto (
         id_presupuesto INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -221,7 +225,7 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-
+    // Crea la tabla de notificaciones
     await db.execute('''
       CREATE TABLE IF NOT EXISTS notificacion (
         id_notificacion INTEGER PRIMARY KEY AUTOINCREMENT,
