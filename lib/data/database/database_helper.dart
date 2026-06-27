@@ -20,7 +20,7 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-
+    // Abre la base de datos, configurando las claves foráneas y creando o actualizando el esquema según sea necesario.
     return openDatabase(
       path,
       version: _dbVersion,
@@ -300,7 +300,8 @@ class DatabaseHelper {
     }
   }
 
-  /// Inserta categorías predeterminadas para cada tipo (INGRESO, GASTO, META, OBLIGACION) si no existen, marcándolas como de sistema.
+  /// Inserta categorías predeterminadas para cada tipo (INGRESO, GASTO, META, OBLIGACION)
+  /// si no existen, marcándolas como de sistema.
   Future<void> _seedSystemCategories(Database db) async {
     const categories = [
       ('Salario', 'INGRESO'),
@@ -332,7 +333,8 @@ class DatabaseHelper {
       ('Otros', 'OBLIGACION'),
     ];
 
-    /// Para cada categoría predeterminada, verifica si ya existe una categoría con el mismo nombre y tipo sin un usuario asociado. Si no existe, la inserta como categoría de sistema.
+    /// Para cada categoría predeterminada, verifica si ya existe una categoría con el mismo nombre
+    /// y tipo sin un usuario asociado. Si no existe, la inserta como categoría de sistema.
     for (final category in categories) {
       final exists = await db.query(
         'categoria',

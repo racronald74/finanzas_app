@@ -5,6 +5,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 
+// Pantalla de registro para que los usuarios puedan crear una cuenta en la aplicación.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 

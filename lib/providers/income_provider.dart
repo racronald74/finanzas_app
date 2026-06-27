@@ -123,4 +123,18 @@ class IncomeProvider extends ChangeNotifier {
 
     return total;
   }
+
+  /// Total utilizado para el cálculo del presupuesto.
+  ///
+  /// Corresponde al ingreso fijo mensual más
+  /// todos los ingresos adicionales registrados.
+  double get totalBudgetIncome {
+    double total = totalIncome;
+
+    if (_fixedIncome != null) {
+      total += _fixedIncome!.monto;
+    }
+
+    return total;
+  }
 }

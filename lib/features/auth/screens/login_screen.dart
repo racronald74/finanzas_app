@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
-import '../../dashboard/dashboard_screen.dart';
 import 'register_screen.dart';
+import '../../main/screens/main_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+// Pantalla de inicio de sesión para que los usuarios puedan ingresar a la aplicación.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +22,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _resetCorreoController = TextEditingController();
   final TextEditingController _resetContrasenaController =
       TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _rememberEmail = false;
 
   @override
   void dispose() {
@@ -40,16 +45,52 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            CustomTextField(controller: _correoController, label: 'Correo'),
+            CustomTextField(
+              controller: _correoController,
+              label: 'Correo',
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              prefixIcon: const Icon(Icons.email),
+            ),
+
             const SizedBox(height: 16),
+
             CustomTextField(
               controller: _contrasenaController,
               label: 'Contrasena',
-              obscureText: true,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onSubmitted: _login,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
             ),
+
+            //checkbox
+            CheckboxListTile(
+              value: _rememberEmail,
+              onChanged: (value) {
+                setState(() {
+                  _rememberEmail = value ?? false;
+                });
+              },
+              title: const Text('Recordar correo'),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+
             const SizedBox(height: 24),
+
             CustomButton(
-              text: authProvider.isLoading ? 'Ingresando...' : 'Iniciar sesion',
+              text: 'Iniciar sesion',
+              isLoading: authProvider.isLoading,
               onPressed: authProvider.isLoading ? null : _login,
             ),
             const SizedBox(height: 16),
@@ -82,15 +123,24 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final prefs = await SharedPreferences.getInstance();
+
+      if (_rememberEmail) {
+        await prefs.setBool('remember_email', true);
+        await prefs.setString(
+          'remembered_email',
+          _correoController.text.trim(),
+        );
+      } else {
+        await prefs.remove('remember_email');
+        await prefs.remove('remembered_email');
+      }
+
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => DashboardScreen(
-            nombreUsuario: authProvider.currentUser?.nombre ?? '',
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
       return;
     }
@@ -160,5 +210,26 @@ class _LoginScreenState extends State<LoginScreen> {
       _correoController.text = _resetCorreoController.text.trim();
       _contrasenaController.text = _resetContrasenaController.text.trim();
     }
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final remember = prefs.getBool('remember_email') ?? false;
+    final email = prefs.getString('remembered_email') ?? '';
+
+    setState(() {
+      _rememberEmail = remember;
+
+      if (remember) {
+        _correoController.text = email;
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedEmail();
   }
 }

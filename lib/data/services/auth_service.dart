@@ -2,6 +2,7 @@ import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
 import 'password_hasher.dart';
 
+// Servicio de autenticación para manejar el registro, inicio de sesión y actualización de usuarios.
 class AuthService {
   final UserRepository _userRepository = UserRepository();
 

@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 
 // Provider
 import 'package:provider/provider.dart';
-
 // Provider de autenticación
 import 'providers/auth_provider.dart';
 import 'providers/income_provider.dart';
 import 'providers/expense_provider.dart';
+import 'providers/budget_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -18,6 +18,7 @@ import 'features/auth/screens/login_screen.dart';
 
 import 'shared/themes/app_theme.dart';
 
+// Punto de entrada principal de la aplicación
 void main() {
   // Configuración necesaria para Windows
   if (Platform.isWindows) {
@@ -38,6 +39,9 @@ void main() {
 
         /// Gestión del módulo de gastos
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+
+        /// Gestión del presupuesto
+        ChangeNotifierProvider(create: (_) => BudgetProvider()),
       ],
 
       child: const MyApp(),

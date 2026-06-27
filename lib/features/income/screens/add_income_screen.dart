@@ -7,6 +7,7 @@ import '../../../data/services/category_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
 
+// Pantalla para agregar o editar un ingreso en la aplicación.
 class AddIncomeScreen extends StatefulWidget {
   final IncomeModel? initialIncome;
 

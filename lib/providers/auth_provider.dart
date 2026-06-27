@@ -7,6 +7,7 @@ import '../data/services/auth_service.dart';
 // Modelo usuario
 import '../data/models/user_model.dart';
 
+// Proveedor de autenticación para manejar el estado de autenticación del usuario y las operaciones relacionadas.
 class AuthProvider extends ChangeNotifier {
   // Servicio que contiene las reglas de negocio
   final AuthService _authService = AuthService();

@@ -6,6 +6,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
 import 'add_income_screen.dart';
 
+// Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
   const IncomesScreen({super.key});
 
@@ -43,7 +44,6 @@ class _IncomesScreenState extends State<IncomesScreen> {
     final monthlyTotal = fixedIncome + incomeProvider.totalIncome;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ingresos')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

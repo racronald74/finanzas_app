@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 
+// Servicio de hashing de contraseñas para manejar el almacenamiento seguro y la verificación de contraseñas.
 class PasswordHasher {
   static const int _iterations = 120000;
   static const int _saltLength = 16;

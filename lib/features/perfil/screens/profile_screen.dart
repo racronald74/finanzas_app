@@ -5,6 +5,8 @@ import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 
+// Pantalla de perfil que permite a los usuarios ver y actualizar su información personal,
+// incluyendo nombre, correo electrónico y contraseña.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 

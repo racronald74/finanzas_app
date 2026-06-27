@@ -9,7 +9,14 @@ class CustomButton extends StatelessWidget {
   // Acción al presionar
   final VoidCallback? onPressed;
 
-  const CustomButton({super.key, required this.text, required this.onPressed});
+  final bool isLoading;
+
+  const CustomButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,16 @@ class CustomButton extends StatelessWidget {
           ),
         ),
 
-        child: Text(text),
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(text),
       ),
     );
   }

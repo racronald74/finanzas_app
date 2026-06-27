@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 import '../models/user_model.dart';
 
+// Repositorio de usuarios para manejar las operaciones relacionadas con la base de datos.
 class UserRepository {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 

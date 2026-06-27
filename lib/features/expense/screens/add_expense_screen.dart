@@ -15,7 +15,13 @@ import '../../../data/models/expense_model.dart';
 /// - Registrar gasto
 /// - Editar gasto
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  /// Gasto que será editado.
+  ///
+  /// Si es null, la pantalla funcionará como
+  /// "Registrar gasto".
+  final ExpenseModel? expense;
+
+  const AddExpenseScreen({super.key, this.expense});
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -71,36 +77,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   /// llama al Provider y regresa a la pantalla
   /// anterior cuando la operación es exitosa.
   Future<void> _guardarGasto() async {
-    print("1 - Entró al método");
-
     // Valida todos los campos del formulario.
     if (!_formKey.currentState!.validate()) {
-      print("2 - Formulario inválido");
-
+      // Si algún campo no es válido, no se guarda el gasto.
       return;
     }
-
-    print("3 - Formulario válido");
 
     // Obtiene el usuario autenticado.
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     final usuario = authProvider.currentUser;
 
-    print("4 - Usuario: $usuario");
-
     // Verifica que exista un usuario autenticado.
     if (usuario == null) {
-      print("5 - Usuario no autenticado");
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Usuario no autenticado')));
-
       return;
     }
-
-    print("6 - Construyendo ExpenseModel");
 
     final expense = ExpenseModel(
       nombre: _nombreController.text.trim(),
@@ -113,32 +107,31 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       fechaRegistro: DateTime.now().toIso8601String(),
     );
 
-    print("7 - ExpenseModel construido");
-
     final expenseProvider = Provider.of<ExpenseProvider>(
       context,
       listen: false,
     );
 
-    print("8 - Antes de createExpense");
+    bool success;
 
-    final success = await expenseProvider.createExpense(expense);
-
-    print("9 - Resultado: $success");
+    // Si existe un gasto significa que estamos editando.
+    if (widget.expense != null) {
+      success = await expenseProvider.updateExpense(
+        expense.copyWith(idGasto: widget.expense!.idGasto),
+      );
+    } else {
+      success = await expenseProvider.createExpense(expense);
+    }
 
     if (!mounted) return;
 
     if (success) {
-      print("10 - Registro exitoso");
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gasto registrado correctamente')),
       );
 
       Navigator.pop(context);
     } else {
-      print("11 - Error: ${expenseProvider.errorMessage}");
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(expenseProvider.errorMessage)));
@@ -344,5 +337,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Si existe un gasto significa que estamos editando.
+    if (widget.expense != null) {
+      _nombreController.text = widget.expense!.nombre;
+
+      _montoController.text = widget.expense!.monto.toString();
+
+      _descripcionController.text = widget.expense!.descripcion;
+
+      _fechaSeleccionada = DateTime.parse(widget.expense!.fecha);
+
+      _categoriaSeleccionada = widget.expense!.idCategoria;
+    }
   }
 }

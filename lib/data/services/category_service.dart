@@ -1,6 +1,7 @@
 import '../models/category_model.dart';
 import '../repositories/category_repository.dart';
 
+// Servicio de categorías para manejar las operaciones relacionadas con la base de datos.
 class CategoryService {
   final CategoryRepository _repository = CategoryRepository();
 
