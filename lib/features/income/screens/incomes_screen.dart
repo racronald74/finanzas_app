@@ -6,6 +6,9 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
 import 'add_income_screen.dart';
 
+import '../../../providers/expense_provider.dart';
+import '../../../providers/budget_provider.dart';
+
 // Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
   const IncomesScreen({super.key});
@@ -34,6 +37,13 @@ class _IncomesScreenState extends State<IncomesScreen> {
       context,
       listen: false,
     ).loadIncomeData(user.idUsuario!);
+
+    await Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    ).loadExpenses(user.idUsuario!);
+
+    await _refreshBudget();
   }
 
   @override
@@ -177,6 +187,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
     if (!mounted) return;
 
+    if (success) {
+      await _loadIncomeData();
+    }
+
     _showMessage(
       success ? 'Ingreso fijo actualizado' : 'No fue posible actualizar',
     );
@@ -207,9 +221,14 @@ class _IncomesScreenState extends State<IncomesScreen> {
     if (!mounted) return;
 
     final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+
     final success = await incomeProvider.deleteIncome(income);
 
     if (!mounted) return;
+
+    if (success) {
+      await _loadIncomeData();
+    }
 
     _showMessage(success ? 'Ingreso eliminado' : 'No fue posible eliminar');
   }
@@ -218,6 +237,23 @@ class _IncomesScreenState extends State<IncomesScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _refreshBudget() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    budgetProvider.updateBudget(
+      fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
+      additionalIncome: incomeProvider.totalIncome,
+      totalExpenses: expenseProvider.totalExpenses,
+      totalSavings: 0,
+    );
   }
 }
 

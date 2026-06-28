@@ -5,7 +5,6 @@ import '../data/services/budget_service.dart';
 
 /// Provider encargado de administrar el estado del presupuesto.
 class BudgetProvider extends ChangeNotifier {
-  /// Servicio de presupuesto.
   final BudgetService _budgetService = BudgetService();
 
   BudgetSummary _summary = const BudgetSummary(
@@ -19,10 +18,8 @@ class BudgetProvider extends ChangeNotifier {
     availablePercentage: 0,
   );
 
-  /// Resumen financiero actual.
   BudgetSummary get summary => _summary;
 
-  /// Recalcula el presupuesto.
   void updateBudget({
     required double fixedIncome,
     required double additionalIncome,
@@ -37,5 +34,19 @@ class BudgetProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+  }
+
+  void refresh({
+    required double fixedIncome,
+    required double additionalIncome,
+    required double totalExpenses,
+    double totalSavings = 0,
+  }) {
+    updateBudget(
+      fixedIncome: fixedIncome,
+      additionalIncome: additionalIncome,
+      totalExpenses: totalExpenses,
+      totalSavings: totalSavings,
+    );
   }
 }

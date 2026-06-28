@@ -39,6 +39,18 @@ class _MainScreenState extends State<MainScreen> {
     _scaffoldKey.currentState?.openDrawer();
   }
 
+  Future<void> _refreshIncomes() async {
+    // Lo implementaremos en el siguiente paso.
+  }
+
+  Future<void> _refreshExpenses() async {
+    // Lo implementaremos en el siguiente paso.
+  }
+
+  Future<void> _refreshDashboard() async {
+    // Lo implementaremos más adelante.
+  }
+
   int _selectedIndex = 0;
 
   /// Pantallas mostradas por el BottomNavigationBar.
@@ -72,6 +84,20 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _selectedIndex = index;
           });
+
+          switch (index) {
+            case 0:
+              _refreshDashboard();
+              break;
+
+            case 1:
+              _refreshIncomes();
+              break;
+
+            case 2:
+              _refreshExpenses();
+              break;
+          }
         },
 
         type: BottomNavigationBarType.fixed,

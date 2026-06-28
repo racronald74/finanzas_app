@@ -31,19 +31,11 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        /// Gestión de autenticación
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-
-        /// Gestión del módulo de ingresos
         ChangeNotifierProvider(create: (_) => IncomeProvider()),
-
-        /// Gestión del módulo de gastos
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
-
-        /// Gestión del presupuesto
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
       ],
-
       child: const MyApp(),
     ),
   );
