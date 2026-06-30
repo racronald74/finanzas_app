@@ -157,15 +157,21 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       return;
     }
 
+    final categoria = _categorias.firstWhere(
+      (c) => c.idCategoria.toString() == _categoriaSeleccionada,
+    );
+
     final income = IncomeModel(
       idIngreso: widget.initialIncome?.idIngreso,
       descripcion: _descripcionController.text.trim(),
       monto: monto,
       fecha: _fechaSeleccionada.toIso8601String(),
       tipo: widget.initialIncome?.tipo ?? 'ADICIONAL',
-      fuente: widget.initialIncome?.fuente,
+
+      fuente: categoria.nombre,
+
       origen: widget.initialIncome?.origen ?? 'Manual',
-      idCategoria: int.parse(_categoriaSeleccionada!),
+      idCategoria: categoria.idCategoria,
       idUsuario: user.idUsuario!,
       fechaRegistro: widget.initialIncome?.fechaRegistro,
     );

@@ -23,62 +23,97 @@ class ExpenseCard extends StatelessWidget {
   /// Acción para eliminar el gasto.
   final VoidCallback? onDelete;
 
+  /// Formatea una fecha ISO a dd/MM/yyyy.
+  String _formatDate(String fecha) {
+    final date = DateTime.parse(fecha);
+
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-
-      child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.shopping_cart)),
-
-        title: Text(expense.nombre),
-
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CircleAvatar(child: Icon(Icons.shopping_cart)),
 
-          children: [Text(expense.fecha), Text(expense.origen)],
-        ),
+            const SizedBox(width: 16),
 
-        // Contenedor para el monto y los botones de acción.
-        trailing: SizedBox(
-          width: 120,
-
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-
-            children: [
-              Text('\$${expense.monto.toStringAsFixed(0)}'),
-
-              const SizedBox(height: 6),
-
-              Row(
-                mainAxisSize: MainAxisSize.min,
-
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.edit),
-                    tooltip: 'Editar gasto',
-                    onPressed: onEdit,
+                  Text(
+                    expense.nombre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 4),
 
-                  IconButton(
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    tooltip: 'Eliminar gasto',
-                    onPressed: () {
-                      onDelete?.call();
-                    },
+                  if (expense.descripcion.trim().isNotEmpty)
+                    Text(expense.descripcion)
+                  else
+                    const Text(
+                      'Sin descripción',
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    _formatDate(expense.fecha),
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '\$${expense.monto.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Editar gasto',
+                      onPressed: onEdit,
+                    ),
+
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Eliminar gasto',
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -1,36 +1,56 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
-  static const int _dbVersion = 6;
+import '../../shared/constants/database_constants.dart';
 
+/// Clase encargada de administrar la conexión con SQLite.
+///
+/// Implementa el patrón Singleton para mantener
+/// una única instancia de la base de datos durante
+/// toda la ejecución de la aplicación.
+class DatabaseHelper {
+  /// Instancia única de la clase.
+  static final DatabaseHelper instance = DatabaseHelper._init();
+
+  /// Referencia a la base de datos.
   static Database? _database;
 
+  /// Constructor privado.
   DatabaseHelper._init();
 
+  /// Obtiene la instancia de la base de datos.
+  ///
+  /// Si aún no existe, la crea automáticamente.
   Future<Database> get database async {
     if (_database != null) return _database!;
 
-    _database = await _initDB('finanzas_app_v5.db');
+    _database = await _initDB(DatabaseConstants.databaseName);
+
     return _database!;
   }
 
-  /// Inicializa la base de datos, creando las tablas necesarias y aplicando migraciones si es necesario.
+  /// Inicializa la base de datos.
+  ///
+  /// Crea las tablas necesarias y aplica las migraciones
+  /// cuando cambia la versión del esquema.
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    // Abre la base de datos, configurando las claves foráneas y creando o actualizando el esquema según sea necesario.
+
     return openDatabase(
       path,
-      version: _dbVersion,
+
+      version: DatabaseConstants.databaseVersion,
+
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
+
       onCreate: (db, version) async {
         await _createSchema(db);
         await _seedSystemCategories(db);
       },
+
       onUpgrade: (db, oldVersion, newVersion) async {
         await _createSchema(db);
         await _migrateExistingColumns(db);

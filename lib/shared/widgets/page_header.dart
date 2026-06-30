@@ -18,11 +18,14 @@ class PageHeader extends StatelessWidget {
   /// Indica si debe mostrarse el avatar.
   final bool showAvatar;
 
+  final VoidCallback? onAvatarPressed;
+
   const PageHeader({
     super.key,
     required this.title,
     this.showBackButton = false,
     this.showAvatar = true,
+    this.onAvatarPressed,
   });
 
   @override
@@ -60,9 +63,7 @@ class PageHeader extends StatelessWidget {
             // Avatar del usuario.
             if (showAvatar)
               GestureDetector(
-                onTap: () {
-                  // Aquí posteriormente abriremos el Drawer.
-                },
+                onTap: onAvatarPressed,
                 child: const CircleAvatar(
                   radius: 18,
                   child: Icon(Icons.person),

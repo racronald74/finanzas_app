@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'dashboard_header.dart';
 import 'page_header.dart';
+import 'more_header.dart';
 
 /// Encabezado reutilizable de la aplicación.
 ///
@@ -30,6 +31,8 @@ class AppHeader extends StatelessWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
+  final bool isMoreScreen;
+
   const AppHeader({
     super.key,
     this.title,
@@ -39,6 +42,7 @@ class AppHeader extends StatelessWidget {
     this.showAvatar = false,
     this.showNotification = false,
     this.onAvatarPressed,
+    this.isMoreScreen = false,
   });
 
   @override
@@ -56,10 +60,15 @@ class AppHeader extends StatelessWidget {
       );
     }
 
+    if (isMoreScreen) {
+      return MoreHeader(title: title ?? 'Más', userName: 'Ronald');
+    }
+
     return PageHeader(
       title: title ?? '',
       showBackButton: showBackButton,
       showAvatar: showAvatar,
+      onAvatarPressed: onAvatarPressed,
     );
   }
 }

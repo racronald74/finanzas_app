@@ -1,31 +1,82 @@
 import 'package:flutter/material.dart';
 
-/// Colores oficiales de FinanzApp
+/// Paleta oficial de colores de FinanzApp.
+///
+/// Centraliza todos los colores utilizados en la aplicación.
+/// De esta forma evitamos escribir colores directamente
+/// (Colors.blue, Colors.red, etc.) en los widgets.
 class AppColors {
-  // Constructor privado para evitar instancias
   AppColors._();
 
-  /// Color principal
-  static const Color primary = Color(0xFF2563EB);
+  // ===============================
+  // Colores principales
+  // ===============================
 
-  /// Color secundario
-  static const Color secondary = Color(0xFF3B82F6);
+  /// Azul principal de la aplicación.
+  static const Color primary = Color(0xFF3F6DB5);
 
-  /// Fondo principal
-  static const Color background = Color(0xFFF8FAFC);
+  /// Fondo general de la aplicación.
+  static const Color background = Color(0xFFF8F9FC);
 
-  /// Tarjetas
-  static const Color surface = Colors.white;
+  /// Fondo de tarjetas.
+  static const Color cardBackground = Color(0xFFFDFDFF);
 
-  /// Texto principal
-  static const Color textPrimary = Color(0xFF1E293B);
+  // ===============================
+  // Colores de texto
+  // ===============================
 
-  /// Texto secundario
-  static const Color textSecondary = Color(0xFF64748B);
+  /// Texto principal.
+  static const Color textPrimary = Color(0xFF222222);
 
-  /// Éxito
-  static const Color success = Color(0xFF22C55E);
+  /// Texto secundario.
+  static const Color textSecondary = Color(0xFF8A8A8A);
 
-  /// Error
-  static const Color error = Color(0xFFEF4444);
+  /// Texto blanco.
+  static const Color textLight = Colors.white;
+
+  // ===============================
+  // Colores de estados
+  // ===============================
+
+  /// Estado informativo.
+  static const Color info = Color(0xFF3F6DB5);
+
+  /// Estado exitoso.
+  static const Color success = Color(0xFF22B35E);
+
+  /// Estado de advertencia.
+  static const Color warning = Color(0xFFFFB52E);
+
+  /// Estado de error.
+  static const Color danger = Color(0xFFE53935);
+
+  /// Estado neutro.
+  static const Color neutral = Color(0xFFBDBDBD);
+
+  // ===============================
+  // Colores de progreso
+  // ===============================
+
+  /// Barra de progreso.
+  static const Color progress = Color(0xFF2365D1);
+
+  /// Fondo de la barra de progreso.
+  static const Color progressBackground = Color(0xFFDCE7FA);
+
+  // ===============================
+  // Colores de bordes
+  // ===============================
+
+  /// Borde claro.
+  static const Color border = Color(0xFFE3E6EB);
+
+  // ===============================
+  // Colores de iconos
+  // ===============================
+
+  /// Fondo circular de iconos.
+  static const Color iconBackground = Color(0xFFE8F0FF);
+
+  /// Color principal de iconos.
+  static const Color icon = primary;
 }

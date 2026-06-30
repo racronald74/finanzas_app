@@ -5,6 +5,7 @@ import '../../expense/screens/expenses_screen.dart';
 import '../../income/screens/incomes_screen.dart';
 import 'more_screen.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../goal/screens/goals_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -53,19 +54,27 @@ class _MainScreenState extends State<MainScreen> {
 
   int _selectedIndex = 0;
 
-  /// Pantallas mostradas por el BottomNavigationBar.
-  late final List<Widget> _screens;
+  /// Información de cada pestaña de la aplicación.
+  late final List<MainTab> _tabs;
 
   @override
   void initState() {
     super.initState();
 
-    _screens = [
-      DashboardScreen(onAvatarPressed: _openDrawer),
-      const IncomesScreen(),
-      const ExpensesScreen(),
-      const Scaffold(body: Center(child: Text('Metas'))),
-      const MoreScreen(),
+    _tabs = [
+      MainTab(
+        screen: DashboardScreen(onAvatarPressed: _openDrawer),
+        title: 'Dashboard',
+        isDashboard: true,
+      ),
+
+      MainTab(screen: const IncomesScreen(), title: 'Ingresos'),
+
+      MainTab(screen: const ExpensesScreen(), title: 'Gastos'),
+
+      MainTab(screen: const GoalsScreen(), title: 'Metas'),
+
+      MainTab(screen: const MoreScreen(), title: 'Más'),
     ];
   }
 
@@ -75,7 +84,10 @@ class _MainScreenState extends State<MainScreen> {
       key: _scaffoldKey,
 
       drawer: const AppDrawer(),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _tabs.map((tab) => tab.screen).toList(),
+      ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

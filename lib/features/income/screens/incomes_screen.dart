@@ -8,6 +8,7 @@ import 'add_income_screen.dart';
 
 import '../../../providers/expense_provider.dart';
 import '../../../providers/budget_provider.dart';
+import '../../../shared/widgets/app_header.dart';
 
 // Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
@@ -27,22 +28,31 @@ class _IncomesScreenState extends State<IncomesScreen> {
     });
   }
 
+  /// Carga la información de ingresos, gastos y actualiza
+  /// el presupuesto del usuario autenticado.
   Future<void> _loadIncomeData() async {
+    // Obtiene el usuario autenticado.
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // Obtiene los providers antes de cualquier operación asíncrona.
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+
     final user = authProvider.currentUser;
 
     if (user == null) return;
 
-    await Provider.of<IncomeProvider>(
-      context,
-      listen: false,
-    ).loadIncomeData(user.idUsuario!);
+    // Carga los ingresos.
+    await incomeProvider.loadIncomeData(user.idUsuario!);
+    // Carga los gastos.
+    await expenseProvider.loadExpenses(user.idUsuario!);
 
-    await Provider.of<ExpenseProvider>(
-      context,
-      listen: false,
-    ).loadExpenses(user.idUsuario!);
+    // Verifica que la pantalla siga activa.
+    if (!mounted) return;
 
+    // Actualiza el presupuesto.
     await _refreshBudget();
   }
 
@@ -50,71 +60,119 @@ class _IncomesScreenState extends State<IncomesScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final incomeProvider = Provider.of<IncomeProvider>(context);
+
     final fixedIncome = authProvider.currentUser?.ingresoFijoMensual ?? 0;
     final monthlyTotal = fixedIncome + incomeProvider.totalIncome;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text('Ingreso fijo mensual'),
-                    const SizedBox(height: 8),
-                    Text(
-                      '\$${fixedIncome.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+      body: Column(
+        children: [
+          const AppHeader(title: 'Ingresos', showAvatar: true),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 150,
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('Ingreso fijo'),
+
+                                  Text(
+                                    '\$${fixedIncome.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                  TextButton(
+                                    onPressed: _editFixedIncome,
+                                    child: const Text(
+                                      'Modificar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _editFixedIncome,
-                      child: const Text('Modificar'),
-                    ),
-                  ],
-                ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: SizedBox(
+                          height: 150,
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('Total ingresos'),
+
+                                  Text(
+                                    '\$${monthlyTotal.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                  const Text(
+                                    'Este mes',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const Text('Historial de ingresos adicionales'),
+
+                  const SizedBox(height: 12),
+
+                  if (incomeProvider.isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (incomeProvider.additionalIncomes.isEmpty)
+                    const Card(
+                      child: ListTile(title: Text('Sin ingresos registrados')),
+                    )
+                  else
+                    ...incomeProvider.additionalIncomes.map(_incomeTile),
+
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            const Text('Historial de ingresos adicionales'),
-            const SizedBox(height: 12),
-            if (incomeProvider.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (incomeProvider.additionalIncomes.isEmpty)
-              const Card(
-                child: ListTile(title: Text('Sin ingresos registrados')),
-              )
-            else
-              ...incomeProvider.additionalIncomes.map(_incomeTile),
-            const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text('Total ingresos del mes'),
-                    const SizedBox(height: 8),
-                    Text(
-                      '\$${monthlyTotal.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.push(
@@ -123,6 +181,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
           );
 
           if (!mounted) return;
+
           await _loadIncomeData();
         },
         child: const Icon(Icons.add),
@@ -130,36 +189,110 @@ class _IncomesScreenState extends State<IncomesScreen> {
     );
   }
 
+  String _formatDate(String fecha) {
+    final date = DateTime.parse(fecha);
+
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
   Widget _incomeTile(IncomeModel income) {
     return Card(
-      child: ListTile(
-        title: Text(
-          income.descripcion.isEmpty ? 'Ingreso' : income.descripcion,
-        ),
-        subtitle: Text(income.fecha.split('T').first),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Text('\$${income.monto.toStringAsFixed(0)}'),
-            IconButton(
-              tooltip: 'Editar',
-              icon: const Icon(Icons.edit),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddIncomeScreen(initialIncome: income),
-                  ),
-                );
+            const CircleAvatar(child: Icon(Icons.attach_money)),
 
-                if (!mounted) return;
-                await _loadIncomeData();
-              },
+            const SizedBox(width: 16),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    income.fuente ?? 'Sin categoría',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    income.descripcion.trim().isEmpty
+                        ? 'Sin descripción'
+                        : income.descripcion,
+                    style: TextStyle(
+                      fontStyle: income.descripcion.trim().isEmpty
+                          ? FontStyle.italic
+                          : FontStyle.normal,
+                      color: income.descripcion.trim().isEmpty
+                          ? Colors.grey
+                          : Colors.black87,
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    _formatDate(income.fecha),
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-            IconButton(
-              tooltip: 'Eliminar',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _confirmDelete(income),
+
+            const SizedBox(width: 12),
+
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '\$${income.monto.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.edit),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddIncomeScreen(initialIncome: income),
+                          ),
+                        );
+
+                        if (!mounted) return;
+                        await _loadIncomeData();
+                      },
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    IconButton(
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _confirmDelete(income),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
