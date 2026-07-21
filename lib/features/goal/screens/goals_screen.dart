@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/widgets/app_header.dart';
 import '../widgets/goal_overview_card.dart';
 import '../widgets/goal_card.dart';
+import 'add_goal_screen.dart';
 
 /// Pantalla principal del módulo Metas.
 class GoalsScreen extends StatelessWidget {
@@ -69,6 +70,26 @@ class GoalsScreen extends StatelessWidget {
                     onDetails: () {},
                     onContribute: () {},
                   ),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddGoalScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Crear nueva meta'),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
 
                   const SizedBox(height: 80),
                 ],

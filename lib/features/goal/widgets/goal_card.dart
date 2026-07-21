@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../shared/themes/app_colors.dart';
 import '../../../shared/widgets/app_progress_bar.dart';
 import '../../../shared/widgets/app_status_chip.dart';
+import '../../../shared/widgets/app_progress_circle.dart';
+import '../../../shared/helpers/responsive_helper.dart';
+import '../../../shared/widgets/app_chip_button.dart';
+import '../../../shared/helpers/currency_formatter.dart';
 
 /// Tarjeta reutilizable para mostrar una meta de ahorro.
 ///
@@ -13,11 +17,7 @@ import '../../../shared/widgets/app_status_chip.dart';
 /// - Estado.
 /// - Progreso.
 /// - Fecha límite.
-///
-/// En los siguientes pasos agregaremos:
-/// - Círculo de progreso.
-/// - Botones.
-/// - Colores dinámicos.
+
 class GoalCard extends StatelessWidget {
   /// Icono representativo de la meta.
   final IconData icon;
@@ -66,6 +66,15 @@ class GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    /// Valor restante para completar la meta.
+    final double remainingAmount = (targetAmount - savedAmount).clamp(
+      0,
+      double.infinity,
+    );
+
+    /// Indica si la pantalla corresponde a un dispositivo móvil.
+    final bool isMobile = ResponsiveHelper.isMobile(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -80,23 +89,41 @@ class GoalCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                /// Icono de la meta.
                 CircleAvatar(
-                  radius: 28,
+                  radius: isMobile ? 20 : 24,
                   backgroundColor: AppColors.iconBackground,
-                  child: Icon(icon, color: AppColors.primary, size: 28),
+                  child: Icon(
+                    icon,
+                    color: AppColors.primary,
+                    size: isMobile ? 20 : 24,
+                  ),
                 ),
 
-                const SizedBox(width: 16),
+                SizedBox(width: isMobile ? 10 : 14),
 
+                /// Información principal.
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          fontSize: 18,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 18,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: AppStatusChip(
+                          text: status,
+                          color: AppColors.info,
                         ),
                       ),
 
@@ -106,35 +133,77 @@ class GoalCard extends StatelessWidget {
                         description,
                         style: const TextStyle(color: AppColors.textSecondary),
                       ),
-
-                      const SizedBox(height: 8),
-
-                      AppStatusChip(text: status, color: AppColors.info),
                     ],
                   ),
                 ),
+
+                const SizedBox(width: 12),
+
+                /// Indicador circular de progreso.
+                AppProgressCircle(value: progress, size: isMobile ? 46 : 60),
               ],
             ),
 
             const SizedBox(height: 20),
 
-            // ============================
-            // Valores
-            // ============================
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '\$${savedAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                /// Valor ahorrado y objetivo.
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: CurrencyFormatter.format(savedAmount),
+                              style: TextStyle(
+                                color: AppColors.success,
+                                fontSize: isMobile ? 16 : 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text:
+                                  ' / ${CurrencyFormatter.format(targetAmount)}',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: isMobile ? 14 : 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                Text(
-                  ' / \$${targetAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 16),
+                /// Valor restante.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Restan',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    Text(
+                      CurrencyFormatter.format(remainingAmount),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -146,31 +215,65 @@ class GoalCard extends StatelessWidget {
             // ============================
             AppProgressBar(value: progress),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 22),
 
-            // ============================
-            // Fecha límite
-            // ============================
-            Row(
+            const Divider(),
+
+            const SizedBox(height: 14),
+
+            /// Información inferior de la meta.
+            Column(
               children: [
-                const Icon(
-                  Icons.calendar_month,
-                  size: 18,
-                  color: AppColors.primary,
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    const Text(
+                      'Límite:',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+
+                    const SizedBox(width: 6),
+
+                    Text(
+                      deadline,
+                      style: const TextStyle(color: AppColors.success),
+                    ),
+                  ],
                 ),
 
-                const SizedBox(width: 8),
+                const SizedBox(height: 14),
 
-                const Text(
-                  'Límite:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
+                Row(
+                  children: [
+                    const Spacer(),
+                    SizedBox(
+                      width: 130,
+                      child: AppChipButton(
+                        text: 'Ver detalle',
+                        icon: Icons.visibility_outlined,
+                        onPressed: onDetails,
+                      ),
+                    ),
 
-                const SizedBox(width: 6),
+                    const SizedBox(width: 10),
 
-                Text(
-                  deadline,
-                  style: const TextStyle(color: AppColors.success),
+                    SizedBox(
+                      width: 120,
+                      child: AppChipButton(
+                        text: 'Aportar',
+                        icon: Icons.savings_outlined,
+                        isPrimary: true,
+                        onPressed: onContribute,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

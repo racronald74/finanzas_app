@@ -20,6 +20,9 @@ class CustomTextField extends StatelessWidget {
 
   final VoidCallback? onSubmitted;
 
+  /// Acción ejecutada al tocar el campo.
+  final VoidCallback? onTap;
+
   const CustomTextField({
     super.key,
     required this.controller,
@@ -34,6 +37,7 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
+    this.onTap,
   });
 
   @override
@@ -43,6 +47,7 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText,
       enabled: enabled,
       readOnly: readOnly,
+      onTap: onTap,
       maxLines: obscureText ? 1 : maxLines,
       keyboardType: keyboardType,
       textInputAction: textInputAction,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/helpers/responsive_helper.dart';
 import '../../../shared/themes/app_colors.dart';
+import '../../../shared/helpers/currency_formatter.dart';
 
 /// Tarjeta de resumen del módulo de metas.
 ///
@@ -30,94 +31,120 @@ class GoalOverviewCard extends StatelessWidget {
     // Indica si la aplicación se está ejecutando
     // en una pantalla de teléfono.
     final bool isMobile = ResponsiveHelper.isMobile(context);
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 16 : 25),
-        child: Column(
-          children: [
-            Row(
+
+    /// Ancho de cada indicador.
+    /// Permite que el Wrap reorganice automáticamente
+    /// los elementos según el espacio disponible.
+    final double indicatorWidth = isMobile ? 110 : 130;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 16 : 25),
+            child: Column(
               children: [
-                Expanded(
-                  child: _IndicatorItem(
-                    icon: Icons.savings,
-                    title: 'Ahorro total',
-                    value: '\$${totalSavings.toStringAsFixed(0)}',
-                    color: AppColors.primary,
-                    isMobile: isMobile,
-                  ),
-                ),
-
-                const VerticalDivider(),
-
-                Expanded(
-                  child: _IndicatorItem(
-                    icon: Icons.track_changes,
-                    title: 'Metas\nactivas',
-                    value: activeGoals.toString(),
-                    color: AppColors.primary,
-                    isMobile: isMobile,
-                  ),
-                ),
-
-                const VerticalDivider(),
-
-                Expanded(
-                  child: _IndicatorItem(
-                    icon: Icons.bar_chart,
-                    title: 'Progreso\ntotal',
-                    value: '$totalProgress%',
-                    color: AppColors.primary,
-                    isMobile: isMobile,
-                  ),
-                ),
-
-                const VerticalDivider(),
-
-                Expanded(
-                  child: _IndicatorItem(
-                    icon: Icons.calendar_month,
-                    title: 'Objetivo\nmensual',
-                    value: '\$${monthlyGoal.toStringAsFixed(0)}',
-                    color: AppColors.primary,
-                    isMobile: isMobile,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            const Divider(),
-
-            const SizedBox(height: 16),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.insights, color: Colors.blue),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        messageTitle,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 12,
+                  runSpacing: 20,
+                  children: [
+                    SizedBox(
+                      width: indicatorWidth,
+                      child: _IndicatorItem(
+                        icon: Icons.savings,
+                        title: 'Ahorro total',
+                        value: CurrencyFormatter.format(totalSavings),
+                        color: AppColors.primary,
+                        isMobile: isMobile,
                       ),
+                    ),
 
-                      const SizedBox(height: 4),
+                    SizedBox(
+                      width: indicatorWidth,
+                      child: _IndicatorItem(
+                        icon: Icons.track_changes,
+                        title: 'Metas\nactivas',
+                        value: activeGoals.toString(),
+                        color: AppColors.primary,
+                        isMobile: isMobile,
+                      ),
+                    ),
 
-                      Text(message, style: const TextStyle(color: Colors.grey)),
-                    ],
-                  ),
+                    SizedBox(
+                      width: indicatorWidth,
+                      child: _IndicatorItem(
+                        icon: Icons.bar_chart,
+                        title: 'Progreso\ntotal',
+                        value: '$totalProgress%',
+                        color: AppColors.primary,
+                        isMobile: isMobile,
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: indicatorWidth,
+                      child: _IndicatorItem(
+                        icon: Icons.calendar_month,
+                        title: 'Objetivo\nmensual',
+                        value: CurrencyFormatter.format(monthlyGoal),
+                        color: AppColors.primary,
+                        isMobile: isMobile,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                const Divider(),
+
+                const SizedBox(height: 10),
+
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
+                      child: Icon(
+                        Icons.insights,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            messageTitle,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            message,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -146,21 +173,30 @@ class _IndicatorItem extends StatelessWidget {
     return Column(
       children: [
         CircleAvatar(
-          radius: isMobile ? 20 : 25,
+          radius: isMobile ? 18 : 20,
           backgroundColor: color.withValues(alpha: 0.15),
-          child: Icon(icon, color: color),
+          child: Icon(icon, color: color, size: isMobile ? 18 : 22),
         ),
 
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
 
-        Text(title, textAlign: TextAlign.center),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
 
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
 
         Text(
           value,
           textAlign: TextAlign.center,
-          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w700,
+            fontSize: isMobile ? 15 : 16,
+          ),
         ),
       ],
     );
