@@ -2,24 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/goal_model.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../providers/goal_provider.dart';
-
 import '../../../shared/themes/app_colors.dart';
 import '../../../shared/widgets/app_header.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../../shared/widgets/custom_button.dart';
 
-/// Pantalla para registrar una nueva meta de ahorro.
-class AddGoalScreen extends StatefulWidget {
-  const AddGoalScreen({super.key});
+/// Pantalla para editar una meta existente.
+class EditGoalScreen extends StatefulWidget {
+  const EditGoalScreen({super.key, required this.goal});
+
+  /// Meta que se desea editar.
+  final GoalModel goal;
 
   @override
-  State<AddGoalScreen> createState() => _AddGoalScreenState();
+  State<EditGoalScreen> createState() => _EditGoalScreenState();
 }
 
-class _AddGoalScreenState extends State<AddGoalScreen> {
-  /// Controlador del nombre de la meta.
+class _EditGoalScreenState extends State<EditGoalScreen> {
+  /// Controlador del nombre.
   final TextEditingController _nameController = TextEditingController();
 
   /// Controlador del monto objetivo.
@@ -28,38 +29,49 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   /// Controlador de la fecha límite.
   final TextEditingController _deadlineController = TextEditingController();
 
-  /// Controlador del aporte inicial.
-  final TextEditingController _initialAmountController =
-      TextEditingController();
-
   /// Categoría seleccionada.
-  String _selectedCategory = 'Viajes';
+  late String _selectedCategory;
 
   /// Prioridad seleccionada.
-  String _selectedPriority = 'Media';
+  late String _selectedPriority;
 
-  /// Indica si los recordatorios están activados.
-  bool _reminderEnabled = false;
+  /// Estado del recordatorio.
+  late bool _reminderEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Carga los valores actuales de la meta.
+    _nameController.text = widget.goal.name;
+    _targetAmountController.text = widget.goal.targetAmount.toStringAsFixed(0);
+
+    _deadlineController.text = _formatDeadline(widget.goal.deadline);
+
+    _selectedCategory = widget.goal.category;
+    _selectedPriority = widget.goal.priority;
+    _reminderEnabled = widget.goal.reminderEnabled;
+  }
 
   /// Abre el selector de fecha.
   Future<void> _selectDeadline() async {
     final DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: widget.goal.deadline.isAfter(DateTime.now())
+          ? widget.goal.deadline
+          : DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
 
-    if (selectedDate == null) return;
+    if (selectedDate == null) {
+      return;
+    }
 
-    _deadlineController.text =
-        '${selectedDate.day.toString().padLeft(2, '0')}/'
-        '${selectedDate.month.toString().padLeft(2, '0')}/'
-        '${selectedDate.year}';
+    _deadlineController.text = _formatDeadline(selectedDate);
   }
 
-  /// Convierte la fecha del formulario, que está en formato
-  /// dd/MM/yyyy, en un objeto DateTime.
+  /// Convierte la fecha visual del formulario a DateTime.
   DateTime? _parseDeadline() {
     final String dateText = _deadlineController.text.trim();
 
@@ -69,7 +81,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
     final List<String> parts = dateText.split('/');
 
-    // Verifica que la fecha tenga día, mes y año.
     if (parts.length != 3) {
       return null;
     }
@@ -82,23 +93,18 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       return null;
     }
 
-    return DateTime(year, month, day);
-  }
+    final DateTime date = DateTime(year, month, day);
 
-  /// Construye la meta utilizando los datos ingresados
-  /// en el formulario.
-  GoalModel? _buildGoal() {
-    // Obtiene el usuario actualmente autenticado.
-    final authProvider = context.read<AuthProvider>();
-    final usuario = authProvider.currentUser;
-
-    // No es posible crear una meta sin un usuario autenticado.
-    if (usuario == null || usuario.idUsuario == null) {
-      _showError('No se encontró el usuario autenticado.');
+    // Evita aceptar fechas inexistentes como 31/02.
+    if (date.year != year || date.month != month || date.day != day) {
       return null;
     }
 
-    // Convierte el monto objetivo a número.
+    return date;
+  }
+
+  /// Construye la meta actualizada.
+  GoalModel? _buildGoal() {
     final double? targetAmount = double.tryParse(
       _targetAmountController.text.trim(),
     );
@@ -108,15 +114,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       return null;
     }
 
-    // Convierte el aporte inicial.
-    // Si está vacío, se considera cero.
-    final String initialAmountText = _initialAmountController.text.trim();
-
-    final double initialAmount = initialAmountText.isEmpty
-        ? 0
-        : double.tryParse(initialAmountText) ?? 0;
-
-    // Convierte la fecha del formulario a DateTime.
     final DateTime? deadline = _parseDeadline();
 
     if (deadline == null) {
@@ -124,130 +121,108 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       return null;
     }
 
-    // Crea el modelo de la meta.
     return GoalModel(
+      id: widget.goal.id,
       name: _nameController.text.trim(),
       category: _selectedCategory,
       targetAmount: targetAmount,
-      savedAmount: initialAmount,
+      savedAmount: widget.goal.savedAmount,
       deadline: deadline,
-      status: initialAmount >= targetAmount ? 'Completada' : 'Activa',
+      status: widget.goal.savedAmount >= targetAmount ? 'Completada' : 'Activa',
       priority: _selectedPriority,
       reminderEnabled: _reminderEnabled,
-      userId: usuario.idUsuario!,
-      completedAt: initialAmount >= targetAmount ? DateTime.now() : null,
-      createdAt: DateTime.now(),
+      userId: widget.goal.userId,
+      completedAt: widget.goal.savedAmount >= targetAmount
+          ? (widget.goal.completedAt ?? DateTime.now())
+          : null,
+      createdAt: widget.goal.createdAt,
     );
   }
 
-  /// Guarda la meta utilizando el GoalProvider.
-  ///
-  /// Valida el formulario, construye el modelo y solicita
-  /// al Provider que registre la meta en SQLite.
-  Future<void> _saveGoal() async {
-    // Valida los datos antes de intentar guardar.
+  /// Guarda los cambios de la meta.
+  Future<void> _updateGoal() async {
     if (!_validateForm()) {
       return;
     }
 
-    // Construye el modelo a partir de los datos del formulario.
-    final GoalModel? goal = _buildGoal();
+    final GoalModel? updatedGoal = _buildGoal();
 
-    if (goal == null) {
+    if (updatedGoal == null) {
       return;
     }
 
-    // Obtiene el Provider encargado de administrar las metas.
-    final goalProvider = context.read<GoalProvider>();
+    final GoalProvider goalProvider = context.read<GoalProvider>();
 
-    // Solicita la creación de la meta.
-    final bool success = await goalProvider.createGoal(goal);
+    final bool success = await goalProvider.updateGoal(updatedGoal);
 
-    // Verifica que la pantalla siga montada después de la operación
-    // asíncrona antes de utilizar el BuildContext.
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (success) {
-      // Informa al usuario que la meta fue creada correctamente.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Meta creada correctamente.')),
+        const SnackBar(content: Text('Meta actualizada correctamente.')),
       );
 
-      // Regresa a la pantalla anterior.
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } else {
-      // Muestra el error proporcionado por el Provider.
-      _showError(goalProvider.errorMessage ?? 'No se pudo crear la meta.');
+      _showError(goalProvider.errorMessage ?? 'No se pudo actualizar la meta.');
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-
-    final DateTime today = DateTime.now();
-
-    _deadlineController.text =
-        '${today.day.toString().padLeft(2, '0')}/'
-        '${today.month.toString().padLeft(2, '0')}/'
-        '${today.year}';
-  }
-
-  /// Valida los datos ingresados en el formulario.
-  ///
-  /// Retorna true cuando todos los datos son válidos.
-  /// En caso contrario, muestra un mensaje y retorna false.
+  /// Valida los datos del formulario.
   bool _validateForm() {
-    // El nombre de la meta es obligatorio.
     if (_nameController.text.trim().isEmpty) {
       _showError('El nombre de la meta es obligatorio.');
       return false;
     }
 
-    // Convierte el monto objetivo a número.
     final double? targetAmount = double.tryParse(
       _targetAmountController.text.trim(),
     );
 
-    // El monto objetivo debe ser un número válido y mayor que cero.
     if (targetAmount == null || targetAmount <= 0) {
       _showError('El monto objetivo debe ser mayor que cero.');
       return false;
     }
 
-    // El aporte inicial es opcional.
-    // Si se ingresa, debe ser mayor que cero.
-    final String initialAmountText = _initialAmountController.text.trim();
-
-    if (initialAmountText.isNotEmpty) {
-      final double? initialAmount = double.tryParse(initialAmountText);
-
-      if (initialAmount == null || initialAmount <= 0) {
-        _showError('El aporte inicial debe ser mayor que cero.');
-        return false;
-      }
-
-      // El aporte inicial no debe superar el monto objetivo.
-      if (initialAmount > targetAmount) {
-        _showError('El aporte inicial no puede superar el monto objetivo.');
-        return false;
-      }
+    // El nuevo objetivo no puede ser inferior
+    // al dinero que ya se ha ahorrado.
+    if (targetAmount < widget.goal.savedAmount) {
+      _showError(
+        'El monto objetivo no puede ser menor que '
+        'el monto acumulado.',
+      );
+      return false;
     }
 
-    // La fecha límite debe estar seleccionada.
-    if (_deadlineController.text.trim().isEmpty) {
+    final DateTime? deadline = _parseDeadline();
+
+    if (deadline == null) {
       _showError('La fecha límite es obligatoria.');
+      return false;
+    }
+
+    if (!deadline.isAfter(DateTime.now())) {
+      _showError('La fecha límite debe ser posterior a la fecha actual.');
       return false;
     }
 
     return true;
   }
 
-  /// Muestra un mensaje de error al usuario.
+  /// Muestra un mensaje de error.
   void _showError(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Formatea una fecha como dd/MM/yyyy.
+  String _formatDeadline(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
   }
 
   @override
@@ -257,17 +232,14 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            /// Encabezado de la pantalla.
-            const AppHeader(title: 'Crear meta', showBackButton: true),
+            const AppHeader(title: 'Editar meta', showBackButton: true),
 
-            /// Contenido.
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// Nombre de la meta.
                     const Text(
                       'Nombre de la meta',
                       style: TextStyle(
@@ -287,7 +259,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 24),
 
-                    /// Categoría.
                     const Text(
                       'Categoría',
                       style: TextStyle(
@@ -377,7 +348,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 24),
 
-                    /// Prioridad.
                     const Text(
                       'Prioridad',
                       style: TextStyle(
@@ -423,7 +393,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 24),
 
-                    /// Monto objetivo.
                     CustomTextField(
                       controller: _targetAmountController,
                       label: 'Monto objetivo',
@@ -434,7 +403,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 24),
 
-                    /// Fecha límite.
                     CustomTextField(
                       controller: _deadlineController,
                       label: 'Fecha límite',
@@ -447,18 +415,29 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 24),
 
-                    /// Aporte inicial.
+                    // El monto acumulado se muestra como
+                    // información, pero no se modifica aquí.
+                    const Text(
+                      'Monto acumulado',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
                     CustomTextField(
-                      controller: _initialAmountController,
-                      label: 'Aporte inicial (opcional)',
-                      hintText: 'Ej. \$300.000',
-                      keyboardType: TextInputType.number,
+                      controller: TextEditingController(
+                        text: widget.goal.savedAmount.toStringAsFixed(0),
+                      ),
+                      label: 'Monto acumulado',
+                      readOnly: true,
                       prefixIcon: const Icon(Icons.savings_outlined),
                     ),
 
                     const SizedBox(height: 24),
 
-                    /// Recordatorio.
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -482,11 +461,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
                     const SizedBox(height: 32),
 
-                    /// Botón para crear la meta.
                     CustomButton(
-                      text: 'Crear meta',
-                      icon: Icons.flag,
-                      onPressed: _saveGoal,
+                      text: 'Guardar cambios',
+                      icon: Icons.save_outlined,
+                      onPressed: _updateGoal,
                     ),
 
                     const SizedBox(height: 24),
@@ -505,12 +483,11 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     _nameController.dispose();
     _targetAmountController.dispose();
     _deadlineController.dispose();
-    _initialAmountController.dispose();
     super.dispose();
   }
 }
 
-/// Chip utilizado para representar una categoría de meta.
+/// Chip para seleccionar una categoría.
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
     required this.icon,
@@ -535,7 +512,7 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-/// Chip utilizado para seleccionar la prioridad de la meta.
+/// Chip para seleccionar la prioridad.
 class _PriorityChip extends StatelessWidget {
   const _PriorityChip({
     required this.label,

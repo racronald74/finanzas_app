@@ -369,11 +369,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
       /// Botón flotante
       floatingActionButton: FloatingActionButton(
+        heroTag: 'expense_fab',
         onPressed: () async {
-          final authProvider = Provider.of<AuthProvider>(
-            context,
-            listen: false,
-          );
+          final authProvider = Provider.of(context, listen: false);
 
           final expenseProvider = Provider.of<ExpenseProvider>(
             context,
@@ -393,7 +391,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             _updateBudget();
           }
         },
-
         child: const Icon(Icons.add),
       ),
     );

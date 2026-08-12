@@ -46,6 +46,7 @@ class DashboardHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(color: Color(0xFF3F6DB5)),
       child: SafeArea(
+        bottom: false,
         child: Row(
           children: [
             // Avatar del usuario.
@@ -62,26 +63,27 @@ class DashboardHeader extends StatelessWidget {
 
             // Información del usuario.
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hola, ${usuario?.nombre ?? greeting}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Hola, ${usuario?.nombre ?? greeting}\n',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
+                    TextSpan(
+                      text: subtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.left,
               ),
             ),
 

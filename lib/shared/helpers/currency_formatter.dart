@@ -13,12 +13,12 @@ class CurrencyFormatter {
   /// Ejemplo:
   /// 1300000 -> $1.300.000
   static String format(num value) {
-    final NumberFormat formatter = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: r'$',
-      decimalDigits: 0,
-    );
+    // Formatea únicamente la parte numérica con separador
+    // de miles y sin decimales.
+    final NumberFormat formatter = NumberFormat.decimalPattern('es_CO');
 
-    return formatter.format(value);
+    // Agrega manualmente el símbolo de pesos al inicio
+    // para garantizar el mismo formato en toda la aplicación.
+    return '\$${formatter.format(value)}';
   }
 }

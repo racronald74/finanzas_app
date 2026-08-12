@@ -174,6 +174,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
       ),
 
       floatingActionButton: FloatingActionButton(
+        heroTag: 'income_fab',
         onPressed: () async {
           await Navigator.push(
             context,
