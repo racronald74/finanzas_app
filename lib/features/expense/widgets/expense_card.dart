@@ -32,6 +32,50 @@ class ExpenseCard extends StatelessWidget {
         '${date.year}';
   }
 
+  /// Obtiene el color de fondo según el origen del gasto.
+  Color _getOrigenBackgroundColor(String origen) {
+    switch (origen.toUpperCase()) {
+      case 'MANUAL':
+        return Colors.blue.shade100;
+
+      case 'AUTOMÁTICO':
+      case 'AUTOMATICO':
+        return Colors.orange.shade100;
+
+      case 'OBLIGACIÓN':
+      case 'OBLIGACION':
+        return Colors.green.shade100;
+
+      case 'DEUDA':
+        return Colors.purple.shade100;
+
+      default:
+        return Colors.grey.shade200;
+    }
+  }
+
+  /// Obtiene el color del texto según el origen del gasto.
+  Color _getOrigenTextColor(String origen) {
+    switch (origen.toUpperCase()) {
+      case 'MANUAL':
+        return Colors.blue.shade700;
+
+      case 'AUTOMÁTICO':
+      case 'AUTOMATICO':
+        return Colors.orange.shade700;
+
+      case 'OBLIGACIÓN':
+      case 'OBLIGACION':
+        return Colors.green.shade700;
+
+      case 'DEUDA':
+        return Colors.purple.shade700;
+
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -75,6 +119,27 @@ class ExpenseCard extends StatelessWidget {
                   Text(
                     _formatDate(expense.fecha),
                     style: const TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Muestra el origen desde el cual se generó el gasto.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getOrigenBackgroundColor(expense.origen),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      expense.origen,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _getOrigenTextColor(expense.origen),
+                      ),
+                    ),
                   ),
                 ],
               ),

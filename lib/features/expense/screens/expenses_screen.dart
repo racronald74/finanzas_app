@@ -12,6 +12,7 @@ import '../widgets/expense_summary.dart';
 import 'add_expense_screen.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../shared/widgets/app_header.dart';
+import '../../../shared/themes/app_colors.dart';
 
 /// Pantalla principal del módulo de gastos.
 ///
@@ -22,7 +23,10 @@ import '../../../shared/widgets/app_header.dart';
 /// - Consultar el historial.
 /// - Registrar nuevos gastos.
 class ExpensesScreen extends StatefulWidget {
-  const ExpensesScreen({super.key});
+  /// Acción ejecutada al pulsar el avatar.
+  final VoidCallback? onAvatarPressed;
+
+  const ExpensesScreen({super.key, this.onAvatarPressed});
 
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
@@ -157,7 +161,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       // Contenido principal
       body: Column(
         children: [
-          const AppHeader(title: 'Gastos', showAvatar: true),
+          AppHeader(
+            title: 'Gastos',
+            showAvatar: true,
+            showNotification: true,
+            onAvatarPressed: widget.onAvatarPressed,
+          ),
 
           Expanded(
             child: SingleChildScrollView(
@@ -179,10 +188,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   const SizedBox(height: 16),
 
                   /// Filtros
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-
+                  Center(
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildFiltro('Todos'),
 
@@ -201,7 +209,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  const Text(
+                    'Lista de gastos',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+
+                  const SizedBox(height: 2),
 
                   /// Historial de gastos
                   gastosFiltrados.isEmpty
@@ -360,38 +375,63 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             );
                           },
                         ),
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final authProvider = Provider.of<AuthProvider>(
+                          context,
+                          listen: false,
+                        );
+
+                        final expenseProvider = Provider.of<ExpenseProvider>(
+                          context,
+                          listen: false,
+                        );
+
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddExpenseScreen(),
+                          ),
+                        );
+
+                        final usuario = authProvider.currentUser;
+
+                        if (usuario != null) {
+                          await expenseProvider.loadExpenses(
+                            usuario.idUsuario!,
+                          );
+
+                          _updateBudget();
+                        }
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text(
+                        'Registrar nuevo gasto',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-
-      /// Botón flotante
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'expense_fab',
-        onPressed: () async {
-          final authProvider = Provider.of(context, listen: false);
-
-          final expenseProvider = Provider.of<ExpenseProvider>(
-            context,
-            listen: false,
-          );
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-          );
-
-          final usuario = authProvider.currentUser;
-
-          if (usuario != null) {
-            await expenseProvider.loadExpenses(usuario.idUsuario!);
-
-            _updateBudget();
-          }
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

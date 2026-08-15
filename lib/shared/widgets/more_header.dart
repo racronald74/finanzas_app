@@ -16,11 +16,8 @@ class MoreHeader extends StatelessWidget {
           height: 150,
           width: double.infinity,
           color: const Color(0xFF3F6DB5),
-
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 50),
-
-          child: Align(
-            alignment: Alignment.topLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Center(
             child: Text(
               title,
               style: const TextStyle(
@@ -34,7 +31,7 @@ class MoreHeader extends StatelessWidget {
 
         Positioned(
           right: 24,
-          top: 45,
+          top: 50,
           child: CircleAvatar(
             radius: 34,
             backgroundColor: Colors.orange.shade300,
@@ -59,9 +56,7 @@ class MoreHeader extends StatelessWidget {
                       fontSize: 16,
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   const Text(
                     'Explora más herramientas de tu gestión financiera.',
                   ),

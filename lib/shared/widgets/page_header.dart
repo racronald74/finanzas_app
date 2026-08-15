@@ -35,7 +35,7 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      height: 150,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(color: Color(0xFF3F6DB5)),
       child: SafeArea(
@@ -49,7 +49,11 @@ class PageHeader extends StatelessWidget {
               // el botón regresar.
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 28,
+                ),
               )
             else if (showAvatar && showNotification)
               // En pantallas principales como Metas,
@@ -57,8 +61,8 @@ class PageHeader extends StatelessWidget {
               GestureDetector(
                 onTap: onAvatarPressed,
                 child: const CircleAvatar(
-                  radius: 18,
-                  child: Icon(Icons.person),
+                  radius: 22,
+                  child: Icon(Icons.person, size: 26),
                 ),
               )
             else
@@ -73,7 +77,7 @@ class PageHeader extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -90,7 +94,11 @@ class PageHeader extends StatelessWidget {
                   // Las notificaciones se implementarán
                   // posteriormente.
                 },
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
+                icon: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white,
+                  size: 30,
+                ),
               )
             else if (!showBackButton && showAvatar)
               // Comportamiento actual para las pantallas
@@ -98,8 +106,8 @@ class PageHeader extends StatelessWidget {
               GestureDetector(
                 onTap: onAvatarPressed,
                 child: const CircleAvatar(
-                  radius: 18,
-                  child: Icon(Icons.person),
+                  radius: 22,
+                  child: Icon(Icons.person, size: 26),
                 ),
               )
             else

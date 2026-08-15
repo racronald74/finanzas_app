@@ -68,9 +68,21 @@ class _MainScreenState extends State<MainScreen> {
         isDashboard: true,
       ),
 
-      MainTab(screen: const IncomesScreen(), title: 'Ingresos'),
+      MainTab(
+        screen: IncomesScreen(
+          // Utiliza el mismo Drawer que Gastos y Metas.
+          onAvatarPressed: _openDrawer,
+        ),
+        title: 'Ingresos',
+      ),
 
-      MainTab(screen: const ExpensesScreen(), title: 'Gastos'),
+      MainTab(
+        screen: ExpensesScreen(
+          // Utiliza el mismo Drawer que abre el avatar de Metas.
+          onAvatarPressed: _openDrawer,
+        ),
+        title: 'Gastos',
+      ),
 
       MainTab(
         screen: GoalsScreen(

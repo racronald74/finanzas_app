@@ -8,17 +8,22 @@ import 'add_income_screen.dart';
 
 import '../../../providers/expense_provider.dart';
 import '../../../providers/budget_provider.dart';
-import '../../../shared/widgets/app_header.dart';
+import '../widgets/income_header.dart';
 
 // Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
-  const IncomesScreen({super.key});
+  /// Acción ejecutada al pulsar el avatar.
+  final VoidCallback? onAvatarPressed;
+
+  const IncomesScreen({super.key, this.onAvatarPressed});
 
   @override
   State<IncomesScreen> createState() => _IncomesScreenState();
 }
 
 class _IncomesScreenState extends State<IncomesScreen> {
+  /// Mes y año actualmente seleccionados.
+  DateTime _selectedPeriod = DateTime.now();
   @override
   void initState() {
     super.initState();
@@ -26,6 +31,58 @@ class _IncomesScreenState extends State<IncomesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadIncomeData();
     });
+  }
+
+  /// Obtiene el texto correspondiente al período actual.
+  String _getCurrentPeriodText() {
+    final now = _selectedPeriod;
+
+    const monthNames = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+
+    return 'Mes actual - ${monthNames[now.month - 1]} ${now.year}';
+  }
+
+  /// Abre el selector para cambiar el mes y año.
+  Future<void> _selectPeriod() async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedPeriod,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Seleccionar período',
+      cancelText: 'Cancelar',
+      confirmText: 'Aceptar',
+    );
+
+    if (selectedDate == null) return;
+
+    setState(() {
+      _selectedPeriod = DateTime(selectedDate.year, selectedDate.month);
+    });
+  }
+
+  /// Devuelve los ingresos adicionales correspondientes
+  /// al mes y año actualmente seleccionados.
+  List<IncomeModel> _getFilteredIncomes(List<IncomeModel> incomes) {
+    return incomes.where((income) {
+      final incomeDate = DateTime.parse(income.fecha);
+
+      return incomeDate.year == _selectedPeriod.year &&
+          incomeDate.month == _selectedPeriod.month;
+    }).toList();
   }
 
   /// Carga la información de ingresos, gastos y actualiza
@@ -61,13 +118,27 @@ class _IncomesScreenState extends State<IncomesScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final incomeProvider = Provider.of<IncomeProvider>(context);
 
+    final filteredIncomes = _getFilteredIncomes(
+      incomeProvider.additionalIncomes,
+    );
+
     final fixedIncome = authProvider.currentUser?.ingresoFijoMensual ?? 0;
-    final monthlyTotal = fixedIncome + incomeProvider.totalIncome;
+
+    final additionalIncomeTotal = filteredIncomes.fold<double>(
+      0,
+      (total, income) => total + income.monto,
+    );
+
+    final monthlyTotal = fixedIncome + additionalIncomeTotal;
 
     return Scaffold(
       body: Column(
         children: [
-          const AppHeader(title: 'Ingresos', showAvatar: true),
+          IncomeHeader(
+            periodText: _getCurrentPeriodText(),
+            onCalendarPressed: _selectPeriod,
+            onAvatarPressed: widget.onAvatarPressed,
+          ),
 
           Expanded(
             child: SingleChildScrollView(
@@ -163,7 +234,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                       child: ListTile(title: Text('Sin ingresos registrados')),
                     )
                   else
-                    ...incomeProvider.additionalIncomes.map(_incomeTile),
+                    ...filteredIncomes.map(_incomeTile),
 
                   const SizedBox(height: 24),
                 ],
