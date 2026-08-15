@@ -64,6 +64,66 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     await context.read<ContributionProvider>().loadContributions(_goal.idMeta!);
   }
 
+  /// Muestra una confirmación antes de eliminar la meta.
+  Future<void> _deleteGoal() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Eliminar meta'),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar la meta '
+            '"${_goal.nombre}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      await GoalService().eliminarMeta(
+        idMeta: _goal.idMeta!,
+        idUsuario: _goal.idUsuario,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      // Regresa a la lista de metas indicando que
+      // la meta fue eliminada correctamente.
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No fue posible eliminar la meta: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Calcula el monto que todavía falta para completar la meta.
@@ -106,6 +166,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       goal: _goal,
                       progress: progress,
                       remainingAmount: remainingAmount,
+                      onDelete: _deleteGoal,
                     ),
 
                     const SizedBox(height: 16),
@@ -129,6 +190,62 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       },
                     ),
 
+                    const SizedBox(height: 8),
+
+                    Consumer<ContributionProvider>(
+                      builder: (context, contributionProvider, child) {
+                        final double? averageMonthly =
+                            _calculateAverageMonthlyContribution(
+                              contributionProvider.contributions,
+                            );
+
+                        final DateTime today = DateTime.now();
+
+                        int monthsRemaining =
+                            (_goal.fechaLimite.year - today.year) * 12 +
+                            _goal.fechaLimite.month -
+                            today.month;
+
+                        if (monthsRemaining < 1) {
+                          monthsRemaining = 1;
+                        }
+
+                        final double projectedAdditionalAmount =
+                            averageMonthly != null
+                            ? averageMonthly * monthsRemaining
+                            : 0;
+
+                        final double projectedAmount =
+                            (_goal.montoAcumulado + projectedAdditionalAmount)
+                                .clamp(0, _goal.montoObjetivo);
+
+                        final bool projectedToReachGoal =
+                            projectedAmount >= _goal.montoObjetivo;
+
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: projectedToReachGoal
+                                ? AppColors.success.withValues(alpha: 0.10)
+                                : AppColors.warning.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            projectedToReachGoal
+                                ? 'Con tu ritmo actual, alcanzarías la meta antes de la fecha límite.'
+                                : 'Con tu ritmo actual, no alcanzarías el monto objetivo antes de la fecha límite.',
+                            style: TextStyle(
+                              color: projectedToReachGoal
+                                  ? AppColors.success
+                                  : AppColors.warning,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
                     const SizedBox(height: 16),
 
                     // ============================================
@@ -142,173 +259,6 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                         );
                       },
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // ============================================
-                    // Proyección de ahorro
-                    // ============================================
-                    Consumer<ContributionProvider>(
-                      builder: (context, contributionProvider, child) {
-                        // Obtiene los aportes registrados para la meta.
-                        final List<ContributionModel> contributions =
-                            contributionProvider.contributions;
-
-                        // Calcula el promedio mensual disponible para la proyección.
-                        //
-                        // Puede ser null cuando todavía no existe suficiente
-                        // historial de aportes para realizar una proyección confiable.
-                        final double? averageMonthly =
-                            _calculateAverageMonthlyContribution(contributions);
-
-                        // Calcula aproximadamente cuántos meses quedan
-                        // hasta la fecha límite de la meta.
-                        final DateTime today = DateTime.now();
-
-                        int monthsRemaining =
-                            (_goal.deadline.year - today.year) * 12 +
-                            _goal.deadline.month -
-                            today.month;
-
-                        // Como mínimo consideramos un mes disponible.
-                        if (monthsRemaining < 1) {
-                          monthsRemaining = 1;
-                        }
-
-                        // Calcula el ahorro adicional proyectado únicamente
-                        // cuando existe suficiente historial para obtener
-                        // un promedio mensual confiable.
-                        final double projectedAdditionalAmount =
-                            averageMonthly != null
-                            ? averageMonthly * monthsRemaining
-                            : 0;
-
-                        // Genera los valores que utilizará la gráfica
-                        // para representar la evolución proyectada del ahorro.
-                        final List<double> projectionValues =
-                            averageMonthly != null
-                            ? _buildProjectionValues(
-                                averageMonthly: averageMonthly,
-                                monthsRemaining: monthsRemaining,
-                              )
-                            : [];
-
-                        // Calcula cuánto dinero tendría la meta al final
-                        // del período proyectado.
-                        //
-                        // No permitimos que la proyección supere el
-                        // monto objetivo.
-                        final double projectedAmount =
-                            (_goal.savedAmount + projectedAdditionalAmount)
-                                .clamp(0, _goal.targetAmount);
-
-                        // Determina si el ritmo actual permitiría
-                        // alcanzar el objetivo.
-                        final bool projectedToReachGoal =
-                            projectedAmount >= _goal.targetAmount;
-
-                        return _SectionCard(
-                          title: 'Proyección de ahorro',
-
-                          // Si no existe suficiente historial, todavía
-                          // no se calcula una proyección confiable.
-                          child: contributions.isEmpty || averageMonthly == null
-                              ? const Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: Text(
-                                    'Aún no hay suficiente historial de aportes '
-                                    'para calcular una proyección confiable.',
-                                    textAlign: TextAlign.center,
-                                  ),
-                                )
-                              // Cuando existen aportes, mostramos
-                              // los resultados de la proyección.
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Promedio mensual calculado a partir
-                                    // de los aportes registrados.
-                                    _ProjectionRow(
-                                      label: 'Aporte mensual promedio',
-                                      value: CurrencyFormatter.format(
-                                        averageMonthly,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 12),
-
-                                    // Cantidad aproximada de meses restantes
-                                    // hasta la fecha límite.
-                                    _ProjectionRow(
-                                      label: 'Meses restantes',
-                                      value: monthsRemaining.toString(),
-                                    ),
-
-                                    const SizedBox(height: 12),
-
-                                    // Monto que se estima tener al llegar
-                                    // a la fecha límite.
-                                    _ProjectionRow(
-                                      label: 'Monto proyectado',
-                                      value: CurrencyFormatter.format(
-                                        projectedAmount,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    const SizedBox(height: 20),
-
-                                    // Muestra gráficamente la evolución proyectada
-                                    // comenzando desde el mes actual.
-                                    _ProjectionChart(
-                                      values: projectionValues,
-                                      targetAmount: _goal.targetAmount,
-                                      startDate: DateTime.now(),
-                                    ),
-
-                                    // Mensaje indicando si el ritmo actual
-                                    // sería suficiente para alcanzar la meta.
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: projectedToReachGoal
-                                            ? AppColors.success.withValues(
-                                                alpha: 0.10,
-                                              )
-                                            : AppColors.warning.withValues(
-                                                alpha: 0.10,
-                                              ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        projectedToReachGoal
-                                            ? 'Con tu ritmo actual, alcanzarías '
-                                                  'la meta antes de la fecha límite.'
-                                            : 'Con tu ritmo actual, no alcanzarías '
-                                                  'el monto objetivo antes de la '
-                                                  'fecha límite.',
-                                        style: TextStyle(
-                                          color: projectedToReachGoal
-                                              ? AppColors.success
-                                              : AppColors.warning,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ============================================
-                    // Resumen final
-                    // ============================================
-                    _GoalFinalSummaryCard(goal: _goal),
 
                     const SizedBox(height: 20),
 
@@ -435,258 +385,6 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     // mensual de ahorro.
     return total / months;
   }
-
-  /// Genera los valores de ahorro proyectados para cada mes.
-  ///
-  /// El primer valor corresponde al ahorro acumulado actualmente.
-  /// Cada mes posterior suma el aporte mensual promedio.
-  /// La proyección nunca supera el monto objetivo.
-  List<double> _buildProjectionValues({
-    required double averageMonthly,
-    required int monthsRemaining,
-  }) {
-    // Lista que almacenará el ahorro estimado para cada período.
-    final List<double> values = [];
-
-    // El primer punto representa el ahorro actual de la meta.
-    double projectedAmount = _goal.savedAmount;
-
-    values.add(projectedAmount);
-
-    // Genera un punto por cada mes restante.
-    for (int month = 1; month <= monthsRemaining; month++) {
-      // Suma el promedio mensual al ahorro proyectado.
-      projectedAmount += averageMonthly;
-
-      // La proyección no puede superar el objetivo de la meta.
-      if (projectedAmount > _goal.targetAmount) {
-        projectedAmount = _goal.targetAmount;
-      }
-
-      values.add(projectedAmount);
-    }
-
-    return values;
-  }
-}
-
-/// Gráfico que representa la evolución proyectada
-/// del ahorro hasta la fecha límite.
-class _ProjectionChart extends StatelessWidget {
-  const _ProjectionChart({
-    required this.values,
-    required this.targetAmount,
-    required this.startDate,
-  });
-
-  /// Valores de ahorro proyectados para cada período.
-  final List<double> values;
-
-  /// Monto objetivo de la meta.
-  final double targetAmount;
-
-  /// Fecha utilizada como punto inicial del gráfico.
-  final DateTime startDate;
-
-  @override
-  Widget build(BuildContext context) {
-    // Si no existen suficientes datos, no se muestra el gráfico.
-    if (values.length < 2) {
-      return const SizedBox.shrink();
-    }
-
-    // Obtiene el valor máximo utilizado por el gráfico.
-    // Como mínimo utilizamos el monto objetivo para mantener
-    // una escala estable.
-    final double maxValue = targetAmount > 0
-        ? targetAmount
-        : values.reduce((a, b) => a > b ? a : b);
-
-    return SizedBox(
-      height: 180,
-      width: double.infinity,
-      child: CustomPaint(
-        painter: _ProjectionChartPainter(
-          values: values,
-          maxValue: maxValue,
-          startDate: startDate,
-        ),
-      ),
-    );
-  }
-}
-
-/// Painter encargado de dibujar la línea de proyección.
-class _ProjectionChartPainter extends CustomPainter {
-  const _ProjectionChartPainter({
-    required this.values,
-    required this.maxValue,
-    required this.startDate,
-  });
-
-  /// Valores que representan el ahorro proyectado.
-  final List<double> values;
-
-  /// Valor máximo utilizado para calcular la escala vertical.
-  final double maxValue;
-
-  /// Mes desde el cual comienza la proyección.
-  final DateTime startDate;
-
-  /// Devuelve la abreviatura del mes utilizada en el gráfico.
-  String _getMonthAbbreviation(int month) {
-    const List<String> months = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic',
-    ];
-
-    return months[month - 1];
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Configura el estilo de la línea de proyección.
-    final Paint linePaint = Paint()
-      ..color = AppColors.primary
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Configura el estilo de los puntos.
-    final Paint pointPaint = Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.fill;
-
-    // Configura la línea que representa el monto objetivo.
-    final Paint targetPaint = Paint()
-      ..color = AppColors.textSecondary.withValues(alpha: 0.35)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    // Calcula la posición vertical correspondiente
-    // al monto objetivo.
-    final double targetY = size.height - 28;
-
-    // Dibuja una línea horizontal como referencia
-    // del objetivo de ahorro.
-    canvas.drawLine(
-      Offset(0, targetY),
-      Offset(size.width, targetY),
-      targetPaint,
-    );
-
-    // Formatea el monto objetivo para mostrarlo
-    // como referencia dentro del gráfico.
-    final String targetLabel = CurrencyFormatter.format(maxValue);
-
-    // Configura el texto que identifica el objetivo.
-    final TextPainter targetTextPainter = TextPainter(
-      text: TextSpan(
-        text: targetLabel,
-        style: const TextStyle(
-          fontSize: 11,
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-
-    // Calcula el tamaño necesario para el texto.
-    targetTextPainter.layout();
-
-    // Coloca la etiqueta en la parte superior
-    // del área de la gráfica.
-    targetTextPainter.paint(
-      canvas,
-      Offset(0, targetY - targetTextPainter.height - 4),
-    );
-
-    // Calcula la separación horizontal entre cada punto.
-    final double horizontalStep = size.width / (values.length - 1);
-
-    final Path path = Path();
-
-    for (int index = 0; index < values.length; index++) {
-      // Convierte el valor monetario en una posición vertical.
-      final double normalizedValue = maxValue > 0
-          ? values[index] / maxValue
-          : 0;
-
-      final double x = index * horizontalStep;
-
-      // El eje vertical comienza arriba y aumenta hacia abajo,
-      // por eso invertimos el valor normalizado.
-      // Reservamos espacio en la parte inferior del gráfico
-      // para mostrar las etiquetas de los meses.
-      final double chartHeight = size.height - 28;
-
-      // Calcula la posición vertical del punto dentro
-      // del área reservada para la gráfica.
-      final double y = chartHeight - (normalizedValue * chartHeight);
-
-      if (index == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-
-      // Dibuja un punto en cada valor proyectado.
-      canvas.drawCircle(Offset(x, y), 4, pointPaint);
-    }
-
-    // Dibuja la línea que conecta los puntos.
-    canvas.drawPath(path, linePaint);
-
-    // Configura el estilo de las etiquetas de los meses.
-    const TextStyle monthTextStyle = TextStyle(
-      fontSize: 12,
-      color: AppColors.textSecondary,
-    );
-
-    // Dibuja el mes correspondiente debajo de cada punto.
-    for (int index = 0; index < values.length; index++) {
-      // Calcula la fecha correspondiente al punto actual.
-      final DateTime monthDate = DateTime(
-        startDate.year,
-        startDate.month + index,
-      );
-
-      // Obtiene una abreviatura sencilla del mes.
-      final String month = _getMonthAbbreviation(monthDate.month);
-
-      final TextPainter textPainter = TextPainter(
-        text: TextSpan(text: month, style: monthTextStyle),
-        textDirection: TextDirection.ltr,
-      );
-
-      textPainter.layout();
-
-      // Calcula la posición horizontal de la etiqueta.
-      final double x = (index * horizontalStep) - (textPainter.width / 2);
-
-      // Coloca la etiqueta dentro del espacio reservado
-      // en la parte inferior del gráfico.
-      final double y = size.height - 20;
-
-      textPainter.paint(canvas, Offset(x, y));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ProjectionChartPainter oldDelegate) {
-    return oldDelegate.values != values || oldDelegate.maxValue != maxValue;
-  }
 }
 
 /// Tarjeta que muestra el resumen principal de la meta.
@@ -695,11 +393,33 @@ class _GoalSummaryCard extends StatelessWidget {
     required this.goal,
     required this.progress,
     required this.remainingAmount,
+    required this.onDelete,
   });
 
   final GoalModel goal;
   final double progress;
   final double remainingAmount;
+  final VoidCallback onDelete;
+
+  String _formatCreatedDate(DateTime date) {
+    const months = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
+
+    return '${date.day.toString().padLeft(2, '0')} '
+        'de ${months[date.month - 1]} ${date.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -707,46 +427,74 @@ class _GoalSummaryCard extends StatelessWidget {
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Información superior.
+            // ============================================
+            // Fecha límite y estado
+            // ============================================
             Row(
               children: [
+                const Icon(
+                  Icons.calendar_month,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+
+                const SizedBox(width: 8),
+
                 Expanded(
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_month,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text('Fecha límite ${_formatDate(goal.fechaLimite)}'),
-                    ],
+                  child: Text(
+                    'Fecha límite ${_formatDate(goal.fechaLimite)}',
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
 
-                // Estado de la meta.
-                _StatusChip(status: goal.status),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      tooltip: 'Eliminar meta',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    _StatusChip(status: goal.status),
+                  ],
+                ),
               ],
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
+            // ============================================
+            // Monto y progreso
+            // ============================================
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Valores monetarios.
+                // Información monetaria.
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Monto actual / objetivo',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
 
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
                       RichText(
                         text: TextSpan(
@@ -766,62 +514,114 @@ class _GoalSummaryCard extends StatelessWidget {
                                   ' / ${CurrencyFormatter.format(goal.montoObjetivo)}',
                               style: const TextStyle(
                                 color: Colors.black54,
-                                fontSize: 14,
+                                fontSize: 13,
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
-                      // Mensaje de ahorro acumulado.
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 8,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          'Has ahorrado '
-                          '${CurrencyFormatter.format(goal.montoAcumulado)}',
-                          style: const TextStyle(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.insights,
+                                  size: 16,
+                                  color: AppColors.success,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Has ahorrado '
+                                  '${CurrencyFormatter.format(goal.montoAcumulado)}',
+                                  style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 2),
+
+                            Text(
+                              'desde ${goal.createdAt != null ? _formatCreatedDate(goal.createdAt!) : ''}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
 
-                // Indicador circular del progreso.
+                // Progreso y eliminación.
                 SizedBox(
-                  width: 72,
-                  height: 72,
-                  child: Stack(
-                    alignment: Alignment.center,
+                  width: 125,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 7,
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.12,
-                        ),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary,
-                        ),
+                      // Porcentaje.
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 58,
+                            height: 58,
+                            child: CircularProgressIndicator(
+                              value: progress,
+                              strokeWidth: 6,
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.12,
+                              ),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${(progress * 100).round()}%',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
+
+                      const SizedBox(height: 4),
+
+                      // Texto debajo del círculo.
                       Text(
-                        '${(progress * 100).round()}%',
+                        'Faltan ${CurrencyFormatter.format(remainingAmount)}\n'
+                        'para alcanzar tu meta',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        softWrap: false,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          height: 1.25,
                         ),
                       ),
                     ],
@@ -830,19 +630,7 @@ class _GoalSummaryCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 12),
-
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Faltan ${CurrencyFormatter.format(remainingAmount)} '
-                'para alcanzar tu meta',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ),
+            const SizedBox(height: 2),
           ],
         ),
       ),
@@ -985,55 +773,6 @@ class _SectionCard extends StatelessWidget {
             child,
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Tarjeta con el resumen final de la meta.
-class _GoalFinalSummaryCard extends StatelessWidget {
-  const _GoalFinalSummaryCard({required this.goal});
-
-  final GoalModel goal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Meta objetivo'),
-              Text(
-                CurrencyFormatter.format(goal.montoObjetivo),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Fecha límite'),
-              Text(
-                _formatDate(goal.fechaLimite),
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -1212,38 +951,4 @@ String _calculateRemainingTime(DateTime deadline) {
   }
 
   return '$months meses';
-}
-
-/// Fila reutilizable utilizada para mostrar
-/// un dato de la proyección y su valor.
-class _ProjectionRow extends StatelessWidget {
-  const _ProjectionRow({required this.label, required this.value});
-
-  /// Nombre del dato que se está mostrando.
-  final String label;
-
-  /// Valor calculado de ese dato.
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Permite que el texto ocupe el espacio disponible
-        // sin provocar problemas de ancho.
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        // Muestra el valor calculado.
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
 }

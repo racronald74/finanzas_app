@@ -32,10 +32,6 @@ class GoalOverviewCard extends StatelessWidget {
     // en una pantalla de teléfono.
     final bool isMobile = ResponsiveHelper.isMobile(context);
 
-    /// Ancho de cada indicador.
-    /// Permite que el Wrap reorganice automáticamente
-    /// los elementos según el espacio disponible.
-    final double indicatorWidth = isMobile ? 110 : 130;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
@@ -45,27 +41,32 @@ class GoalOverviewCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
           ),
           child: Padding(
-            padding: EdgeInsets.all(isMobile ? 16 : 25),
+            padding: EdgeInsets.all(isMobile ? 12 : 25),
             child: Column(
               children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceEvenly,
-                  spacing: 12,
-                  runSpacing: 20,
+                // ============================================
+                // Indicadores principales
+                // ============================================
+                //
+                // Los cuatro indicadores permanecen en una
+                // sola fila, igual que en el prototipo.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: indicatorWidth,
+                    Expanded(
                       child: _IndicatorItem(
                         icon: Icons.savings,
-                        title: 'Ahorro total',
+                        title: 'Ahorro\ntotal',
                         value: CurrencyFormatter.format(totalSavings),
                         color: AppColors.primary,
                         isMobile: isMobile,
                       ),
                     ),
 
-                    SizedBox(
-                      width: indicatorWidth,
+                    // Separador entre indicadores.
+                    _IndicatorDivider(isMobile: isMobile),
+
+                    Expanded(
                       child: _IndicatorItem(
                         icon: Icons.track_changes,
                         title: 'Metas\nactivas',
@@ -75,8 +76,10 @@ class GoalOverviewCard extends StatelessWidget {
                       ),
                     ),
 
-                    SizedBox(
-                      width: indicatorWidth,
+                    // Separador entre indicadores.
+                    _IndicatorDivider(isMobile: isMobile),
+
+                    Expanded(
                       child: _IndicatorItem(
                         icon: Icons.bar_chart,
                         title: 'Progreso\ntotal',
@@ -86,8 +89,10 @@ class GoalOverviewCard extends StatelessWidget {
                       ),
                     ),
 
-                    SizedBox(
-                      width: indicatorWidth,
+                    // Separador entre indicadores.
+                    _IndicatorDivider(isMobile: isMobile),
+
+                    Expanded(
                       child: _IndicatorItem(
                         icon: Icons.calendar_month,
                         title: 'Objetivo\nmensual',
@@ -99,43 +104,54 @@ class GoalOverviewCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
-                const Divider(),
+                const Divider(height: 1),
 
                 const SizedBox(height: 10),
 
+                // ============================================
+                // Mensaje de estado
+                // ============================================
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Icono del mensaje informativo.
                     CircleAvatar(
-                      radius: 14,
+                      radius: isMobile ? 14 : 15,
                       backgroundColor: AppColors.primary.withValues(
                         alpha: 0.12,
                       ),
                       child: Icon(
                         Icons.insights,
-                        size: 16,
+                        size: isMobile ? 16 : 17,
                         color: AppColors.primary,
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
 
+                    // Título y descripción del mensaje.
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             messageTitle,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: isMobile ? 13 : 14,
+                            ),
                           ),
 
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
 
                           Text(
                             message,
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: isMobile ? 12 : 13,
+                            ),
                           ),
                         ],
                       ),
@@ -147,6 +163,23 @@ class GoalOverviewCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Separador vertical utilizado entre los indicadores
+/// principales del resumen.
+class _IndicatorDivider extends StatelessWidget {
+  const _IndicatorDivider({required this.isMobile});
+
+  final bool isMobile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: isMobile ? 82 : 90,
+      color: Colors.grey.withValues(alpha: 0.25),
     );
   }
 }
@@ -171,31 +204,38 @@ class _IndicatorItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // Icono del indicador.
         CircleAvatar(
-          radius: isMobile ? 18 : 20,
+          radius: isMobile ? 24 : 20,
           backgroundColor: color.withValues(alpha: 0.15),
-          child: Icon(icon, color: color, size: isMobile ? 18 : 22),
+          child: Icon(icon, color: color, size: isMobile ? 24 : 22),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
+        // Nombre del indicador.
         Text(
           title,
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: isMobile ? 12 : 14),
         ),
 
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
 
+        // Valor calculado del indicador.
         Text(
           value,
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.w700,
-            fontSize: isMobile ? 15 : 16,
+            fontSize: isMobile ? 14 : 16,
           ),
         ),
       ],

@@ -10,10 +10,14 @@ import 'add_goal_screen.dart';
 import '../../../shared/helpers/currency_formatter.dart';
 import 'goal_detail_screen.dart';
 import 'add_contribution_screen.dart';
+import '../../../shared/themes/app_colors.dart';
 
 /// Pantalla principal del módulo Metas.
 class GoalsScreen extends StatefulWidget {
-  const GoalsScreen({super.key});
+  /// Acción ejecutada al pulsar el avatar.
+  final VoidCallback? onAvatarPressed;
+
+  const GoalsScreen({super.key, this.onAvatarPressed});
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -84,7 +88,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return Scaffold(
       body: Column(
         children: [
-          const AppHeader(title: 'Metas', showAvatar: true),
+          AppHeader(
+            title: 'Metas',
+            showAvatar: true,
+            showNotification: true,
+            onAvatarPressed: widget.onAvatarPressed,
+          ),
 
           Expanded(
             child: Consumer<GoalProvider>(
@@ -157,7 +166,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           return GoalCard(
                             icon: _getGoalIcon(goal.category),
                             title: goal.name,
-                            description: '',
+                            description: goal.category,
                             status: goal.status,
                             savedAmount: goal.savedAmount,
                             targetAmount: goal.targetAmount,
@@ -196,10 +205,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                       const SizedBox(height: 12),
 
+                      // Botón principal para crear una nueva meta.
                       SizedBox(
                         width: double.infinity,
+                        height: 48,
                         child: ElevatedButton.icon(
                           onPressed: () async {
+                            // Abre el formulario para crear una nueva meta.
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -207,12 +219,25 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               ),
                             );
 
-                            // Recarga las metas cuando se regresa
-                            // de la pantalla de creación.
+                            // Recarga las metas al regresar del formulario.
                             await _loadGoals();
                           },
                           icon: const Icon(Icons.add),
-                          label: const Text('Crear nueva meta'),
+                          label: const Text(
+                            'Crear nueva meta',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
                         ),
                       ),
 

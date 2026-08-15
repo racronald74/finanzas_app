@@ -68,6 +68,7 @@ class AppHeader extends StatelessWidget {
       title: title ?? '',
       showBackButton: showBackButton,
       showAvatar: showAvatar,
+      showNotification: showNotification,
       onAvatarPressed: onAvatarPressed,
     );
   }

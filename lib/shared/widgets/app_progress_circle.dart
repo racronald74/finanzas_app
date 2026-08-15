@@ -34,7 +34,7 @@ class AppProgressCircle extends StatelessWidget {
             height: size,
             child: CircularProgressIndicator(
               value: value,
-              strokeWidth: 5,
+              strokeWidth: 4,
               backgroundColor: AppColors.iconBackground,
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
@@ -43,7 +43,7 @@ class AppProgressCircle extends StatelessWidget {
           Text(
             '$percentage%',
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
             ),

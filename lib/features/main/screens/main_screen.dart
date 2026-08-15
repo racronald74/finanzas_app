@@ -72,7 +72,13 @@ class _MainScreenState extends State<MainScreen> {
 
       MainTab(screen: const ExpensesScreen(), title: 'Gastos'),
 
-      MainTab(screen: const GoalsScreen(), title: 'Metas'),
+      MainTab(
+        screen: GoalsScreen(
+          // Utiliza el mismo Drawer que abre el avatar del Dashboard.
+          onAvatarPressed: _openDrawer,
+        ),
+        title: 'Metas',
+      ),
 
       MainTab(screen: const MoreScreen(), title: 'Más'),
     ];

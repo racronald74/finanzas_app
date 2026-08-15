@@ -27,6 +27,9 @@ class AppChipButton extends StatelessWidget {
   /// Indica si debe mostrarse con el estilo principal.
   final bool isPrimary;
 
+  /// Color utilizado para el estilo principal del botón.
+  final Color? primaryColor;
+
   /// Constructor del botón tipo chip.
   const AppChipButton({
     super.key,
@@ -34,16 +37,21 @@ class AppChipButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isPrimary = false,
+    this.primaryColor,
   });
 
   /// Construye el botón.
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = isPrimary ? AppColors.primary : Colors.white;
+    // Permite personalizar el color principal del botón.
+    // Si no se especifica, conserva el azul de la aplicación.
+    final Color buttonColor = primaryColor ?? AppColors.primary;
 
-    final Color foregroundColor = isPrimary ? Colors.white : AppColors.primary;
+    final Color backgroundColor = isPrimary ? buttonColor : Colors.white;
 
-    final Color borderColor = AppColors.primary;
+    final Color foregroundColor = isPrimary ? Colors.white : buttonColor;
+
+    final Color borderColor = buttonColor;
 
     return OutlinedButton.icon(
       onPressed: onPressed,

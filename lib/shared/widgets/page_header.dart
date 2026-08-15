@@ -18,6 +18,9 @@ class PageHeader extends StatelessWidget {
   /// Indica si debe mostrarse el avatar.
   final bool showAvatar;
 
+  /// Indica si debe mostrarse el icono de notificaciones.
+  final bool showNotification;
+
   final VoidCallback? onAvatarPressed;
 
   const PageHeader({
@@ -25,6 +28,7 @@ class PageHeader extends StatelessWidget {
     required this.title,
     this.showBackButton = false,
     this.showAvatar = true,
+    this.showNotification = false,
     this.onAvatarPressed,
   });
 
@@ -37,16 +41,32 @@ class PageHeader extends StatelessWidget {
       child: SafeArea(
         child: Row(
           children: [
-            // Botón regresar.
+            // ============================================
+            // Elemento izquierdo
+            // ============================================
             if (showBackButton)
+              // En pantallas secundarias se mantiene
+              // el botón regresar.
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
               )
+            else if (showAvatar && showNotification)
+              // En pantallas principales como Metas,
+              // el avatar queda a la izquierda.
+              GestureDetector(
+                onTap: onAvatarPressed,
+                child: const CircleAvatar(
+                  radius: 18,
+                  child: Icon(Icons.person),
+                ),
+              )
             else
               const SizedBox(width: 48),
 
-            // Título de la pantalla.
+            // ============================================
+            // Título
+            // ============================================
             Expanded(
               child: Center(
                 child: Text(
@@ -60,8 +80,21 @@ class PageHeader extends StatelessWidget {
               ),
             ),
 
-            // Avatar del usuario.
-            if (showAvatar)
+            // ============================================
+            // Elemento derecho
+            // ============================================
+            if (!showBackButton && showNotification)
+              // Campana de notificaciones.
+              IconButton(
+                onPressed: () {
+                  // Las notificaciones se implementarán
+                  // posteriormente.
+                },
+                icon: const Icon(Icons.notifications_none, color: Colors.white),
+              )
+            else if (!showBackButton && showAvatar)
+              // Comportamiento actual para las pantallas
+              // que todavía utilizan el avatar a la derecha.
               GestureDetector(
                 onTap: onAvatarPressed,
                 child: const CircleAvatar(
