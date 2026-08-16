@@ -78,6 +78,10 @@ class ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool esObligacion =
+        expense.origen.toUpperCase() == 'OBLIGACION' ||
+        expense.origen.toUpperCase() == 'OBLIGACIÓN';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -160,22 +164,22 @@ class ExpenseCard extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Editar gasto',
-                      onPressed: onEdit,
-                    ),
-
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Eliminar gasto',
-                      onPressed: onDelete,
-                    ),
-                  ],
-                ),
+                if (!esObligacion)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Editar gasto',
+                        onPressed: onEdit,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Eliminar gasto',
+                        onPressed: onDelete,
+                      ),
+                    ],
+                  ),
               ],
             ),
           ],

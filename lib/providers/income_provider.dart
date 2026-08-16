@@ -124,6 +124,24 @@ class IncomeProvider extends ChangeNotifier {
     return total;
   }
 
+  /// Total de ingresos adicionales del mes actual.
+  double get currentMonthAdditionalIncome {
+    final now = DateTime.now();
+    double total = 0;
+
+    for (final income in _additionalIncomes) {
+      final fecha = DateTime.tryParse(income.fecha);
+
+      if (fecha == null) continue;
+
+      if (fecha.year == now.year && fecha.month == now.month) {
+        total += income.monto;
+      }
+    }
+
+    return total;
+  }
+
   /// Total utilizado para el cálculo del presupuesto.
   ///
   /// Corresponde al ingreso fijo mensual más

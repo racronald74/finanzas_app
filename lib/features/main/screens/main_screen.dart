@@ -6,6 +6,14 @@ import '../../income/screens/incomes_screen.dart';
 import 'more_screen.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../goal/screens/goals_screen.dart';
+import '../../obligaciones/screens/obligations_screen.dart';
+
+import 'package:provider/provider.dart';
+
+import '../../../providers/auth_provider.dart';
+import '../../../providers/expense_provider.dart';
+import '../../../providers/income_provider.dart';
+import '../../../providers/budget_provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -45,7 +53,30 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _refreshExpenses() async {
-    // Lo implementaremos en el siguiente paso.
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final usuario = authProvider.currentUser;
+
+    if (usuario == null) return;
+
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    await incomeProvider.loadIncomeData(usuario.idUsuario!);
+    await expenseProvider.loadExpenses(usuario.idUsuario!);
+
+    budgetProvider.updateBudget(
+      fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
+      additionalIncome: incomeProvider.currentMonthAdditionalIncome,
+      totalExpenses: expenseProvider.totalExpenses,
+      totalSavings: 0,
+    );
   }
 
   Future<void> _refreshDashboard() async {
@@ -53,6 +84,10 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   int _selectedIndex = 0;
+
+  /// Indica si dentro de la sección Más
+  /// se está mostrando Obligaciones.
+  bool _showObligations = false;
 
   /// Información de cada pestaña de la aplicación.
   late final List<MainTab> _tabs;
@@ -92,7 +127,10 @@ class _MainScreenState extends State<MainScreen> {
         title: 'Metas',
       ),
 
-      MainTab(screen: const MoreScreen(), title: 'Más'),
+      MainTab(
+        screen: MoreScreen(onObligationsPressed: _openObligations),
+        title: 'Más',
+      ),
     ];
   }
 
@@ -104,7 +142,13 @@ class _MainScreenState extends State<MainScreen> {
       drawer: const AppDrawer(),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _tabs.map((tab) => tab.screen).toList(),
+        children: [
+          ..._tabs.take(4).map((tab) => tab.screen),
+
+          _showObligations
+              ? ObligationsScreen()
+              : MoreScreen(onObligationsPressed: _openObligations),
+        ],
       ),
 
       bottomNavigationBar: BottomNavigationBar(
@@ -113,6 +157,11 @@ class _MainScreenState extends State<MainScreen> {
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
+
+            // Al volver a Más, mostrar nuevamente MoreScreen.
+            if (index == 4) {
+              _showObligations = false;
+            }
           });
 
           switch (index) {
@@ -157,5 +206,16 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  /// Abre la pantalla de Obligaciones dentro
+  /// de la sección Más.
+  ///
+  /// No cambia la pestaña principal, por lo que
+  /// el BottomNavigationBar continúa mostrando Más.
+  void _openObligations() {
+    setState(() {
+      _showObligations = true;
+    });
   }
 }

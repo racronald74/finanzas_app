@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key});
+  /// Acción para abrir la pantalla de Obligaciones.
+  final VoidCallback? onObligationsPressed;
+
+  const MoreScreen({super.key, this.onObligationsPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +22,7 @@ class MoreScreen extends StatelessWidget {
                     _buildWelcomeSection(),
                     const SizedBox(height: 12),
                     _buildOptionCard(
+                      context,
                       icon: Icons.account_balance_outlined,
                       iconColor: const Color(0xFFFFB52E),
                       iconBackground: const Color(0xFFFFEDC9),
@@ -27,7 +31,8 @@ class MoreScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _buildOptionCard(
-                      icon: Icons.calendar_month_outlined,
+                      context,
+                      icon: Icons.account_balance_outlined,
                       iconColor: const Color(0xFF16B86A),
                       iconBackground: const Color(0xFFD7F3E5),
                       title: 'Obligaciones',
@@ -35,6 +40,7 @@ class MoreScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _buildOptionCard(
+                      context,
                       icon: Icons.bar_chart_rounded,
                       iconColor: const Color(0xFF8B3DFF),
                       iconBackground: const Color(0xFFE9D9FF),
@@ -44,6 +50,7 @@ class MoreScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _buildOptionCard(
+                      context,
                       icon: Icons.notifications_none_rounded,
                       iconColor: const Color(0xFFFF5252),
                       iconBackground: const Color(0xFFFFDADA),
@@ -131,7 +138,8 @@ class MoreScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOptionCard({
+  Widget _buildOptionCard(
+    BuildContext context, {
     required IconData icon,
     required Color iconColor,
     required Color iconBackground,
@@ -143,7 +151,7 @@ class MoreScreen extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () {},
+        onTap: onObligationsPressed,
         child: SizedBox(
           height: 78,
           child: Padding(

@@ -105,7 +105,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     budgetProvider.updateBudget(
       fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
-      additionalIncome: incomeProvider.totalIncome,
+      additionalIncome: incomeProvider.currentMonthAdditionalIncome,
       totalExpenses: expenseProvider.totalExpenses,
       totalSavings: 0,
     );

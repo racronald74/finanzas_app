@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart';
+
 // Modelo del gasto
 import '../models/expense_model.dart';
 
@@ -12,8 +14,13 @@ class ExpenseService {
   /// Repositorio de gastos
   final ExpenseRepository _expenseRepository = ExpenseRepository();
 
-  /// Registrar un nuevo gasto
-  Future<void> createExpense(ExpenseModel expense) async {
+  /// Registrar un nuevo gasto.
+  ///
+  /// Devuelve el ID generado por SQLite.
+  Future<int> createExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
     // RN13: El nombre es obligatorio
     if (expense.nombre.trim().isEmpty) {
       throw Exception('Debe ingresar un nombre para el gasto');
@@ -24,8 +31,7 @@ class ExpenseService {
       throw Exception('El monto debe ser mayor que cero');
     }
 
-    // Guarda el gasto
-    await _expenseRepository.insertExpense(expense);
+    return await _expenseRepository.insertExpense(expense, executor: executor);
   }
 
   /// Obtener gastos de un usuario

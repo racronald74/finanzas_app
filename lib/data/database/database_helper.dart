@@ -220,12 +220,16 @@ class DatabaseHelper {
         fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         frecuencia TEXT,
         categoria TEXT,
+        id_categoria INTEGER,
         FOREIGN KEY (id_usuario)
           REFERENCES usuario(id_usuario)
           ON DELETE CASCADE,
         FOREIGN KEY (id_gasto_generado)
           REFERENCES gasto(id_gasto)
-          ON DELETE SET NULL
+          ON DELETE SET NULL,
+          FOREIGN KEY (id_categoria)
+        REFERENCES categoria(id_categoria)
+        ON DELETE RESTRICT
       )
     ''');
     // Crea la tabla de presupuestos
@@ -303,6 +307,21 @@ class DatabaseHelper {
     await db.execute(
       "UPDATE ingreso SET fecha_registro = COALESCE(fecha_registro, datetime('now'))",
     );
+
+    await _addColumnIfMissing(db, 'obligacion', 'id_categoria', 'INTEGER');
+    await db.execute('''
+  UPDATE obligacion
+  SET id_categoria = (
+    SELECT id_categoria
+    FROM categoria
+    WHERE categoria.nombre = obligacion.categoria
+      AND categoria.tipo = 'GASTO'
+      AND categoria.id_usuario IS NULL
+    LIMIT 1
+  )
+  WHERE id_categoria IS NULL
+    AND categoria IS NOT NULL
+''');
   }
 
   /// Verifica si una columna existe en una tabla y la agrega si falta, utilizando ALTER TABLE.
@@ -334,6 +353,16 @@ class DatabaseHelper {
       ('Educacion', 'GASTO'),
       ('Vivienda', 'GASTO'),
       ('Entretenimiento', 'GASTO'),
+      ('Servicios publicos', 'GASTO'),
+      ('Internet', 'GASTO'),
+      ('Telefonia movil', 'GASTO'),
+      ('Arriendo', 'GASTO'),
+      ('Administracion', 'GASTO'),
+      ('Tarjeta de credito', 'GASTO'),
+      ('Credito de vivienda', 'GASTO'),
+      ('Credito de vehiculo', 'GASTO'),
+      ('Suscripciones', 'GASTO'),
+      ('Otros', 'GASTO'),
       ('Fondo de emergencia', 'META'),
       ('Viaje', 'META'),
       ('Vivienda', 'META'),
@@ -377,5 +406,14 @@ class DatabaseHelper {
     final db = await instance.database;
     await db.close();
     _database = null;
+  }
+
+  /// Ejecuta varias operaciones dentro de una transacción SQLite.
+  ///
+  /// Si alguna operación falla, SQLite revierte todos los cambios.
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
+    final Database db = await database;
+
+    return await db.transaction(action);
   }
 }

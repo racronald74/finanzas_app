@@ -13,6 +13,7 @@ import 'providers/expense_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/goal_provider.dart';
 import 'providers/contribution_provider.dart';
+import 'providers/obligation_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -39,6 +40,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => ContributionProvider()),
+        ChangeNotifierProvider(create: (_) => ObligationProvider()),
       ],
       child: const MyApp(),
     ),

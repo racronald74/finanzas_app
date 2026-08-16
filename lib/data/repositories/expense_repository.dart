@@ -17,11 +17,12 @@ class ExpenseRepository {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
 
   /// Inserta un nuevo gasto
-  Future<int> insertExpense(ExpenseModel expense) async {
-    // Obtiene la conexión SQLite
-    final Database db = await _databaseHelper.database;
+  Future<int> insertExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
+    final DatabaseExecutor db = executor ?? await _databaseHelper.database;
 
-    // Inserta el registro y devuelve el id generado
     return await db.insert('gasto', expense.toMap());
   }
 
