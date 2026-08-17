@@ -88,4 +88,25 @@ class IncomeRepository {
 
     return result.map((e) => IncomeModel.fromMap(e)).toList();
   }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
 }

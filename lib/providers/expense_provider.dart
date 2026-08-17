@@ -62,6 +62,21 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<ExpenseModel>> loadExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseService.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
   /// Actualizar gasto
   Future<bool> updateExpense(ExpenseModel expense) async {
     try {
@@ -81,12 +96,27 @@ class ExpenseProvider extends ChangeNotifier {
     await loadExpenses(idUsuario);
   }
 
-  /// Total gastado
+  /// Total gastado durante el período actual.
+  ///
+  /// Los gastos históricos permanecen almacenados en SQLite,
+  /// pero solamente los gastos del mes actual participan
+  /// en el cálculo del presupuesto.
   double get totalExpenses {
+    final now = DateTime.now();
+
     double total = 0;
+
     for (final expense in _expenses) {
-      total += expense.monto;
+      final fecha = DateTime.parse(expense.fecha);
+
+      final esPeriodoActual =
+          fecha.year == now.year && fecha.month == now.month;
+
+      if (esPeriodoActual) {
+        total += expense.monto;
+      }
     }
+
     return total;
   }
 }

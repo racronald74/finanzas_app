@@ -39,6 +39,21 @@ class ExpenseService {
     return await _expenseRepository.getExpensesByUser(idUsuario);
   }
 
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseRepository.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
   /// Actualizar un gasto existente
   Future<void> updateExpense(ExpenseModel expense) async {
     // RN13

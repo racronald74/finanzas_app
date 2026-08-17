@@ -46,6 +46,24 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   /// - Variables
   String _filtroSeleccionado = 'Todas';
 
+  /// Obtiene las obligaciones correspondientes al período actual.
+  ///
+  /// Las obligaciones históricas permanecen almacenadas,
+  /// pero solo participan en los filtros del período actual.
+  List<ObligationModel> _currentPeriodObligations(
+    List<ObligationModel> obligations,
+  ) {
+    final now = DateTime.now();
+
+    return obligations.where((obligation) {
+      final fecha = DateTime.tryParse(obligation.fechaVencimiento);
+
+      if (fecha == null) return false;
+
+      return fecha.year == now.year && fecha.month == now.month;
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -74,20 +92,30 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }
 
   /// Filtra las obligaciones según el filtro seleccionado.
+  ///
+  /// 'Todas' muestra todo el historial.
+  /// Los demás filtros trabajan únicamente con
+  /// las obligaciones del período actual.
   List<ObligationModel> _filterObligations(List<ObligationModel> obligations) {
+    if (_filtroSeleccionado == 'Todas') {
+      return obligations;
+    }
+
+    final currentPeriod = _currentPeriodObligations(obligations);
+
     switch (_filtroSeleccionado) {
       case 'Fijas':
-        return obligations
+        return currentPeriod
             .where((obligation) => obligation.esRecurrente)
             .toList();
 
       case 'Variables':
-        return obligations
+        return currentPeriod
             .where((obligation) => !obligation.esRecurrente)
             .toList();
 
       case 'Pagadas':
-        return obligations
+        return currentPeriod
             .where(
               (obligation) =>
                   obligation.estado == ObligationService.estadoPagada,
@@ -95,7 +123,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
             .toList();
 
       default:
-        return obligations;
+        return currentPeriod;
     }
   }
 
@@ -248,8 +276,8 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                 const SizedBox(height: 0),
                 Text(
                   obligation.esRecurrente
-                      ? 'Fija - ${obligation.frecuencia ?? 'Mensual'}'
-                      : 'Variable - Mensual',
+                      ? 'Fija - ${obligation.frecuencia}'
+                      : 'Única',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: Colors.grey),

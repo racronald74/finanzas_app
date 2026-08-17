@@ -42,6 +42,21 @@ class IncomeService {
     return await _repository.getAdditionalIncomes(idUsuario);
   }
 
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _repository.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
   void _validateIncome(IncomeModel income) {
     if (income.monto <= 0) {
       throw ArgumentError('El monto debe ser mayor a cero');

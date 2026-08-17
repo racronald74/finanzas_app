@@ -6,6 +6,7 @@ import '../models/budget_summary.dart';
 /// Solo aplica reglas de negocio.
 class BudgetService {
   BudgetSummary calculateBudget({
+    required double initialBalance,
     required double fixedIncome,
     required double additionalIncome,
     required double totalExpenses,
@@ -13,19 +14,22 @@ class BudgetService {
   }) {
     final totalIncome = fixedIncome + additionalIncome;
 
-    final availableBudget = totalIncome - totalExpenses - totalSavings;
+    final totalBudget = initialBalance + totalIncome;
+
+    final availableBudget =
+        initialBalance + totalIncome - totalExpenses - totalSavings;
 
     double usedPercentage = 0;
     double availablePercentage = 0;
 
-    if (totalIncome > 0) {
-      usedPercentage = totalExpenses / totalIncome;
+    if (totalBudget > 0) {
+      usedPercentage = totalExpenses / totalBudget;
 
       if (usedPercentage > 1) {
         usedPercentage = 1;
       }
 
-      availablePercentage = availableBudget / totalIncome;
+      availablePercentage = availableBudget / totalBudget;
 
       if (availablePercentage < 0) {
         availablePercentage = 0;
@@ -37,6 +41,7 @@ class BudgetService {
     }
 
     return BudgetSummary(
+      initialBalance: initialBalance,
       fixedIncome: fixedIncome,
       additionalIncome: additionalIncome,
       totalIncome: totalIncome,

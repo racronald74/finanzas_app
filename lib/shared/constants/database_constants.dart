@@ -9,5 +9,5 @@ class DatabaseConstants {
   static const String databaseName = 'finanzas_app.db';
 
   /// Versión actual de la base de datos.
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 }

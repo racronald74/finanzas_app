@@ -52,6 +52,7 @@ class _MainScreenState extends State<MainScreen> {
     // Lo implementaremos en el siguiente paso.
   }
 
+  /// Actualiza el resumen del presupuesto para el período actual.
   Future<void> _refreshExpenses() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
@@ -71,8 +72,22 @@ class _MainScreenState extends State<MainScreen> {
     await incomeProvider.loadIncomeData(usuario.idUsuario!);
     await expenseProvider.loadExpenses(usuario.idUsuario!);
 
+    final now = DateTime.now();
+
+    final currentPeriodStart = DateTime(now.year, now.month, 1);
+
+    final initialBalance = await budgetProvider.calculateInitialBalance(
+      idUsuario: usuario.idUsuario!,
+      currentPeriodStart: currentPeriodStart,
+      fixedIncome: usuario.ingresoFijoMensual,
+      registrationDate: DateTime.parse(usuario.fechaRegistro),
+    );
+
+    if (!mounted) return;
+
     budgetProvider.updateBudget(
-      fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
+      initialBalance: initialBalance,
+      fixedIncome: usuario.ingresoFijoMensual,
       additionalIncome: incomeProvider.currentMonthAdditionalIncome,
       totalExpenses: expenseProvider.totalExpenses,
       totalSavings: 0,
@@ -88,6 +103,10 @@ class _MainScreenState extends State<MainScreen> {
   /// Indica si dentro de la sección Más
   /// se está mostrando Obligaciones.
   bool _showObligations = false;
+
+  /// Permite reconstruir ObligationsScreen cada vez
+  /// que se vuelve a abrir.
+  Key _obligationsKey = UniqueKey();
 
   /// Información de cada pestaña de la aplicación.
   late final List<MainTab> _tabs;
@@ -146,7 +165,7 @@ class _MainScreenState extends State<MainScreen> {
           ..._tabs.take(4).map((tab) => tab.screen),
 
           _showObligations
-              ? ObligationsScreen()
+              ? ObligationsScreen(key: _obligationsKey)
               : MoreScreen(onObligationsPressed: _openObligations),
         ],
       ),
@@ -208,13 +227,10 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Abre la pantalla de Obligaciones dentro
-  /// de la sección Más.
-  ///
-  /// No cambia la pestaña principal, por lo que
-  /// el BottomNavigationBar continúa mostrando Más.
+  /// Abre Obligaciones y fuerza una nueva carga de datos.
   void _openObligations() {
     setState(() {
+      _obligationsKey = UniqueKey();
       _showObligations = true;
     });
   }

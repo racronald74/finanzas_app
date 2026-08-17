@@ -90,6 +90,21 @@ class IncomeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<IncomeModel>> loadIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _incomeService.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
   IncomeModel? _fixedIncome;
 
   List<IncomeModel> _additionalIncomes = [];

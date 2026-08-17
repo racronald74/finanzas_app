@@ -6,6 +6,12 @@ class ObligationModel {
   /// Identificador de la obligación.
   final int? idObligacion;
 
+  /// Identificador que agrupa las obligaciones de una misma recurrencia.
+  final int? idGrupoRecurrencia;
+
+  /// Indica si la recurrencia continúa activa.
+  final bool recurrenciaActiva;
+
   /// Nombre de la obligación.
   final String nombre;
 
@@ -44,6 +50,8 @@ class ObligationModel {
 
   const ObligationModel({
     this.idObligacion,
+    this.idGrupoRecurrencia,
+    this.recurrenciaActiva = true,
     required this.nombre,
     required this.monto,
     required this.idCategoria,
@@ -74,6 +82,8 @@ class ObligationModel {
       'id_gasto_generado': idGastoGenerado,
       'fecha_registro': fechaRegistro,
       'frecuencia': frecuencia,
+      'id_grupo_recurrencia': idGrupoRecurrencia,
+      'recurrencia_activa': recurrenciaActiva ? 1 : 0,
     };
   }
 
@@ -93,6 +103,8 @@ class ObligationModel {
       idGastoGenerado: map['id_gasto_generado'],
       fechaRegistro: map['fecha_registro'],
       frecuencia: map['frecuencia'],
+      idGrupoRecurrencia: map['id_grupo_recurrencia'],
+      recurrenciaActiva: map['recurrencia_activa'] == 1,
     );
   }
 
@@ -112,6 +124,8 @@ class ObligationModel {
     int? idGastoGenerado,
     String? fechaRegistro,
     String? frecuencia,
+    int? idGrupoRecurrencia,
+    bool? recurrenciaActiva,
   }) {
     return ObligationModel(
       idObligacion: idObligacion ?? this.idObligacion,
@@ -127,6 +141,8 @@ class ObligationModel {
       idGastoGenerado: idGastoGenerado ?? this.idGastoGenerado,
       fechaRegistro: fechaRegistro ?? this.fechaRegistro,
       frecuencia: frecuencia ?? this.frecuencia,
+      idGrupoRecurrencia: idGrupoRecurrencia ?? this.idGrupoRecurrencia,
+      recurrenciaActiva: recurrenciaActiva ?? this.recurrenciaActiva,
     );
   }
 }

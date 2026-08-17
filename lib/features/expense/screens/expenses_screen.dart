@@ -91,7 +91,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     });
   }
 
-  void _updateBudget() {
+  /// Actualiza el resumen del presupuesto para el período actual.
+  Future<void> _updateBudget() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
@@ -103,8 +104,26 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
 
+    final usuario = authProvider.currentUser;
+
+    if (usuario == null) return;
+
+    final now = DateTime.now();
+
+    final currentPeriodStart = DateTime(now.year, now.month, 1);
+
+    final initialBalance = await budgetProvider.calculateInitialBalance(
+      idUsuario: usuario.idUsuario!,
+      currentPeriodStart: currentPeriodStart,
+      fixedIncome: usuario.ingresoFijoMensual,
+      registrationDate: DateTime.parse(usuario.fechaRegistro),
+    );
+
+    if (!mounted) return;
+
     budgetProvider.updateBudget(
-      fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
+      initialBalance: initialBalance,
+      fixedIncome: usuario.ingresoFijoMensual,
       additionalIncome: incomeProvider.currentMonthAdditionalIncome,
       totalExpenses: expenseProvider.totalExpenses,
       totalSavings: 0,
@@ -182,7 +201,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     usedPercentage: budgetProvider.summary.usedPercentage,
                     availablePercentage:
                         budgetProvider.summary.availablePercentage,
-                    totalIncome: budgetProvider.summary.totalIncome,
+                    totalIncome:
+                        budgetProvider.summary.initialBalance +
+                        budgetProvider.summary.totalIncome,
                   ),
 
                   const SizedBox(height: 16),

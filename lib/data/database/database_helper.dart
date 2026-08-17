@@ -208,6 +208,8 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS obligacion (
         id_obligacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_grupo_recurrencia INTEGER,
+        recurrencia_activa INTEGER DEFAULT 1,
         nombre TEXT NOT NULL,
         monto REAL NOT NULL CHECK (monto > 0),
         fecha_vencimiento TEXT NOT NULL,
@@ -309,6 +311,25 @@ class DatabaseHelper {
     );
 
     await _addColumnIfMissing(db, 'obligacion', 'id_categoria', 'INTEGER');
+
+    /// Agrega el identificador que permite agrupar
+    /// las obligaciones pertenecientes a una misma recurrencia.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'id_grupo_recurrencia',
+      'INTEGER',
+    );
+
+    /// Indica si una obligación recurrente
+    /// continúa generando nuevas ocurrencias.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'recurrencia_activa',
+      'INTEGER DEFAULT 1',
+    );
+
     await db.execute('''
   UPDATE obligacion
   SET id_categoria = (

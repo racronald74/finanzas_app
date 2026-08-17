@@ -444,18 +444,42 @@ class _IncomesScreenState extends State<IncomesScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Actualiza el resumen del presupuesto para el período actual.
   Future<void> _refreshBudget() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+
     final expenseProvider = Provider.of<ExpenseProvider>(
       context,
       listen: false,
     );
+
     final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
 
+    final user = authProvider.currentUser;
+
+    if (user == null) return;
+
+    final currentPeriodStart = DateTime(
+      _selectedPeriod.year,
+      _selectedPeriod.month,
+      1,
+    );
+
+    final initialBalance = await budgetProvider.calculateInitialBalance(
+      idUsuario: user.idUsuario!,
+      currentPeriodStart: currentPeriodStart,
+      fixedIncome: user.ingresoFijoMensual,
+      registrationDate: DateTime.parse(user.fechaRegistro),
+    );
+
+    if (!mounted) return;
+
     budgetProvider.updateBudget(
-      fixedIncome: authProvider.currentUser?.ingresoFijoMensual ?? 0,
-      additionalIncome: incomeProvider.totalIncome,
+      initialBalance: initialBalance,
+      fixedIncome: user.ingresoFijoMensual,
+      additionalIncome: incomeProvider.currentMonthAdditionalIncome,
       totalExpenses: expenseProvider.totalExpenses,
       totalSavings: 0,
     );

@@ -3,6 +3,9 @@
 /// Centraliza todos los indicadores utilizados por el
 /// Dashboard, Gastos, Reportes y demás módulos.
 class BudgetSummary {
+  /// Saldo disponible al inicio del período.
+  final double initialBalance;
+
   /// Ingreso fijo mensual.
   final double fixedIncome;
 
@@ -28,6 +31,7 @@ class BudgetSummary {
   final double availablePercentage;
 
   const BudgetSummary({
+    required this.initialBalance,
     required this.fixedIncome,
     required this.additionalIncome,
     required this.totalIncome,

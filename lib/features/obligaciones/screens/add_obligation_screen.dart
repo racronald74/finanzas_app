@@ -30,11 +30,8 @@ class AddObligationScreen extends StatefulWidget {
 }
 
 class _AddObligationScreenState extends State<AddObligationScreen> {
-  /// Indica si la obligación es recurrente.
-  ///
-  /// true  = Fija
-  /// false = Variable
-  bool _esRecurrente = true;
+  /// Indica si se está guardando una obligación.
+  bool _isSaving = false;
 
   /// Indica si la pantalla está editando una obligación existente.
   bool get _isEditing => widget.initialObligation != null;
@@ -53,16 +50,8 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 child: Column(
                   children: [
-                    _buildTypeSelector(),
-
-                    const SizedBox(height: 10),
-
-                    /// El contenido del formulario cambiará
-                    /// según la modalidad seleccionada.
-                    if (_esRecurrente)
-                      _buildFixedForm()
-                    else
-                      _buildVariableForm(),
+                    // Selector entre obligación fija y variable.
+                    _buildObligationForm(),
 
                     const SizedBox(height: 16),
 
@@ -114,39 +103,6 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Selector entre obligación fija y variable.
-  Widget _buildTypeSelector() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildTypeButton(
-            title: 'Fijas (Recurrente)',
-            selected: _esRecurrente,
-            onPressed: () {
-              setState(() {
-                _esRecurrente = true;
-              });
-            },
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _buildTypeButton(
-            title: 'Variable (Manual)',
-            selected: !_esRecurrente,
-            onPressed: () {
-              setState(() {
-                _esRecurrente = false;
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   /// Controlador para el nombre de la obligación.
   final TextEditingController _nombreController = TextEditingController();
 
@@ -186,19 +142,10 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       _selectedCategoryId = obligation.idCategoria;
 
       // Configuración de la obligación.
-      _recordatorio = obligation.recordatorio;
-      _esRecurrente = obligation.esRecurrente;
-      _diaVencimiento = obligation.diaVencimiento;
       _frecuenciaSeleccionada = obligation.frecuencia;
 
-      // Fecha según el tipo de obligación.
-      final fecha = DateTime.tryParse(obligation.fechaVencimiento);
-
-      if (_esRecurrente) {
-        _fechaInicio = fecha;
-      } else {
-        _fechaVencimiento = fecha;
-      }
+      // Carga la fecha de vencimiento existente.
+      _fechaVencimiento = DateTime.tryParse(obligation.fechaVencimiento);
     }
   }
 
@@ -215,42 +162,19 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     });
   }
 
-  /// Construye uno de los botones del selector de modalidad.
-  Widget _buildTypeButton({
-    required String title,
-    required bool selected,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      height: 38,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: selected ? const Color(0xFF078DF1) : Colors.white,
-          foregroundColor: selected ? Colors.white : Colors.grey.shade700,
-          elevation: 0,
-          side: BorderSide(
-            color: selected ? const Color(0xFF078DF1) : const Color(0xFFD5E1ED),
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-        ),
-        child: Text(
-          title,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
-  }
-
-  /// Estructura inicial para obligaciones fijas.
-  Widget _buildFixedForm() {
+  /// Construye el formulario único para registrar
+  /// o editar una obligación.
+  ///
+  /// La frecuencia determina si la obligación
+  /// es única o recurrente.
+  Widget _buildObligationForm() {
     return Column(
       children: [
         _buildTextField(
           controller: _nombreController,
           icon: Icons.home_outlined,
           label: 'Nombre de la obligación',
-          hint: 'Ej: Arriendo, Luz, Internet',
+          hint: 'Ej: Arriendo, Netflix, Inscripción',
         ),
 
         const SizedBox(height: 10),
@@ -261,20 +185,22 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
               child: _buildTextField(
                 controller: _montoController,
                 icon: Icons.attach_money,
-                label: 'Monto mensual',
+                label: 'Monto',
                 hint: '\$0',
                 keyboardType: TextInputType.number,
               ),
             ),
+
             const SizedBox(width: 10),
+
             Expanded(
               child: _buildDateField(
                 icon: Icons.calendar_today_outlined,
-                title: 'Día de vencimiento',
-                value: _diaVencimiento == null
-                    ? 'Seleccionar día'
-                    : 'Día $_diaVencimiento',
-                onTap: _selectDueDay,
+                title: 'Fecha de vencimiento',
+                value: _fechaVencimiento == null
+                    ? 'Seleccionar fecha'
+                    : _formatDate(_fechaVencimiento!),
+                onTap: _selectDueDate,
               ),
             ),
           ],
@@ -292,8 +218,7 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
           value: _frecuenciaSeleccionada,
           hint: 'Seleccionar frecuencia',
           items: const [
-            'Semanal',
-            'Quincenal',
+            'Ninguna',
             'Mensual',
             'Trimestral',
             'Semestral',
@@ -313,56 +238,13 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Estructura inicial para obligaciones variables.
-  Widget _buildVariableForm() {
-    return Column(
-      children: [
-        _buildTextField(
-          controller: _nombreController,
-          icon: Icons.home_outlined,
-          label: 'Nombre de la obligación',
-          hint: 'Ej: Impuesto vehicular',
-        ),
-
-        const SizedBox(height: 10),
-
-        _buildTextField(
-          controller: _montoController,
-          icon: Icons.attach_money,
-          label: 'Monto',
-          hint: '\$0',
-          keyboardType: TextInputType.number,
-        ),
-
-        const SizedBox(height: 10),
-
-        _buildCategoryField(),
-
-        const SizedBox(height: 10),
-
-        _buildDateField(
-          icon: Icons.calendar_today_outlined,
-          title: 'Fecha de vencimiento',
-          value: _fechaVencimiento == null
-              ? 'Seleccionar fecha'
-              : _formatDate(_fechaVencimiento!),
-          onTap: _selectDueDate,
-        ),
-
-        const SizedBox(height: 10),
-
-        _buildReminderField(),
-      ],
-    );
-  }
-
   /// Botón utilizado para registrar una nueva obligación.
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
       height: 46,
       child: ElevatedButton.icon(
-        onPressed: _guardarObligacion,
+        onPressed: _isSaving ? null : _guardarObligacion,
         icon: const Icon(Icons.save_outlined),
         label: const Text(
           'Guardar obligación',
@@ -618,42 +500,8 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Día del mes seleccionado para una obligación fija.
-  int? _diaVencimiento;
-
-  /// Fecha de inicio de una obligación fija.
-  DateTime? _fechaInicio;
-
   /// Fecha de vencimiento de una obligación variable.
   DateTime? _fechaVencimiento;
-
-  /// Permite seleccionar el día del mes para una obligación fija.
-  Future<void> _selectDueDay() async {
-    final selectedDay = await showDialog<int>(
-      context: context,
-      builder: (context) {
-        return SimpleDialog(
-          title: const Text('Día de vencimiento'),
-          children: List.generate(31, (index) {
-            final day = index + 1;
-
-            return SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, day);
-              },
-              child: Text('Día $day', textAlign: TextAlign.center),
-            );
-          }),
-        );
-      },
-    );
-
-    if (selectedDay == null) return;
-
-    setState(() {
-      _diaVencimiento = selectedDay;
-    });
-  }
 
   /// Selecciona la fecha de vencimiento de una obligación variable.
   Future<void> _selectDueDate() async {
@@ -772,54 +620,50 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Guarda una nueva obligación.
+  /// Guarda una nueva obligación o actualiza una existente.
   ///
-  /// Valida los datos del formulario, construye el modelo
-  /// y delega el registro al ObligationProvider.
+  /// La frecuencia determina si la obligación es única
+  /// o recurrente:
+  ///
+  /// - Ninguna: obligación de un solo uso.
+  /// - Cualquier otra frecuencia: obligación recurrente.
   Future<void> _guardarObligacion() async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
     final nombre = _nombreController.text.trim();
 
     final monto = double.tryParse(_montoController.text.trim());
 
-    // Validación del nombre.
+    // Valida el nombre.
     if (nombre.isEmpty) {
       _showMessage('Ingrese un nombre para la obligación');
       return;
     }
 
-    // Validación del monto.
+    // Valida el monto.
     if (monto == null || monto <= 0) {
       _showMessage('Ingrese un monto válido mayor que cero');
       return;
     }
 
-    // Validación de categoría.
+    // Valida la categoría.
     if (_selectedCategoryId == null) {
       _showMessage('Seleccione una categoría');
       return;
     }
 
-    // Validaciones específicas de obligaciones fijas.
-    if (_esRecurrente) {
-      if (_diaVencimiento == null) {
-        _showMessage('Seleccione el día de vencimiento');
-        return;
-      }
-
-      if (_fechaInicio == null) {
-        _showMessage('Seleccione la fecha de inicio');
-        return;
-      }
-
-      if (_frecuenciaSeleccionada == null) {
-        _showMessage('Seleccione la frecuencia');
-        return;
-      }
+    // Valida la fecha de vencimiento.
+    if (_fechaVencimiento == null) {
+      _showMessage('Seleccione la fecha de vencimiento');
+      return;
     }
 
-    // Validación específica de obligaciones variables.
-    if (!_esRecurrente && _fechaVencimiento == null) {
-      _showMessage('Seleccione la fecha de vencimiento');
+    // Valida la frecuencia.
+    if (_frecuenciaSeleccionada == null) {
+      _showMessage('Seleccione la frecuencia');
       return;
     }
 
@@ -833,14 +677,8 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       return;
     }
 
-    // Determina la fecha que se almacenará.
-    final String fechaVencimiento;
-
-    if (_esRecurrente) {
-      fechaVencimiento = _formatDate(_fechaInicio!);
-    } else {
-      fechaVencimiento = _formatDate(_fechaVencimiento!);
-    }
+    // Determina si la obligación será recurrente.
+    final bool esRecurrente = _frecuenciaSeleccionada != 'Ninguna';
 
     // Construye el modelo de obligación.
     final obligation = ObligationModel(
@@ -848,15 +686,15 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       nombre: nombre,
       monto: monto,
       idCategoria: _selectedCategoryId!,
-      fechaVencimiento: fechaVencimiento,
+      fechaVencimiento: _formatDate(_fechaVencimiento!),
       recordatorio: _recordatorio,
       estado: ObligationService.estadoPendiente,
-      esRecurrente: _esRecurrente,
-      diaVencimiento: _esRecurrente ? _diaVencimiento : null,
+      esRecurrente: esRecurrente,
+      diaVencimiento: esRecurrente ? _fechaVencimiento!.day : null,
       idUsuario: usuario.idUsuario!,
       idGastoGenerado: null,
       fechaRegistro: DateTime.now().toIso8601String(),
-      frecuencia: _esRecurrente ? _frecuenciaSeleccionada : null,
+      frecuencia: _frecuenciaSeleccionada,
     );
 
     final obligationProvider = Provider.of<ObligationProvider>(
@@ -864,9 +702,19 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       listen: false,
     );
 
-    final success = _isEditing
-        ? await obligationProvider.updateObligation(obligation)
-        : await obligationProvider.createObligation(obligation);
+    bool success;
+
+    try {
+      success = _isEditing
+          ? await obligationProvider.updateObligation(obligation)
+          : await obligationProvider.createObligation(obligation);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
 
     if (!mounted) return;
 

@@ -61,4 +61,25 @@ class ExpenseRepository {
       whereArgs: [idGasto],
     );
   }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final Database db = await _databaseHelper.database;
+
+    final result = await db.query(
+      'gasto',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((item) => ExpenseModel.fromMap(item)).toList();
+  }
 }
