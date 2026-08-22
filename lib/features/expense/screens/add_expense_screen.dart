@@ -7,6 +7,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/expense_provider.dart';
 
 import '../../../data/models/expense_model.dart';
+import 'package:intl/intl.dart';
 
 /// Pantalla para registrar o editar un gasto.
 ///
@@ -71,6 +72,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     7: 'Otros',
   };
 
+  /// Formatea el monto para mostrarlo con separador de miles.
+  String _formatAmount(double value) {
+    return NumberFormat('#,##0', 'es_CO').format(value);
+  }
+
   /// Guarda un nuevo gasto.
   ///
   /// Valida el formulario, construye el modelo,
@@ -96,9 +102,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
+    /// Convierte el monto mostrado con separadores
+    /// de miles al valor numérico utilizado por la aplicación.
+    final textoMonto = _montoController.text
+        .trim()
+        .replaceAll('\$', '')
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+
+    final monto = double.tryParse(textoMonto);
+
+    if (monto == null || monto <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingrese un monto válido mayor que cero')),
+      );
+      return;
+    }
+
     final expense = ExpenseModel(
       nombre: _nombreController.text.trim(),
-      monto: double.parse(_montoController.text),
+      monto: monto,
       fecha: _fechaSeleccionada.toIso8601String(),
       descripcion: _descripcionController.text.trim(),
       idCategoria: _categoriaSeleccionada!,
@@ -191,7 +214,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 // Decoración del campo
                 decoration: const InputDecoration(
                   hintText: 'Ejemplo: 120000',
-                  // Borde del campo
+                  prefixText: r'$',
                   border: OutlineInputBorder(),
                 ),
                 // Validación del campo
@@ -322,14 +345,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
 
               const SizedBox(height: 24),
-              // Botón para guardar el gasto
+              // Botón principal para guardar el gasto.
               SizedBox(
                 width: double.infinity,
-
-                child: ElevatedButton(
+                height: 48,
+                child: ElevatedButton.icon(
                   onPressed: _guardarGasto,
-
-                  child: const Text('Guardar gasto'),
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text(
+                    'Guardar gasto',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4380E5),
+                    foregroundColor: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -347,7 +381,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     if (widget.expense != null) {
       _nombreController.text = widget.expense!.nombre;
 
-      _montoController.text = widget.expense!.monto.toString();
+      _montoController.text = _formatAmount(widget.expense!.monto);
 
       _descripcionController.text = widget.expense!.descripcion;
 

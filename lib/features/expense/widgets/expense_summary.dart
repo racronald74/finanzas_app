@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Widget que muestra el resumen financiero del módulo
 /// de gastos.
@@ -38,12 +39,18 @@ class ExpenseSummary extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    const Text('Total gastado'),
+                    const Text(
+                      'Total gastado',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                      ),
+                    ),
 
                     const SizedBox(height: 8),
 
                     Text(
-                      '\$${totalGastado.toStringAsFixed(0)}',
+                      _formatCurrency(totalGastado),
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -61,7 +68,7 @@ class ExpenseSummary extends StatelessWidget {
                     const SizedBox(height: 4),
 
                     Text(
-                      '${(usedPercentage * 100).round()}% de \$${totalIncome.toStringAsFixed(0)}',
+                      '${(usedPercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade700,
@@ -100,12 +107,17 @@ class ExpenseSummary extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
 
                   children: [
-                    const Text('Disponible'),
-
+                    const Text(
+                      'Disponible',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                      ),
+                    ),
                     const SizedBox(height: 8),
 
                     Text(
-                      '\$${disponible.toStringAsFixed(0)}',
+                      _formatCurrency(disponible),
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -123,7 +135,7 @@ class ExpenseSummary extends StatelessWidget {
                     const SizedBox(height: 4),
 
                     Text(
-                      '${(availablePercentage * 100).round()}% de \$${totalIncome.toStringAsFixed(0)}',
+                      '${(availablePercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade700,
@@ -150,5 +162,13 @@ class ExpenseSummary extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Formatea valores monetarios con separador de miles
+  /// y coloca el símbolo de moneda antes del valor.
+  String _formatCurrency(double value) {
+    final formatted = NumberFormat('#,##0', 'es_CO').format(value);
+
+    return '\$$formatted';
   }
 }

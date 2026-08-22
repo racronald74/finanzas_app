@@ -9,6 +9,9 @@ import 'add_income_screen.dart';
 import '../../../providers/expense_provider.dart';
 import '../../../providers/budget_provider.dart';
 import '../widgets/income_header.dart';
+import 'package:intl/intl.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
+import '../../../data/repositories/fixed_income_history_repository.dart';
 
 // Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
@@ -22,6 +25,14 @@ class IncomesScreen extends StatefulWidget {
 }
 
 class _IncomesScreenState extends State<IncomesScreen> {
+  /// Formatea valores monetarios con separador de miles
+  /// y coloca el símbolo de moneda antes del valor.
+  String _formatCurrency(double value) {
+    final formatted = NumberFormat('#,##0', 'es_CO').format(value);
+
+    return '\$$formatted';
+  }
+
   /// Mes y año actualmente seleccionados.
   DateTime _selectedPeriod = DateTime.now();
   @override
@@ -35,7 +46,8 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
   /// Obtiene el texto correspondiente al período actual.
   String _getCurrentPeriodText() {
-    final now = _selectedPeriod;
+    final selected = _selectedPeriod;
+    final current = DateTime.now();
 
     const monthNames = [
       'Enero',
@@ -52,7 +64,14 @@ class _IncomesScreenState extends State<IncomesScreen> {
       'Diciembre',
     ];
 
-    return 'Mes actual - ${monthNames[now.month - 1]} ${now.year}';
+    final monthName = monthNames[selected.month - 1];
+
+    final isCurrentPeriod =
+        selected.year == current.year && selected.month == current.month;
+
+    return isCurrentPeriod
+        ? 'Mes actual - $monthName ${selected.year}'
+        : '$monthName ${selected.year}';
   }
 
   /// Abre el selector para cambiar el mes y año.
@@ -72,6 +91,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
     setState(() {
       _selectedPeriod = DateTime(selectedDate.year, selectedDate.month);
     });
+
+    // Carga el ingreso fijo correspondiente al nuevo período.
+    await _loadFixedIncomeForSelectedPeriod();
   }
 
   /// Devuelve los ingresos adicionales correspondientes
@@ -117,19 +139,21 @@ class _IncomesScreenState extends State<IncomesScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final incomeProvider = Provider.of<IncomeProvider>(context);
+    final budgetProvider = Provider.of<BudgetProvider>(context);
 
     final filteredIncomes = _getFilteredIncomes(
       incomeProvider.additionalIncomes,
     );
 
-    final fixedIncome = authProvider.currentUser?.ingresoFijoMensual ?? 0;
+    final currentDate = DateTime.now();
 
-    final additionalIncomeTotal = filteredIncomes.fold<double>(
-      0,
-      (total, income) => total + income.monto,
-    );
+    final isCurrentPeriod =
+        _selectedPeriod.year == currentDate.year &&
+        _selectedPeriod.month == currentDate.month;
 
-    final monthlyTotal = fixedIncome + additionalIncomeTotal;
+    final fixedIncome = isCurrentPeriod
+        ? authProvider.currentUser?.ingresoFijoMensual ?? 0
+        : _selectedPeriodFixedIncome ?? 0;
 
     return Scaffold(
       body: Column(
@@ -141,7 +165,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
           ),
 
           Expanded(
-            child: SingleChildScrollView(
+            child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,18 +183,34 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  const Text('Ingreso fijo'),
+                                  const Text(
+                                    'Ingreso fijo',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 17,
+                                    ),
+                                  ),
 
                                   Text(
-                                    '\$${fixedIncome.toStringAsFixed(0)}',
+                                    _formatCurrency(fixedIncome),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.green,
                                     ),
                                   ),
 
                                   TextButton(
                                     onPressed: _editFixedIncome,
+                                    style: TextButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
                                     child: const Text(
                                       'Modificar',
                                       style: TextStyle(
@@ -198,18 +238,28 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  const Text('Total ingresos'),
+                                  const Text(
+                                    'Total disponible',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 17,
+                                    ),
+                                  ),
 
                                   Text(
-                                    '\$${monthlyTotal.toStringAsFixed(0)}',
+                                    _formatCurrency(
+                                      budgetProvider.summary.availableBudget,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.green,
                                     ),
                                   ),
 
                                   const Text(
-                                    'Este mes',
+                                    'Este mes + saldos anteriores',
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(color: Colors.grey),
                                   ),
                                 ],
@@ -221,42 +271,162 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 10),
 
-                  const Text('Historial de ingresos adicionales'),
+                  // Mensaje informativo sobre los saldos anteriores.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F0FE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Iconsax.info_circle,
+                          size: 20,
+                          color: Color(0xFF4380E5),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'El total disponible incluye saldos anteriores.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF315B9A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  if (incomeProvider.isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (incomeProvider.additionalIncomes.isEmpty)
-                    const Card(
-                      child: ListTile(title: Text('Sin ingresos registrados')),
-                    )
-                  else
-                    ...filteredIncomes.map(_incomeTile),
+                  // Historial de ingresos adicionales.
+                  const Text(
+                    'Historial de ingresos adicionales',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+                  ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+
+                  // Solo el historial de ingresos tendrá desplazamiento.
+                  Expanded(
+                    child: incomeProvider.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : filteredIncomes.isEmpty
+                        ? SizedBox(
+                            width: double.infinity,
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  children: [
+                                    // Icono representativo del estado vacío.
+                                    const Icon(
+                                      Icons.receipt_long,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+
+                                    const SizedBox(height: 16),
+
+                                    // Mensaje principal.
+                                    const Text(
+                                      'No hay ingresos registrados',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    // Explicación del estado vacío.
+                                    const Text(
+                                      'Registra tu primer ingreso para comenzar a controlar tus finanzas.',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: EdgeInsets.zero,
+
+                            // Se reserva la primera posición para el ingreso fijo
+                            // correspondiente al período seleccionado.
+                            itemCount:
+                                filteredIncomes.length +
+                                (_selectedPeriodFixedIncome != null ? 1 : 0),
+
+                            itemBuilder: (context, index) {
+                              // Muestra primero el ingreso fijo histórico.
+                              if (_selectedPeriodFixedIncome != null &&
+                                  index == 0) {
+                                return _fixedIncomeHistoryTile(
+                                  _selectedPeriodFixedIncome!,
+                                );
+                              }
+
+                              // Ajusta el índice porque el primer elemento
+                              // corresponde al ingreso fijo.
+                              final incomeIndex =
+                                  _selectedPeriodFixedIncome != null
+                                  ? index - 1
+                                  : index;
+
+                              return _incomeTile(filteredIncomes[incomeIndex]);
+                            },
+                          ),
+                  ),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddIncomeScreen(),
+                          ),
+                        );
+
+                        if (!mounted) return;
+
+                        await _loadIncomeData();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text(
+                        'Registrar nuevo ingreso',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4380E5),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'income_fab',
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddIncomeScreen()),
-          );
-
-          if (!mounted) return;
-
-          await _loadIncomeData();
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -269,14 +439,80 @@ class _IncomesScreenState extends State<IncomesScreen> {
         '${date.year}';
   }
 
+  /// Construye la tarjeta del ingreso fijo correspondiente
+  /// al período seleccionado.
+  Widget _fixedIncomeHistoryTile(double monto) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 26,
+              backgroundColor: Color(0xFFC7DFDE),
+              child: Icon(Iconsax.money_recive, size: 30, color: Colors.green),
+            ),
+
+            const SizedBox(width: 16),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ingreso fijo',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  const Text(
+                    'Ingreso fijo mensual del período',
+                    style: TextStyle(color: Colors.black87),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    '${_selectedPeriod.month.toString().padLeft(2, '0')}/'
+                    '${_selectedPeriod.year}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            Text(
+              _formatCurrency(monto),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _incomeTile(IncomeModel income) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const CircleAvatar(child: Icon(Icons.attach_money)),
+            const CircleAvatar(
+              radius: 26,
+              backgroundColor: Color.fromARGB(255, 199, 223, 222),
+              child: Icon(Iconsax.money_recive, size: 30, color: Colors.green),
+            ),
 
             const SizedBox(width: 16),
 
@@ -287,8 +523,8 @@ class _IncomesScreenState extends State<IncomesScreen> {
                   Text(
                     income.fuente ?? 'Sin categoría',
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
 
@@ -324,7 +560,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '\$${income.monto.toStringAsFixed(0)}',
+                  _formatCurrency(income.monto),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -339,7 +575,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     IconButton(
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.edit),
+                      icon: const Icon(Iconsax.edit, size: 28),
                       onPressed: () async {
                         await Navigator.push(
                           context,
@@ -354,12 +590,14 @@ class _IncomesScreenState extends State<IncomesScreen> {
                       },
                     ),
 
-                    const SizedBox(width: 12),
-
                     IconButton(
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(
+                        Iconsax.trash,
+                        size: 28,
+                        color: Colors.red,
+                      ),
                       onPressed: () => _confirmDelete(income),
                     ),
                   ],
@@ -461,11 +699,11 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
     if (user == null) return;
 
-    final currentPeriodStart = DateTime(
-      _selectedPeriod.year,
-      _selectedPeriod.month,
-      1,
-    );
+    // El presupuesto siempre corresponde al período actual.
+    // El filtro del historial es independiente.
+    final now = DateTime.now();
+
+    final currentPeriodStart = DateTime(now.year, now.month, 1);
 
     final initialBalance = await budgetProvider.calculateInitialBalance(
       idUsuario: user.idUsuario!,
@@ -483,6 +721,41 @@ class _IncomesScreenState extends State<IncomesScreen> {
       totalExpenses: expenseProvider.totalExpenses,
       totalSavings: 0,
     );
+  }
+
+  /// Repositorio encargado de consultar el histórico
+  /// del ingreso fijo mensual.
+  final FixedIncomeHistoryRepository _fixedIncomeHistoryRepository =
+      FixedIncomeHistoryRepository();
+
+  /// Ingreso fijo correspondiente al período seleccionado.
+  double? _selectedPeriodFixedIncome;
+
+  /// Obtiene el ingreso fijo correspondiente al período seleccionado.
+  Future<void> _loadFixedIncomeForSelectedPeriod() async {
+    final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+
+    if (user == null) return;
+
+    final periodStart = DateTime(
+      _selectedPeriod.year,
+      _selectedPeriod.month,
+      1,
+    );
+
+    final history = await _fixedIncomeHistoryRepository.getByPeriod(
+      idUsuario: user.idUsuario!,
+      periodStart: periodStart,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      // Utiliza el histórico cuando existe.
+      // Si no existe, todavía no se muestra un ingreso fijo
+      // para ese período.
+      _selectedPeriodFixedIncome = history?.monto;
+    });
   }
 }
 
@@ -502,7 +775,9 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
+    _controller = TextEditingController(
+      text: _formatAmount(widget.initialValue),
+    );
   }
 
   @override
@@ -519,7 +794,11 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
         controller: _controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         autofocus: true,
-        decoration: InputDecoration(labelText: 'Monto', errorText: _errorText),
+        decoration: InputDecoration(
+          labelText: 'Monto',
+          prefixText: r'$',
+          errorText: _errorText,
+        ),
       ),
       actions: [
         TextButton(
@@ -532,7 +811,14 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
   }
 
   void _save() {
-    final value = double.tryParse(_controller.text.trim());
+    /// Convierte el monto mostrado con separadores
+    /// de miles al valor numérico utilizado por la aplicación.
+    final texto = _controller.text
+        .trim()
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+
+    final value = double.tryParse(texto);
 
     if (value == null || value < 0) {
       setState(() {
@@ -542,5 +828,16 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
     }
 
     Navigator.pop(context, value);
+  }
+
+  /// Formatea el monto para mostrarlo con separador de miles.
+  String _formatAmount(String value) {
+    final number = double.tryParse(value);
+
+    if (number == null) {
+      return value;
+    }
+
+    return NumberFormat('#,##0', 'es_CO').format(number);
   }
 }

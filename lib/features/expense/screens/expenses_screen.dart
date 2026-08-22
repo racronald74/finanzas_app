@@ -43,21 +43,42 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   String _filtroSeleccionado = 'Todos';
 
   /// Construye un botón de filtro.
-  ///
-  /// El botón cambia de color cuando está seleccionado.
+  /// independientemente de si están seleccionados.
   Widget _buildFiltro(String texto) {
     final bool seleccionado = _filtroSeleccionado == texto;
 
-    return ChoiceChip(
-      label: Text(texto),
-
-      selected: seleccionado,
-
-      onSelected: (_) {
-        setState(() {
-          _filtroSeleccionado = texto;
-        });
-      },
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () {
+          setState(() {
+            _filtroSeleccionado = texto;
+          });
+        },
+        style: OutlinedButton.styleFrom(
+          backgroundColor: seleccionado
+              ? const Color(0xFFD9E4FF)
+              : Colors.transparent,
+          foregroundColor: const Color(0xFF4A4A4A),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          side: BorderSide(
+            color: seleccionado
+                ? const Color(0xFFD9E4FF)
+                : const Color(0xFFD0D0D0),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (seleccionado) ...[
+              const Icon(Icons.check, size: 18),
+              const SizedBox(width: 6),
+            ],
+            Text(texto),
+          ],
+        ),
+      ),
     );
   }
 
@@ -188,9 +209,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
 
           Expanded(
-            child: SingleChildScrollView(
+            child: Padding(
               padding: const EdgeInsets.all(16),
-
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 // Contenido de la pantalla
@@ -208,194 +228,184 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
                   const SizedBox(height: 16),
 
-                  /// Filtros
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildFiltro('Todos'),
-
-                        const SizedBox(width: 8),
-
-                        _buildFiltro('Hoy'),
-
-                        const SizedBox(width: 8),
-
-                        _buildFiltro('Semana'),
-
-                        const SizedBox(width: 8),
-
-                        _buildFiltro('Mes'),
-                      ],
-                    ),
+                  // Filtros de gastos.
+                  Row(
+                    children: [
+                      Expanded(child: _buildFiltro('Todos')),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildFiltro('Hoy')),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildFiltro('Semana')),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildFiltro('Mes')),
+                    ],
                   ),
 
                   const SizedBox(height: 12),
 
                   const Text(
                     'Lista de gastos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
 
-                  const SizedBox(height: 2),
+                  /// Historial de gastos.
+                  Expanded(
+                    child: gastosFiltrados.isEmpty
+                        ? SizedBox(
+                            width: double.infinity,
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.receipt_long,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
 
-                  /// Historial de gastos
-                  gastosFiltrados.isEmpty
-                      ? Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            // Mensaje cuando no hay gastos registrados
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.receipt_long,
-                                  size: 60,
-                                  color: Colors.grey,
-                                ),
+                                    const SizedBox(height: 16),
 
-                                const SizedBox(height: 16),
-                                // Mensaje cuando no hay gastos registrados
-                                const Text(
-                                  'No hay gastos registrados',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                    const Text(
+                                      'No hay gastos registrados',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
 
-                                const SizedBox(height: 8),
-                                // Mensaje adicional para motivar al usuario a registrar su primer gasto
-                                const Text(
-                                  'Registra tu primer gasto para comenzar a controlar tus finanzas.',
-                                  textAlign: TextAlign.center,
+                                    const SizedBox(height: 8),
+
+                                    const Text(
+                                      'Registra tu primer gasto para comenzar a controlar tus finanzas.',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        )
-                      /// Lista de gastos registrados
-                      : ListView.builder(
-                          shrinkWrap: true,
+                          )
+                        : ListView.builder(
+                            // Mantiene un pequeño espacio entre el título y la primera tarjeta.
+                            padding: const EdgeInsets.only(top: 8),
+                            itemCount: gastosFiltrados.length,
+                            itemBuilder: (context, index) {
+                              final gasto = gastosFiltrados[index];
 
-                          physics: const NeverScrollableScrollPhysics(),
-                          // Construye la lista de gastos filtrados
-                          itemCount: gastosFiltrados.length,
-                          //
-                          itemBuilder: (context, index) {
-                            final gasto = gastosFiltrados[index];
-                            // Construye una tarjeta personalizada.
-                            return ExpenseCard(
-                              expense: gasto,
-                              onEdit: () async {
-                                // Obtiene los providers antes de cualquier operación asíncrona.
-                                final authProvider = Provider.of<AuthProvider>(
-                                  context,
-                                  listen: false,
-                                );
+                              // Construye una tarjeta personalizada para cada gasto.
+                              return ExpenseCard(
+                                expense: gasto,
+                                onEdit: () async {
+                                  final authProvider =
+                                      Provider.of<AuthProvider>(
+                                        context,
+                                        listen: false,
+                                      );
 
-                                final expenseProvider =
-                                    Provider.of<ExpenseProvider>(
-                                      context,
-                                      listen: false,
+                                  final expenseProvider =
+                                      Provider.of<ExpenseProvider>(
+                                        context,
+                                        listen: false,
+                                      );
+
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          AddExpenseScreen(expense: gasto),
+                                    ),
+                                  );
+
+                                  if (!mounted) return;
+
+                                  final usuario = authProvider.currentUser;
+
+                                  if (usuario != null) {
+                                    await expenseProvider.loadExpenses(
+                                      usuario.idUsuario!,
                                     );
 
-                                // Abre la pantalla de edición.
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        AddExpenseScreen(expense: gasto),
-                                  ),
-                                );
+                                    _updateBudget();
+                                  }
+                                },
+                                onDelete: () async {
+                                  final authProvider =
+                                      Provider.of<AuthProvider>(
+                                        context,
+                                        listen: false,
+                                      );
 
-                                // Verifica que la pantalla siga activa.
-                                if (!mounted) return;
+                                  final expenseProvider =
+                                      Provider.of<ExpenseProvider>(
+                                        context,
+                                        listen: false,
+                                      );
 
-                                final usuario = authProvider.currentUser;
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
 
-                                if (usuario != null) {
-                                  await expenseProvider.loadExpenses(
+                                  final usuario = authProvider.currentUser;
+
+                                  if (usuario == null) return;
+
+                                  // Solicita confirmación antes de eliminar.
+                                  final confirmar = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContext) {
+                                      return AlertDialog(
+                                        title: const Text('Eliminar gasto'),
+                                        content: const Text(
+                                          '¿Está seguro de eliminar este gasto?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                dialogContext,
+                                                false,
+                                              );
+                                            },
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                dialogContext,
+                                                true,
+                                              );
+                                            },
+                                            child: const Text('Eliminar'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+
+                                  if (confirmar != true) return;
+
+                                  // Elimina el gasto.
+                                  await expenseProvider.deleteExpense(
+                                    gasto.idGasto!,
                                     usuario.idUsuario!,
                                   );
 
+                                  if (!mounted) return;
+
                                   _updateBudget();
-                                }
-                              },
-                              // Acción para eliminar el gasto.
-                              onDelete: () async {
-                                // Obtiene los providers antes de cualquier operación asíncrona.
-                                final authProvider = Provider.of<AuthProvider>(
-                                  context,
-                                  listen: false,
-                                );
 
-                                final expenseProvider =
-                                    Provider.of<ExpenseProvider>(
-                                      context,
-                                      listen: false,
-                                    );
-
-                                // Obtiene el ScaffoldMessenger antes del primer await.
-                                final messenger = ScaffoldMessenger.of(context);
-
-                                // Obtiene el usuario autenticado.
-                                final usuario = authProvider.currentUser;
-
-                                if (usuario == null) return;
-
-                                // Solicita confirmación antes de eliminar.
-                                final confirmar = await showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContext) {
-                                    return AlertDialog(
-                                      title: const Text('Eliminar gasto'),
-                                      content: const Text(
-                                        '¿Está seguro de eliminar este gasto?',
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Gasto eliminado correctamente',
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(dialogContext, false);
-                                          },
-                                          child: const Text('Cancelar'),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(dialogContext, true);
-                                          },
-                                          child: const Text('Eliminar'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-
-                                if (confirmar != true) return;
-
-                                // Elimina el gasto.
-                                await expenseProvider.deleteExpense(
-                                  gasto.idGasto!,
-                                  usuario.idUsuario!,
-                                );
-
-                                // Verifica que la pantalla siga activa.
-                                if (!mounted) return;
-
-                                // Actualiza el presupuesto.
-                                _updateBudget();
-
-                                // Muestra un mensaje de confirmación.
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Gasto eliminado correctamente',
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
                   const SizedBox(height: 12),
 
                   SizedBox(

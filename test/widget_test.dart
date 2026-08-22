@@ -4,15 +4,10 @@ import 'package:finanzas_app/main.dart';
 import 'package:finanzas_app/providers/auth_provider.dart';
 import 'package:finanzas_app/providers/income_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUpAll(() {
-    GoogleFonts.config.allowRuntimeFetching = false;
-  });
 
   test('PasswordHasher stores a hash and verifies the original password', () {
     const password = 'contrasena-segura';

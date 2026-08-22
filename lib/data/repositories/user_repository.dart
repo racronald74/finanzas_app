@@ -67,18 +67,40 @@ class UserRepository {
     );
   }
 
+  /// Actualiza el ingreso fijo actual y registra
+  /// el nuevo valor en el historial mensual.
   Future<int> updateFixedIncome({
     required int idUsuario,
     required double ingresoFijoMensual,
   }) async {
     final db = await _databaseHelper.database;
 
-    return db.update(
-      'usuario',
-      {'ingreso_fijo_mensual': ingresoFijoMensual},
-      where: 'id_usuario = ?',
-      whereArgs: [idUsuario],
-    );
+    return db.transaction((txn) async {
+      // Actualiza el valor vigente del ingreso fijo.
+      final updatedRows = await txn.update(
+        'usuario',
+        {'ingreso_fijo_mensual': ingresoFijoMensual},
+        where: 'id_usuario = ?',
+        whereArgs: [idUsuario],
+      );
+
+      if (updatedRows == 0) {
+        return 0;
+      }
+
+      // Registra el nuevo valor desde el primer día
+      // del mes en el que se realiza la modificación.
+      final currentDate = DateTime.now();
+      final periodStart = DateTime(currentDate.year, currentDate.month, 1);
+
+      await txn.insert('ingreso_fijo_historico', {
+        'id_usuario': idUsuario,
+        'monto': ingresoFijoMensual,
+        'fecha_inicio': periodStart.toIso8601String(),
+      });
+
+      return updatedRows;
+    });
   }
 
   Future<int> updateLastAccess(int idUsuario) async {

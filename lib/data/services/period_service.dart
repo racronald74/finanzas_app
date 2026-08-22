@@ -26,6 +26,12 @@ class PeriodService {
     /// de la fecha en que se registró el usuario.
     final firstPeriodStart = PeriodUtils.startOfMonth(registrationDate);
 
+    // Si se consulta un período anterior al registro del usuario,
+    // no existe saldo financiero para ese período.
+    if (currentPeriodStart.isBefore(firstPeriodStart)) {
+      return 0;
+    }
+
     double accumulatedBalance = 0;
 
     DateTime periodStart = firstPeriodStart;

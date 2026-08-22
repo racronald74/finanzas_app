@@ -77,6 +77,22 @@ class DatabaseHelper {
       )
     ''');
 
+    // Crea el historial del ingreso fijo mensual.
+    //
+    // Cada registro representa el monto del ingreso fijo
+    // que aplica desde una fecha determinada.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
     /// Crea la tabla de categorías
     await db.execute('''
       CREATE TABLE IF NOT EXISTS categoria (
@@ -277,6 +293,10 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_categoria_tipo ON categoria(tipo)',
     );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
   }
 
   /// Aplica migraciones para agregar nuevas columnas a tablas existentes sin perder datos.
@@ -343,6 +363,24 @@ class DatabaseHelper {
   WHERE id_categoria IS NULL
     AND categoria IS NOT NULL
 ''');
+
+    // Crea el historial del ingreso fijo para bases de datos existentes.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
   }
 
   /// Verifica si una columna existe en una tabla y la agrega si falta, utilizando ALTER TABLE.

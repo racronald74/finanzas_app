@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/models/expense_model.dart';
+import 'package:intl/intl.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 /// Tarjeta que representa un gasto.
 ///
 /// Será utilizada por ExpensesScreen para mostrar
 /// cada registro almacenado en SQLite.
 class ExpenseCard extends StatelessWidget {
+  /// Formatea valores monetarios con separador de miles
+  /// y coloca el símbolo de moneda antes del valor.
+  String _formatCurrency(double value) {
+    final formatted = NumberFormat('#,##0', 'es_CO').format(value);
+
+    return '\$$formatted';
+  }
+
+  /// Constructor de la tarjeta de gasto.
   const ExpenseCard({
     super.key,
     required this.expense,
@@ -87,9 +98,13 @@ class ExpenseCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // Centra verticalmente el icono y el contenido de la tarjeta.
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const CircleAvatar(child: Icon(Icons.shopping_cart)),
+            const CircleAvatar(
+              radius: 26,
+              child: Icon(Iconsax.shopping_cart, size: 26, color: Colors.blue),
+            ),
 
             const SizedBox(width: 16),
 
@@ -155,7 +170,7 @@ class ExpenseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  '\$${expense.monto.toStringAsFixed(0)}',
+                  _formatCurrency(expense.monto),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -168,13 +183,20 @@ class ExpenseCard extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Botón para editar el gasto.
                       IconButton(
-                        icon: const Icon(Icons.edit),
+                        icon: const Icon(Iconsax.edit, size: 28),
                         tooltip: 'Editar gasto',
                         onPressed: onEdit,
                       ),
+
+                      // Botón para eliminar el gasto.
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(
+                          Iconsax.trash,
+                          size: 26,
+                          color: Colors.red,
+                        ),
                         tooltip: 'Eliminar gasto',
                         onPressed: onDelete,
                       ),

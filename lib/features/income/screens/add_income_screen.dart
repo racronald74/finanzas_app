@@ -6,6 +6,7 @@ import '../../../data/models/income_model.dart';
 import '../../../data/services/category_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
+import 'package:intl/intl.dart';
 
 // Pantalla para agregar o editar un ingreso en la aplicación.
 class AddIncomeScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
     final income = widget.initialIncome;
     if (income != null) {
-      _montoController.text = income.monto.toStringAsFixed(0);
+      _montoController.text = _formatAmount(income.monto);
       _descripcionController.text = income.descripcion;
       _fechaSeleccionada = DateTime.tryParse(income.fecha) ?? DateTime.now();
       _categoriaSeleccionada = income.idCategoria?.toString();
@@ -76,7 +77,10 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Monto'),
+              decoration: const InputDecoration(
+                labelText: 'Monto',
+                prefixText: r'$',
+              ),
             ),
             const SizedBox(height: 16),
             ListTile(
@@ -123,11 +127,28 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               ),
             ),
             const SizedBox(height: 32),
+            // Botón principal para guardar el ingreso.
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              height: 48,
+              child: ElevatedButton.icon(
                 onPressed: _saveIncome,
-                child: Text(_isEditing ? 'Guardar cambios' : 'Guardar ingreso'),
+                icon: const Icon(Icons.save_outlined),
+                label: Text(
+                  _isEditing ? 'Guardar cambios' : 'Guardar ingreso',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4380E5),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
               ),
             ),
           ],
@@ -137,7 +158,15 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   }
 
   Future<void> _saveIncome() async {
-    final monto = double.tryParse(_montoController.text.trim());
+    /// Convierte el monto mostrado con separadores
+    /// de miles al valor numérico utilizado por la aplicación.
+    final textoMonto = _montoController.text
+        .trim()
+        .replaceAll('\$', '')
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
+
+    final monto = double.tryParse(textoMonto);
 
     if (monto == null || monto <= 0) {
       _showMessage('Ingrese un monto valido mayor a cero');
@@ -200,5 +229,10 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Formatea el monto para mostrarlo con separador de miles.
+  String _formatAmount(double value) {
+    return NumberFormat('#,##0', 'es_CO').format(value);
   }
 }
