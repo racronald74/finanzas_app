@@ -30,65 +30,52 @@ class ExpenseSummary extends StatelessWidget {
 
       children: [
         Expanded(
-          child: SizedBox(
-            height: 190,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    const Text(
-                      'Total gastado',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  const Text(
+                    'Total gastado',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Text(
+                    _formatCurrency(totalGastado),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
                     ),
+                  ),
 
-                    const SizedBox(height: 8),
+                  const SizedBox(height: 3),
 
-                    Text(
-                      _formatCurrency(totalGastado),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
+                  Text(
+                    '${(usedPercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
                     ),
+                  ),
 
-                    const SizedBox(height: 10),
+                  const SizedBox(height: 4),
 
-                    const Text(
-                      'Presupuesto usado',
-                      style: TextStyle(fontSize: 13),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: usedPercentage,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade300,
+                      color: Colors.red,
                     ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      '${(usedPercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 7),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: usedPercentage,
-                        minHeight: 10,
-                        backgroundColor: Colors.grey.shade300,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -97,65 +84,52 @@ class ExpenseSummary extends StatelessWidget {
         const SizedBox(width: 10),
         // Muestra el presupuesto disponible y un indicador
         Expanded(
-          child: SizedBox(
-            height: 190,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
 
-                  children: [
-                    const Text(
-                      'Disponible',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
+                children: [
+                  const Text(
+                    'Disponible',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 3),
+
+                  Text(
+                    _formatCurrency(disponible),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
                     ),
-                    const SizedBox(height: 8),
+                  ),
 
-                    Text(
-                      _formatCurrency(disponible),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
+                  const SizedBox(height: 3),
+
+                  Text(
+                    '${(availablePercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
                     ),
+                  ),
 
-                    const SizedBox(height: 10),
+                  const SizedBox(height: 4),
 
-                    const Text(
-                      'Presupuesto disponible',
-                      style: TextStyle(fontSize: 13),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: availablePercentage,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade300,
+                      color: Colors.green,
                     ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      '${(availablePercentage * 100).round()}% de ${_formatCurrency(totalIncome)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 7),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: availablePercentage,
-                        minHeight: 10,
-                        backgroundColor: Colors.grey.shade300,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

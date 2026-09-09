@@ -4,6 +4,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 // Flutter
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
+
 // Provider
 import 'package:provider/provider.dart';
 // Provider de autenticación
@@ -21,16 +23,23 @@ import 'features/auth/screens/login_screen.dart';
 
 import 'shared/themes/app_theme.dart';
 
-// Punto de entrada principal de la aplicación
-void main() {
-  // Configuración necesaria para Windows
+/// Punto de entrada principal de la aplicación.
+Future<void> main() async {
+  // Inicializa Flutter antes de configurar la orientación de pantalla.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // La aplicación funcionará únicamente en orientación vertical.
+  // Se evita que la interfaz cambie a modo horizontal al girar el teléfono.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // Configuración necesaria para Windows.
   if (Platform.isWindows) {
     sqfliteFfiInit();
 
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Ejecutar la aplicación con los proveedores
+  // Ejecutar la aplicación con los proveedores.
   runApp(
     MultiProvider(
       providers: [

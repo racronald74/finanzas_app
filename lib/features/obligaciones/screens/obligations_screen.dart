@@ -167,6 +167,10 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }
 
   /// Construye la tarjeta superior de resumen.
+  ///
+  /// El icono permanece siempre a la izquierda.
+  /// El contenido de texto se adapta al espacio disponible
+  /// para evitar desbordamientos en diferentes dispositivos.
   Widget _buildSummaryCard({
     required IconData icon,
     required Color iconColor,
@@ -177,15 +181,26 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }) {
     return Expanded(
       child: Container(
-        height: 74,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        // La tarjeta no tiene una altura fija.
+        // Su contenido determina la altura necesaria.
+        constraints: const BoxConstraints(minHeight: 74),
+
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(7),
           border: Border.all(color: const Color(0xFFD5E1ED)),
         ),
+
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // ==================================================
+            // Icono.
+            //
+            // Se mantiene siempre a la izquierda de la tarjeta.
+            // ==================================================
             Container(
               width: 34,
               height: 34,
@@ -195,23 +210,46 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
               ),
               child: Icon(icon, size: 20, color: iconColor),
             ),
+
             const SizedBox(width: 8),
+
+            // ==================================================
+            // Contenido de la tarjeta.
+            //
+            // Expanded permite que el texto utilice únicamente
+            // el espacio disponible después del icono.
+            // ==================================================
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Título de la tarjeta.
                   Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13, color: Colors.black87),
                   ),
+
                   const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: valueColor,
+
+                  // Valor monetario.
+                  //
+                  // FittedBox reduce el tamaño visual si el monto
+                  // no cabe en el ancho disponible.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: valueColor,
+                      ),
                     ),
                   ),
                 ],
@@ -492,7 +530,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                         icon: Icons.calendar_month_outlined,
                         iconColor: const Color(0xFFFFB52E),
                         iconBackground: const Color(0xFFFFEDC9),
-                        title: 'Saldo disponible proyectado',
+                        title: 'Disponible proyectado',
                         value: CurrencyFormatter.format(
                           budgetProvider.summary.availableBudget -
                               obligationProvider.totalCommitted,

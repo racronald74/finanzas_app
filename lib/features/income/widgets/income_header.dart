@@ -30,71 +30,61 @@ class IncomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Altura del encabezado para mantener
-      // consistencia visual con los demás módulos.
-      height: 150,
-
+      constraints: const BoxConstraints(minHeight: 120),
       padding: const EdgeInsets.symmetric(horizontal: 20),
-
       decoration: const BoxDecoration(color: Color(0xFF3F6DB5)),
-
       child: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ============================================
-            // Avatar del usuario
-            // ============================================
-            GestureDetector(
-              onTap: onAvatarPressed,
-              child: const CircleAvatar(
-                radius: 22,
-                child: Icon(Icons.person, size: 26),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: onAvatarPressed,
+                child: const CircleAvatar(
+                  radius: 22,
+                  child: Icon(Icons.person, size: 26),
+                ),
               ),
-            ),
 
-            const SizedBox(width: 16),
+              const SizedBox(width: 16),
 
-            // ============================================
-            // Título y período
-            // ============================================
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Título del módulo.
-                  const Text(
-                    'Ingresos',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Ingresos',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 6),
+                    const SizedBox(height: 2),
 
-                  // Período actualmente seleccionado.
-                  Text(
-                    periodText,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ],
+                    Text(
+                      periodText,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // ============================================
-            // Botón de calendario
-            // ============================================
-            IconButton(
-              onPressed: onCalendarPressed,
-              icon: const Icon(
-                Icons.calendar_month,
-                color: Colors.white,
-                size: 28,
+              IconButton(
+                onPressed: onCalendarPressed,
+                icon: const Icon(
+                  Icons.calendar_month,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

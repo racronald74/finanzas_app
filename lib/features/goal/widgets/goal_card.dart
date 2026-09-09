@@ -90,16 +90,14 @@ class GoalCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Icono representativo de la meta.
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: CircleAvatar(
-                    radius: isMobile ? 24 : 28,
-                    backgroundColor: AppColors.iconBackground,
-                    child: Icon(
-                      icon,
-                      color: AppColors.primary,
-                      size: isMobile ? 24 : 28,
-                    ),
+                // Se mantiene alineado en la parte superior del contenido.
+                CircleAvatar(
+                  radius: isMobile ? 24 : 28,
+                  backgroundColor: AppColors.iconBackground,
+                  child: Icon(
+                    icon,
+                    color: AppColors.primary,
+                    size: isMobile ? 24 : 28,
                   ),
                 ),
 
@@ -152,13 +150,8 @@ class GoalCard extends StatelessWidget {
                 const SizedBox(width: 8),
 
                 // Porcentaje de progreso.
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: AppProgressCircle(
-                    value: progress,
-                    size: isMobile ? 46 : 54,
-                  ),
-                ),
+                // Se mantiene alineado en la parte superior de la tarjeta.
+                AppProgressCircle(value: progress, size: isMobile ? 46 : 54),
               ],
             ),
 
@@ -236,63 +229,84 @@ class GoalCard extends StatelessWidget {
             // ============================================
             // Fecha límite y acciones
             // ============================================
-            Row(
+            // La fecha ocupa toda la fila superior.
+            // Los botones se colocan debajo para evitar
+            // desbordamientos en dispositivos pequeños.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Fecha límite.
-                Expanded(
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_month,
-                        size: 17,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Límite:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Fecha límite de la meta.
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_month,
+                          size: 17,
+                          color: AppColors.primary,
                         ),
-                      ),
-                      const SizedBox(width: 5),
-                      Flexible(
-                        child: Text(
-                          deadline,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.success,
+                        const SizedBox(width: 6),
+
+                        const Text(
+                          'Límite:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                // Botón para ver el detalle.
-                SizedBox(
-                  width: 100,
-                  height: 33,
-                  child: AppChipButton(
-                    text: 'Ver detalle',
-                    primaryColor: AppColors.success,
-                    onPressed: onDetails,
-                  ),
-                ),
+                        const SizedBox(width: 5),
 
-                const SizedBox(width: 6),
+                        // La fecha ocupa el espacio disponible.
+                        Expanded(
+                          child: Text(
+                            deadline,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.success,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
-                // Botón para registrar un aporte.
-                SizedBox(
-                  width: 85,
-                  height: 33,
-                  child: AppChipButton(
-                    text: 'Aportar',
-                    isPrimary: true,
-                    primaryColor: AppColors.success,
-                    onPressed: onContribute,
-                  ),
+                    const SizedBox(height: 10),
+
+                    // Botones ubicados debajo de la fecha
+                    // y alineados a la izquierda.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        // Botón para ver el detalle.
+                        SizedBox(
+                          width: 100,
+                          height: 33,
+                          child: AppChipButton(
+                            text: 'Ver detalle',
+                            primaryColor: AppColors.success,
+                            onPressed: onDetails,
+                          ),
+                        ),
+
+                        const SizedBox(width: 6),
+
+                        // Botón para registrar un aporte.
+                        SizedBox(
+                          width: 85,
+                          height: 33,
+                          child: AppChipButton(
+                            text: 'Aportar',
+                            isPrimary: true,
+                            primaryColor: AppColors.success,
+                            onPressed: onContribute,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),

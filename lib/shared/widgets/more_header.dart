@@ -13,7 +13,7 @@ class MoreHeader extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 150,
+          height: 100,
           width: double.infinity,
           color: const Color(0xFF3F6DB5),
           padding: const EdgeInsets.symmetric(horizontal: 24),

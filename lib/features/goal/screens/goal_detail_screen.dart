@@ -473,7 +473,7 @@ class _GoalSummaryCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // ============================================
             // Monto y progreso
@@ -496,58 +496,84 @@ class _GoalSummaryCard extends StatelessWidget {
 
                       const SizedBox(height: 4),
 
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: CurrencyFormatter.format(
-                                goal.montoAcumulado,
-                              ),
-                              style: const TextStyle(
-                                color: AppColors.success,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text:
+                      // Muestra el monto acumulado y el monto objetivo.
+                      // FittedBox permite reducir el contenido automáticamente
+                      // cuando el espacio disponible en el teléfono es reducido.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  CurrencyFormatter.format(goal.montoAcumulado),
+                                  style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
                                   ' / ${CurrencyFormatter.format(goal.montoObjetivo)}',
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 13,
-                              ),
+                                  style: const TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
 
                       const SizedBox(height: 10),
 
+                      // ============================================
+                      // Información del ahorro realizado
+                      // ============================================
+                      //
+                      // Se organiza verticalmente para evitar overflow
+                      // cuando el monto acumulado tiene muchos dígitos.
                       Container(
+                        width: double.infinity,
+
+                        // Espaciado interno de la tarjeta verde.
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 7,
                         ),
+
+                        // Fondo verde claro y bordes redondeados.
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
+
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // --------------------------------------------
+                            // Primera línea: icono + texto "Has ahorrado"
+                            // --------------------------------------------
                             Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.insights,
                                   size: 16,
                                   color: AppColors.success,
                                 ),
+
                                 const SizedBox(width: 6),
-                                Text(
-                                  'Has ahorrado '
-                                  '${CurrencyFormatter.format(goal.montoAcumulado)}',
-                                  style: const TextStyle(
+
+                                const Text(
+                                  'Has ahorrado',
+                                  style: TextStyle(
                                     color: AppColors.success,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
@@ -558,8 +584,32 @@ class _GoalSummaryCard extends StatelessWidget {
 
                             const SizedBox(height: 2),
 
+                            // --------------------------------------------
+                            // Segunda línea: monto acumulado
+                            // --------------------------------------------
+                            //
+                            // Al estar en una línea independiente ya no
+                            // compite por espacio con el texto anterior.
+                            Text(
+                              CurrencyFormatter.format(goal.montoAcumulado),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+
+                            const SizedBox(height: 2),
+
+                            // --------------------------------------------
+                            // Tercera línea: fecha desde la cual se ahorra
+                            // --------------------------------------------
                             Text(
                               'desde ${goal.createdAt != null ? _formatCreatedDate(goal.createdAt!) : ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 10,
@@ -572,11 +622,11 @@ class _GoalSummaryCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 6),
 
-                // Progreso y eliminación.
+                // Progreso de la meta.
                 SizedBox(
-                  width: 125,
+                  width: 105,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -609,15 +659,13 @@ class _GoalSummaryCard extends StatelessWidget {
                         ],
                       ),
 
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
 
                       // Texto debajo del círculo.
                       Text(
-                        'Faltan ${CurrencyFormatter.format(remainingAmount)}\n'
+                        'Faltan ${CurrencyFormatter.format(remainingAmount)} '
                         'para alcanzar tu meta',
                         textAlign: TextAlign.center,
-                        maxLines: 2,
-                        softWrap: false,
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 11,

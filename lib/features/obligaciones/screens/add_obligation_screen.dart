@@ -198,7 +198,7 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
                 icon: Icons.calendar_today_outlined,
                 title: 'Fecha de vencimiento',
                 value: _fechaVencimiento == null
-                    ? 'Seleccionar fecha'
+                    ? 'Seleccione fecha'
                     : _formatDate(_fechaVencimiento!),
                 onTap: _selectDueDate,
               ),
@@ -443,7 +443,11 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Campo visual utilizado para seleccionar fechas o días.
+  /// Campo visual utilizado para seleccionar la fecha de vencimiento.
+  ///
+  /// Muestra un único icono de calendario a la izquierda.
+  /// El texto se mantiene en una sola línea para evitar
+  /// problemas de overflow dentro del campo.
   Widget _buildDateField({
     required IconData icon,
     required String title,
@@ -461,38 +465,50 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
           borderRadius: BorderRadius.circular(5),
           border: Border.all(color: const Color(0xFFD5E1ED)),
         ),
+
+        // Contenido horizontal del campo.
         child: Row(
           children: [
+            // Único icono de calendario.
             Icon(icon, color: Colors.grey.shade600),
+
             const SizedBox(width: 10),
+
+            // Área disponible para el título y la fecha.
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Título del campo.
+                  // Se permiten dos líneas para mostrar
+                  // "Fecha de vencimiento" completo.
                   Text(
                     title,
+                    maxLines: 2,
+                    softWrap: true,
                     style: const TextStyle(fontSize: 12, color: Colors.black87),
                   ),
+
                   const SizedBox(height: 2),
+
+                  // Fecha seleccionada o texto de ayuda.
+                  // También se mantiene en una sola línea.
                   Text(
                     value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
                       color:
-                          value == 'Seleccionar fecha' ||
+                          value == 'Seleccione fecha' ||
                               value == 'Seleccionar día'
-                          ? Colors.grey
+                          ? Colors.grey.shade400
                           : Colors.black87,
                     ),
                   ),
                 ],
               ),
-            ),
-            const Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: Colors.grey,
             ),
           ],
         ),

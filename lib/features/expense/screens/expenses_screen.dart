@@ -226,7 +226,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         budgetProvider.summary.totalIncome,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // Filtros de gastos.
                   Row(
@@ -241,7 +241,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 5),
 
                   const Text(
                     'Lista de gastos',
@@ -286,8 +286,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             ),
                           )
                         : ListView.builder(
-                            // Mantiene un pequeño espacio entre el título y la primera tarjeta.
-                            padding: const EdgeInsets.only(top: 8),
+                            // Mantiene un espacio entre el título y la primera tarjeta.
+                            padding: const EdgeInsets.only(top: 10),
                             itemCount: gastosFiltrados.length,
                             itemBuilder: (context, index) {
                               final gasto = gastosFiltrados[index];

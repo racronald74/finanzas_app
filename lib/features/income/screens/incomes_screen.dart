@@ -173,53 +173,53 @@ class _IncomesScreenState extends State<IncomesScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: SizedBox(
-                          height: 150,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    'Ingreso fijo',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 17,
-                                    ),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Ingreso fijo',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
                                   ),
+                                ),
 
-                                  Text(
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
                                     _formatCurrency(fixedIncome),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.green,
+                                      color: Color(0xFF3F6DB5),
                                     ),
                                   ),
+                                ),
 
-                                  TextButton(
-                                    onPressed: _editFixedIncome,
-                                    style: TextButton.styleFrom(
-                                      minimumSize: Size.zero,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
+                                TextButton(
+                                  onPressed: _editFixedIncome,
+                                  style: TextButton.styleFrom(
+                                    minimumSize: Size.zero,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
-                                    child: const Text(
-                                      'Modificar',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Modificar',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -228,25 +228,24 @@ class _IncomesScreenState extends State<IncomesScreen> {
                       const SizedBox(width: 12),
 
                       Expanded(
-                        child: SizedBox(
-                          height: 150,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    'Total disponible',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 17,
-                                    ),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Total disponible',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
                                   ),
+                                ),
 
-                                  Text(
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
                                     _formatCurrency(
                                       budgetProvider.summary.availableBudget,
                                     ),
@@ -256,14 +255,17 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                       color: Colors.green,
                                     ),
                                   ),
+                                ),
 
-                                  const Text(
-                                    'Este mes + saldos anteriores',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.grey),
+                                const Text(
+                                  'Este mes + saldos anteriores',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -352,6 +354,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     const Text(
                                       'Registra tu primer ingreso para comenzar a controlar tus finanzas.',
                                       textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),

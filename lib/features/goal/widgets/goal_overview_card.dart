@@ -227,15 +227,18 @@ class _IndicatorItem extends StatelessWidget {
         const SizedBox(height: 3),
 
         // Valor calculado del indicador.
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.w700,
-            fontSize: isMobile ? 14 : 16,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: isMobile ? 13 : 16,
+            ),
           ),
         ),
       ],
