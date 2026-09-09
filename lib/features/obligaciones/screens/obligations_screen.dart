@@ -9,6 +9,8 @@ import '../../../shared/widgets/app_header.dart';
 import '../../../data/models/obligation_model.dart';
 import '../../../data/services/obligation_service.dart';
 import 'add_obligation_screen.dart';
+import '../../../providers/income_provider.dart';
+import '../../../providers/expense_provider.dart';
 import '../../../providers/budget_provider.dart';
 
 /// Pantalla principal del módulo Obligaciones.
@@ -353,11 +355,18 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                             listen: false,
                           );
 
+                          final confirmed = await _confirmMarkAsPaid(
+                            obligation,
+                          );
+
+                          if (!confirmed) return;
+
                           final success = await provider.markAsPaid(obligation);
 
                           if (!mounted) return;
 
                           if (!success) {
+                            // Muestra el error si no fue posible registrar el pago.
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -367,7 +376,77 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                                 ),
                               ),
                             );
+
+                            return;
                           }
+
+                          // Obtiene los Providers necesarios para recalcular
+                          // el presupuesto después de generar el gasto.
+                          final authProvider = Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          final incomeProvider = Provider.of<IncomeProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          final expenseProvider = Provider.of<ExpenseProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          final budgetProvider = Provider.of<BudgetProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          final usuario = authProvider.currentUser;
+
+                          if (usuario == null) return;
+
+                          // Recarga los ingresos y gastos para incluir
+                          // inmediatamente el gasto generado por la obligación.
+                          await incomeProvider.loadIncomeData(
+                            usuario.idUsuario!,
+                          );
+                          await expenseProvider.loadExpenses(
+                            usuario.idUsuario!,
+                          );
+
+                          if (!mounted) return;
+
+                          // Define el inicio del período financiero actual.
+                          final now = DateTime.now();
+                          final currentPeriodStart = DateTime(
+                            now.year,
+                            now.month,
+                            1,
+                          );
+
+                          // Recalcula el saldo inicial del período.
+                          final initialBalance = await budgetProvider
+                              .calculateInitialBalance(
+                                idUsuario: usuario.idUsuario!,
+                                currentPeriodStart: currentPeriodStart,
+                                fixedIncome: usuario.ingresoFijoMensual,
+                                registrationDate: DateTime.parse(
+                                  usuario.fechaRegistro,
+                                ),
+                              );
+
+                          if (!mounted) return;
+
+                          // Actualiza el resumen del presupuesto con los datos actuales.
+                          budgetProvider.updateBudget(
+                            initialBalance: initialBalance,
+                            fixedIncome: usuario.ingresoFijoMensual,
+                            additionalIncome:
+                                incomeProvider.currentMonthAdditionalIncome,
+                            totalExpenses: expenseProvider.totalExpenses,
+                            totalSavings: 0,
+                          );
                         },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -658,5 +737,31 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
         ],
       ),
     );
+  }
+
+  Future<bool> _confirmMarkAsPaid(ObligationModel obligation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmar pago'),
+          content: Text(
+            '¿Deseas marcar la obligación "${obligation.nombre}" como pagada?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Marcar como pagada'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return confirmed ?? false;
   }
 }
