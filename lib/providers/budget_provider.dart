@@ -43,6 +43,56 @@ class BudgetProvider extends ChangeNotifier {
     );
   }
 
+  /// Calcula el presupuesto correspondiente a un período específico.
+  ///
+  /// Permite consultar tanto el período actual como períodos históricos.
+  /// El saldo inicial y el ingreso fijo se calculan de acuerdo con
+  /// el período seleccionado.
+  Future<BudgetSummary> calculateBudgetForPeriod({
+    required int idUsuario,
+    required DateTime periodStart,
+    required double fixedIncome,
+    required double additionalIncome,
+    required double totalExpenses,
+    required DateTime registrationDate,
+  }) async {
+    // Calcula el saldo acumulado hasta el inicio del período seleccionado.
+    final initialBalance = await calculateInitialBalance(
+      idUsuario: idUsuario,
+      currentPeriodStart: periodStart,
+      fixedIncome: fixedIncome,
+      registrationDate: registrationDate,
+    );
+
+    // Calcula el resumen financiero utilizando las reglas de negocio existentes.
+    return _budgetService.calculateBudget(
+      initialBalance: initialBalance,
+      fixedIncome: fixedIncome,
+      additionalIncome: additionalIncome,
+      totalExpenses: totalExpenses,
+      totalSavings: 0,
+    );
+  }
+
+  /// Obtiene el saldo con el que terminó el período anterior.
+  ///
+  /// Permite saber si realmente existe un período financiero anterior
+  /// para evitar mostrar un saldo cuando el usuario está consultando
+  /// su primer período.
+  Future<PreviousPeriodBalance> getPreviousPeriodBalance({
+    required int idUsuario,
+    required DateTime selectedPeriodStart,
+    required DateTime registrationDate,
+    required double fixedIncome,
+  }) async {
+    return await _periodService.calculatePreviousPeriodBalance(
+      idUsuario: idUsuario,
+      selectedPeriodStart: selectedPeriodStart,
+      registrationDate: registrationDate,
+      fixedIncome: fixedIncome,
+    );
+  }
+
   void updateBudget({
     required double initialBalance,
     required double fixedIncome,

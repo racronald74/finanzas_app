@@ -12,6 +12,8 @@ import '../widgets/income_header.dart';
 import 'package:intl/intl.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../data/repositories/fixed_income_history_repository.dart';
+import '../../../data/models/budget_summary.dart';
+import '../../../data/services/period_service.dart';
 
 // Pantalla que muestra los ingresos del usuario y permite agregar, editar o eliminar ingresos adicionales.
 class IncomesScreen extends StatefulWidget {
@@ -39,8 +41,17 @@ class _IncomesScreenState extends State<IncomesScreen> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadIncomeData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadIncomeData();
+
+      // Carga el sueldo correspondiente al período seleccionado.
+      await _loadFixedIncomeForSelectedPeriod();
+
+      // Carga el presupuesto correspondiente al período seleccionado.
+      await _loadBudgetForSelectedPeriod();
+
+      // Carga el saldo con el que terminó el período anterior
+      await _loadPreviousPeriodBalance();
     });
   }
 
@@ -94,6 +105,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
     // Carga el ingreso fijo correspondiente al nuevo período.
     await _loadFixedIncomeForSelectedPeriod();
+
+    // Carga el presupuesto correspondiente al nuevo período.
+    await _loadBudgetForSelectedPeriod();
+
+    // Carga el saldo con el que terminó el período anterior
+    await _loadPreviousPeriodBalance();
   }
 
   /// Devuelve los ingresos adicionales correspondientes
@@ -154,6 +171,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
     final fixedIncome = isCurrentPeriod
         ? authProvider.currentUser?.ingresoFijoMensual ?? 0
         : _selectedPeriodFixedIncome ?? 0;
+
+    final availableBudget = isCurrentPeriod
+        ? budgetProvider.summary.availableBudget
+        : _selectedPeriodBudget?.availableBudget ?? 0;
 
     return Scaffold(
       body: Column(
@@ -246,9 +267,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    _formatCurrency(
-                                      budgetProvider.summary.availableBudget,
-                                    ),
+                                    _formatCurrency(availableBudget),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -257,10 +276,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                   ),
                                 ),
 
-                                const Text(
-                                  'Este mes + saldos anteriores',
+                                Text(
+                                  isCurrentPeriod
+                                      ? 'Este mes + saldos anteriores'
+                                      : 'Saldo del período seleccionado',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
                                   ),
@@ -273,41 +294,44 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
-                  // Mensaje informativo sobre los saldos anteriores.
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F0FE),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Iconsax.info_circle,
-                          size: 20,
-                          color: Color(0xFF4380E5),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'El total disponible incluye saldos anteriores.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF315B9A),
+                  // Saldo con el que terminó el período anterior.
+                  if (_selectedPeriodPreviousBalance?.hasPreviousPeriod ==
+                      true) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info,
+                            size: 18,
+                            color: Colors.blue.shade600,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Saldo anterior: ${NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0).format(_selectedPeriodPreviousBalance!.amount)}. Corresponde al cierre del mes anterior.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue.shade700,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
+                  ],
 
                   // Historial de ingresos adicionales.
                   const Text(
@@ -333,7 +357,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     const Icon(
                                       Icons.receipt_long,
                                       size: 60,
-                                      color: Colors.grey,
+                                      color: Color.fromARGB(255, 255, 254, 254),
                                     ),
 
                                     const SizedBox(height: 16),
@@ -371,11 +395,15 @@ class _IncomesScreenState extends State<IncomesScreen> {
                             // correspondiente al período seleccionado.
                             itemCount:
                                 filteredIncomes.length +
-                                (_selectedPeriodFixedIncome != null ? 1 : 0),
+                                (!isCurrentPeriod &&
+                                        _selectedPeriodFixedIncome != null
+                                    ? 1
+                                    : 0),
 
                             itemBuilder: (context, index) {
                               // Muestra primero el ingreso fijo histórico.
-                              if (_selectedPeriodFixedIncome != null &&
+                              if (!isCurrentPeriod &&
+                                  _selectedPeriodFixedIncome != null &&
                                   index == 0) {
                                 return _fixedIncomeHistoryTile(
                                   _selectedPeriodFixedIncome!,
@@ -385,7 +413,8 @@ class _IncomesScreenState extends State<IncomesScreen> {
                               // Ajusta el índice porque el primer elemento
                               // corresponde al ingreso fijo.
                               final incomeIndex =
-                                  _selectedPeriodFixedIncome != null
+                                  !isCurrentPeriod &&
+                                      _selectedPeriodFixedIncome != null
                                   ? index - 1
                                   : index;
 
@@ -737,6 +766,13 @@ class _IncomesScreenState extends State<IncomesScreen> {
   /// Ingreso fijo correspondiente al período seleccionado.
   double? _selectedPeriodFixedIncome;
 
+  /// Presupuesto calculado para el período histórico seleccionado.
+  BudgetSummary? _selectedPeriodBudget;
+
+  /// Saldo con el que terminó el período anterior
+  /// al período actualmente seleccionado.
+  PreviousPeriodBalance? _selectedPeriodPreviousBalance;
+
   /// Obtiene el ingreso fijo correspondiente al período seleccionado.
   Future<void> _loadFixedIncomeForSelectedPeriod() async {
     final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
@@ -761,6 +797,127 @@ class _IncomesScreenState extends State<IncomesScreen> {
       // Si no existe, todavía no se muestra un ingreso fijo
       // para ese período.
       _selectedPeriodFixedIncome = history?.monto;
+    });
+  }
+
+  /// Calcula el presupuesto correspondiente al período seleccionado.
+  ///
+  /// Para el período actual se utiliza el resumen normal del provider.
+  /// Para períodos anteriores se calcula el resumen específico del mes.
+  Future<void> _loadBudgetForSelectedPeriod() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    final user = authProvider.currentUser;
+
+    if (user == null) return;
+
+    final now = DateTime.now();
+
+    final isCurrentPeriod =
+        _selectedPeriod.year == now.year && _selectedPeriod.month == now.month;
+
+    // El período actual ya es calculado por el presupuesto normal.
+    if (isCurrentPeriod) {
+      if (!mounted) return;
+
+      setState(() {
+        _selectedPeriodBudget = null;
+      });
+
+      return;
+    }
+
+    final periodStart = DateTime(
+      _selectedPeriod.year,
+      _selectedPeriod.month,
+      1,
+    );
+
+    final periodEnd = DateTime(
+      _selectedPeriod.year,
+      _selectedPeriod.month + 1,
+      1,
+    );
+
+    // Obtiene los ingresos del período seleccionado.
+    final incomes = await incomeProvider.loadIncomesByPeriod(
+      user.idUsuario!,
+      periodStart.toIso8601String(),
+      periodEnd.toIso8601String(),
+    );
+
+    double additionalIncome = 0;
+
+    for (final income in incomes) {
+      if (income.tipo == 'ADICIONAL') {
+        additionalIncome += income.monto;
+      }
+    }
+
+    // Obtiene los gastos del período seleccionado.
+    final expenses = await expenseProvider.loadExpensesByPeriod(
+      user.idUsuario!,
+      periodStart.toIso8601String(),
+      periodEnd.toIso8601String(),
+    );
+
+    double totalExpenses = 0;
+
+    for (final expense in expenses) {
+      totalExpenses += expense.monto;
+    }
+
+    // Obtiene el ingreso fijo correspondiente al período.
+    final fixedIncome = _selectedPeriodFixedIncome ?? 0;
+
+    final budget = await budgetProvider.calculateBudgetForPeriod(
+      idUsuario: user.idUsuario!,
+      periodStart: periodStart,
+      fixedIncome: fixedIncome,
+      additionalIncome: additionalIncome,
+      totalExpenses: totalExpenses,
+      registrationDate: DateTime.parse(user.fechaRegistro),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedPeriodBudget = budget;
+    });
+  }
+
+  /// Carga el saldo con el que terminó el período anterior
+  /// al período actualmente seleccionado.
+  Future<void> _loadPreviousPeriodBalance() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    final user = authProvider.currentUser;
+
+    if (user == null) return;
+
+    final previousBalance = await budgetProvider.getPreviousPeriodBalance(
+      idUsuario: user.idUsuario!,
+      selectedPeriodStart: DateTime(
+        _selectedPeriod.year,
+        _selectedPeriod.month,
+        1,
+      ),
+      registrationDate: DateTime.parse(user.fechaRegistro),
+      fixedIncome: user.ingresoFijoMensual,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _selectedPeriodPreviousBalance = previousBalance;
     });
   }
 }
