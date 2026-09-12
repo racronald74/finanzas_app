@@ -115,7 +115,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                 final goals = goalProvider.goals;
 
-                return SingleChildScrollView(
+                return Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +132,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             '${CurrencyFormatter.format(goalProvider.monthlyGoal)} este mes.',
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
 
                       // Título de la sección.
                       const Text(
@@ -143,65 +143,110 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-                      // Muestra las metas almacenadas en SQLite.
-                      if (goals.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 30),
-                            child: Text('No tienes metas registradas.'),
-                          ),
-                        )
-                      else
-                        ...goals.map((goal) {
-                          // Calcula el progreso de la meta.
-                          final double progress = goal.targetAmount > 0
-                              ? (goal.savedAmount / goal.targetAmount).clamp(
-                                  0.0,
-                                  1.0,
-                                )
-                              : 0.0;
+                      // Esta sección ocupa todo el espacio disponible.
+                      Expanded(
+                        child: goals.isEmpty
+                            ? SizedBox(
+                                width: double.infinity,
+                                child: Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        // Icono representativo del estado vacío.
+                                        const Icon(
+                                          Icons.flag_outlined,
+                                          size: 60,
+                                          color: Colors.grey,
+                                        ),
 
-                          return GoalCard(
-                            icon: _getGoalIcon(goal.category),
-                            title: goal.name,
-                            description: goal.category,
-                            status: goal.status,
-                            savedAmount: goal.savedAmount,
-                            targetAmount: goal.targetAmount,
-                            progress: progress,
-                            deadline: _formatDeadline(goal.deadline),
-                            onDetails: () async {
-                              // Abre el detalle de la meta y espera hasta regresar.
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => GoalDetailScreen(goal: goal),
-                                ),
-                              );
+                                        const SizedBox(height: 16),
 
-                              // Recarga las metas desde SQLite para sincronizar
-                              // la lista y la tarjeta de resumen.
-                              await _loadGoals();
-                            },
-                            onContribute: () async {
-                              final bool? contributionCreated =
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AddContributionScreen(goal: goal),
+                                        // Mensaje principal.
+                                        const Text(
+                                          'No hay metas registradas',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 8),
+
+                                        // Explicación del estado vacío.
+                                        const Text(
+                                          'Crea tu primera meta para comenzar a planificar tus objetivos.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  );
+                                  ),
+                                ),
+                              )
+                            : ListView(
+                                padding: EdgeInsets.zero,
+                                children: [
+                                  ...goals.map((goal) {
+                                    // Calcula el progreso de la meta.
+                                    final double progress =
+                                        goal.targetAmount > 0
+                                        ? (goal.savedAmount / goal.targetAmount)
+                                              .clamp(0.0, 1.0)
+                                        : 0.0;
 
-                              if (contributionCreated == true &&
-                                  context.mounted) {
-                                await _loadGoals();
-                              }
-                            },
-                          );
-                        }),
+                                    return GoalCard(
+                                      icon: _getGoalIcon(goal.category),
+                                      title: goal.name,
+                                      description: goal.category,
+                                      status: goal.status,
+                                      savedAmount: goal.savedAmount,
+                                      targetAmount: goal.targetAmount,
+                                      progress: progress,
+                                      deadline: _formatDeadline(goal.deadline),
+                                      onDetails: () async {
+                                        // Abre el detalle de la meta.
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                GoalDetailScreen(goal: goal),
+                                          ),
+                                        );
+
+                                        // Recarga las metas al regresar.
+                                        await _loadGoals();
+                                      },
+                                      onContribute: () async {
+                                        final bool? contributionCreated =
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    AddContributionScreen(
+                                                      goal: goal,
+                                                    ),
+                                              ),
+                                            );
+
+                                        if (contributionCreated == true &&
+                                            context.mounted) {
+                                          await _loadGoals();
+                                        }
+                                      },
+                                    );
+                                  }),
+                                ],
+                              ),
+                      ),
 
                       const SizedBox(height: 12),
 
@@ -219,7 +264,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               ),
                             );
 
-                            // Recarga las metas al regresar del formulario.
+                            // Recarga las metas al regresar.
                             await _loadGoals();
                           },
                           icon: const Icon(Icons.add),
@@ -242,8 +287,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
 
                       const SizedBox(height: 24),
-
-                      const SizedBox(height: 80),
                     ],
                   ),
                 );

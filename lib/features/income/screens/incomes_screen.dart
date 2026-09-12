@@ -1,3 +1,4 @@
+import 'package:finanzas_app/shared/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -357,7 +358,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     const Icon(
                                       Icons.receipt_long,
                                       size: 60,
-                                      color: Color.fromARGB(255, 255, 254, 254),
+                                      color: Colors.grey,
                                     ),
 
                                     const SizedBox(height: 16),
@@ -448,7 +449,7 @@ class _IncomesScreenState extends State<IncomesScreen> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4380E5),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 2,
                         shape: RoundedRectangleBorder(

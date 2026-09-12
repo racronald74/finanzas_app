@@ -646,9 +646,6 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
   Future<void> _guardarObligacion() async {
     if (_isSaving) return;
 
-    setState(() {
-      _isSaving = true;
-    });
     final nombre = _nombreController.text.trim();
 
     final monto = double.tryParse(_montoController.text.trim());
@@ -692,6 +689,12 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       _showMessage('Usuario no autenticado');
       return;
     }
+
+    // Activa el estado de guardado únicamente
+    // después de completar todas las validaciones.
+    setState(() {
+      _isSaving = true;
+    });
 
     // Determina si la obligación será recurrente.
     final bool esRecurrente = _frecuenciaSeleccionada != 'Ninguna';
