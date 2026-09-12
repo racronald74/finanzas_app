@@ -2,6 +2,7 @@ import 'package:finanzas_app/shared/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../shared/widgets/app_background.dart';
 import '../../../data/models/income_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/income_provider.dart';
@@ -178,291 +179,304 @@ class _IncomesScreenState extends State<IncomesScreen> {
         : _selectedPeriodBudget?.availableBudget ?? 0;
 
     return Scaffold(
-      body: Column(
-        children: [
-          IncomeHeader(
-            periodText: _getCurrentPeriodText(),
-            onCalendarPressed: _selectPeriod,
-            onAvatarPressed: widget.onAvatarPressed,
-          ),
+      body: AppBackground(
+        child: Column(
+          children: [
+            IncomeHeader(
+              periodText: _getCurrentPeriodText(),
+              onCalendarPressed: _selectPeriod,
+              onAvatarPressed: widget.onAvatarPressed,
+            ),
 
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'Ingreso fijo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    _formatCurrency(fixedIncome),
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF3F6DB5),
-                                    ),
-                                  ),
-                                ),
-
-                                TextButton(
-                                  onPressed: _editFixedIncome,
-                                  style: TextButton.styleFrom(
-                                    minimumSize: Size.zero,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: const Text(
-                                    'Modificar',
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            color: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Ingreso fijo',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                ),
-                              ],
+
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      _formatCurrency(fixedIncome),
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF3F6DB5),
+                                      ),
+                                    ),
+                                  ),
+
+                                  TextButton(
+                                    onPressed: _editFixedIncome,
+                                    style: TextButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      'Modificar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                      Expanded(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'Total disponible',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ),
-
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    _formatCurrency(availableBudget),
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
+                        Expanded(
+                          child: Card(
+                            color: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Total disponible',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                ),
 
-                                Text(
-                                  isCurrentPeriod
-                                      ? 'Este mes + saldos anteriores'
-                                      : 'Saldo del período seleccionado',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      _formatCurrency(availableBudget),
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+
+                                  Text(
+                                    isCurrentPeriod
+                                        ? 'Este mes + saldos anteriores'
+                                        : 'Saldo del período seleccionado',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Saldo con el que terminó el período anterior.
+                    if (_selectedPeriodPreviousBalance?.hasPreviousPeriod ==
+                        true) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info,
+                              size: 18,
+                              color: Colors.blue.shade600,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Saldo anterior: ${NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0).format(_selectedPeriodPreviousBalance!.amount)}. Corresponde al cierre del mes anterior.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
 
-                  const SizedBox(height: 8),
+                    // Historial de ingresos adicionales.
+                    const Text(
+                      'Historial de ingresos adicionales',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
 
-                  // Saldo con el que terminó el período anterior.
-                  if (_selectedPeriodPreviousBalance?.hasPreviousPeriod ==
-                      true) ...[
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info,
-                            size: 18,
-                            color: Colors.blue.shade600,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Saldo anterior: ${NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0).format(_selectedPeriodPreviousBalance!.amount)}. Corresponde al cierre del mes anterior.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue.shade700,
+                    const SizedBox(height: 8),
+
+                    // Solo el historial de ingresos tendrá desplazamiento.
+                    Expanded(
+                      child: incomeProvider.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : filteredIncomes.isEmpty
+                          ? SizedBox(
+                              width: double.infinity,
+                              child: Card(
+                                color: Colors.white,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    children: [
+                                      // Icono representativo del estado vacío.
+                                      const Icon(
+                                        Icons.receipt_long,
+                                        size: 60,
+                                        color: Colors.grey,
+                                      ),
+
+                                      const SizedBox(height: 16),
+
+                                      // Mensaje principal.
+                                      const Text(
+                                        'No hay ingresos registrados',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 8),
+
+                                      // Explicación del estado vacío.
+                                      const Text(
+                                        'Registra tu primer ingreso para comenzar a controlar tus finanzas.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.zero,
+
+                              // Se reserva la primera posición para el ingreso fijo
+                              // correspondiente al período seleccionado.
+                              itemCount:
+                                  filteredIncomes.length +
+                                  (!isCurrentPeriod &&
+                                          _selectedPeriodFixedIncome != null
+                                      ? 1
+                                      : 0),
+
+                              itemBuilder: (context, index) {
+                                // Muestra primero el ingreso fijo histórico.
+                                if (!isCurrentPeriod &&
+                                    _selectedPeriodFixedIncome != null &&
+                                    index == 0) {
+                                  return _fixedIncomeHistoryTile(
+                                    _selectedPeriodFixedIncome!,
+                                  );
+                                }
+
+                                // Ajusta el índice porque el primer elemento
+                                // corresponde al ingreso fijo.
+                                final incomeIndex =
+                                    !isCurrentPeriod &&
+                                        _selectedPeriodFixedIncome != null
+                                    ? index - 1
+                                    : index;
+
+                                return _incomeTile(
+                                  filteredIncomes[incomeIndex],
+                                );
+                              },
                             ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddIncomeScreen(),
+                            ),
+                          );
+
+                          if (!mounted) return;
+
+                          await _loadIncomeData();
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text(
+                          'Registrar nuevo ingreso',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
                     ),
                   ],
-
-                  // Historial de ingresos adicionales.
-                  const Text(
-                    'Historial de ingresos adicionales',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Solo el historial de ingresos tendrá desplazamiento.
-                  Expanded(
-                    child: incomeProvider.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : filteredIncomes.isEmpty
-                        ? SizedBox(
-                            width: double.infinity,
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  children: [
-                                    // Icono representativo del estado vacío.
-                                    const Icon(
-                                      Icons.receipt_long,
-                                      size: 60,
-                                      color: Colors.grey,
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    // Mensaje principal.
-                                    const Text(
-                                      'No hay ingresos registrados',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 8),
-
-                                    // Explicación del estado vacío.
-                                    const Text(
-                                      'Registra tu primer ingreso para comenzar a controlar tus finanzas.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: EdgeInsets.zero,
-
-                            // Se reserva la primera posición para el ingreso fijo
-                            // correspondiente al período seleccionado.
-                            itemCount:
-                                filteredIncomes.length +
-                                (!isCurrentPeriod &&
-                                        _selectedPeriodFixedIncome != null
-                                    ? 1
-                                    : 0),
-
-                            itemBuilder: (context, index) {
-                              // Muestra primero el ingreso fijo histórico.
-                              if (!isCurrentPeriod &&
-                                  _selectedPeriodFixedIncome != null &&
-                                  index == 0) {
-                                return _fixedIncomeHistoryTile(
-                                  _selectedPeriodFixedIncome!,
-                                );
-                              }
-
-                              // Ajusta el índice porque el primer elemento
-                              // corresponde al ingreso fijo.
-                              final incomeIndex =
-                                  !isCurrentPeriod &&
-                                      _selectedPeriodFixedIncome != null
-                                  ? index - 1
-                                  : index;
-
-                              return _incomeTile(filteredIncomes[incomeIndex]);
-                            },
-                          ),
-                  ),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AddIncomeScreen(),
-                          ),
-                        );
-
-                        if (!mounted) return;
-
-                        await _loadIncomeData();
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text(
-                        'Registrar nuevo ingreso',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

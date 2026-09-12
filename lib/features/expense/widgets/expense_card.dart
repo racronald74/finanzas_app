@@ -94,6 +94,7 @@ class ExpenseCard extends StatelessWidget {
         expense.origen.toUpperCase() == 'OBLIGACIÓN';
 
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(10),

@@ -12,6 +12,7 @@ import 'add_obligation_screen.dart';
 import '../../../providers/income_provider.dart';
 import '../../../providers/expense_provider.dart';
 import '../../../providers/budget_provider.dart';
+import '../../../shared/widgets/app_background.dart';
 
 /// Pantalla principal del módulo Obligaciones.
 ///
@@ -279,8 +280,9 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
     return Container(
       height: 70,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
         border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0))),
       ),
       child: Row(
@@ -588,156 +590,160 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
 
           // Contenido principal.
           Expanded(
-            child: Column(
-              children: [
-                // Contenido fijo: resumen y filtros.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    children: [
-                      /// Resumen superior.
-                      Row(
-                        children: [
-                          _buildSummaryCard(
-                            icon: Icons.account_balance_outlined,
-                            iconColor: const Color(0xFF2196F3),
-                            iconBackground: const Color(0xFFD7ECFF),
-                            title: 'Total comprometido',
-                            value: CurrencyFormatter.format(
-                              obligationProvider.totalCommitted,
+            child: AppBackground(
+              child: Column(
+                children: [
+                  // Contenido fijo: resumen y filtros.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      children: [
+                        /// Resumen superior.
+                        Row(
+                          children: [
+                            _buildSummaryCard(
+                              icon: Icons.account_balance_outlined,
+                              iconColor: const Color(0xFF2196F3),
+                              iconBackground: const Color(0xFFD7ECFF),
+                              title: 'Total comprometido',
+                              value: CurrencyFormatter.format(
+                                obligationProvider.totalCommitted,
+                              ),
+                              valueColor: AppColors.primary,
                             ),
-                            valueColor: AppColors.primary,
-                          ),
-                          const SizedBox(width: 10),
-                          _buildSummaryCard(
-                            icon: Icons.calendar_month_outlined,
-                            iconColor: const Color(0xFFFFB52E),
-                            iconBackground: const Color(0xFFFFEDC9),
-                            title: 'Disponible proyectado',
-                            value: CurrencyFormatter.format(
-                              budgetProvider.summary.availableBudget -
-                                  obligationProvider.totalCommitted,
+                            const SizedBox(width: 10),
+                            _buildSummaryCard(
+                              icon: Icons.calendar_month_outlined,
+                              iconColor: const Color(0xFFFFB52E),
+                              iconBackground: const Color(0xFFFFEDC9),
+                              title: 'Disponible proyectado',
+                              value: CurrencyFormatter.format(
+                                budgetProvider.summary.availableBudget -
+                                    obligationProvider.totalCommitted,
+                              ),
+                              valueColor: const Color(0xFF16B86A),
                             ),
-                            valueColor: const Color(0xFF16B86A),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      /// Filtros.
-                      Row(
-                        children: [
-                          _buildFilterButton('Todas'),
-                          const SizedBox(width: 6),
-                          _buildFilterButton('Fijas'),
-                          const SizedBox(width: 6),
-                          _buildFilterButton('Variables'),
-                          const SizedBox(width: 6),
-                          _buildFilterButton('Pagadas'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Únicamente el historial tiene desplazamiento.
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: obligations.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 28,
-                            ),
-                            child: Column(
-                              children: [
-                                // Icono representativo del estado vacío.
-                                Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFD7F3E5),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.calendar_month_outlined,
-                                    size: 32,
-                                    color: Color(0xFF16B86A),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                // Mensaje principal.
-                                const Text(
-                                  'No tienes obligaciones registradas',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF303030),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 7),
-
-                                // Explicación del estado vacío.
-                                const Text(
-                                  'Registra tus obligaciones mensuales para '
-                                  'llevar un mejor control de tus pagos.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.3,
-                                    color: Color(0xFF666666),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Column(
-                            children: obligations
-                                .map(_buildObligationCard)
-                                .toList(),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Botón fijo para registrar una nueva obligación.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AddObligationScreen(),
+                        /// Filtros.
+                        Row(
+                          children: [
+                            _buildFilterButton('Todas'),
+                            const SizedBox(width: 6),
+                            _buildFilterButton('Fijas'),
+                            const SizedBox(width: 6),
+                            _buildFilterButton('Variables'),
+                            const SizedBox(width: 6),
+                            _buildFilterButton('Pagadas'),
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text(
-                  'Registrar nueva obligación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
                   ),
-                ),
+
+                  const SizedBox(height: 10),
+
+                  // Únicamente el historial tiene desplazamiento.
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: obligations.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 28,
+                              ),
+                              child: Column(
+                                children: [
+                                  // Icono representativo del estado vacío.
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFD7F3E5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_month_outlined,
+                                      size: 32,
+                                      color: Color(0xFF16B86A),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 14),
+
+                                  // Mensaje principal.
+                                  const Text(
+                                    'No tienes obligaciones registradas',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF303030),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 7),
+
+                                  // Explicación del estado vacío.
+                                  const Text(
+                                    'Registra tus obligaciones mensuales para '
+                                    'llevar un mejor control de tus pagos.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.3,
+                                      color: Color(0xFF666666),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Column(
+                              children: obligations
+                                  .map(_buildObligationCard)
+                                  .toList(),
+                            ),
+                    ),
+                  ),
+                  // Botón fijo para registrar una nueva obligación.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddObligationScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text(
+                          'Registrar nueva obligación',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

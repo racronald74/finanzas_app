@@ -76,6 +76,7 @@ class GoalCard extends StatelessWidget {
     final bool isMobile = ResponsiveHelper.isMobile(context);
 
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),

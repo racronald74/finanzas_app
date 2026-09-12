@@ -31,6 +31,7 @@ class ExpenseSummary extends StatelessWidget {
       children: [
         Expanded(
           child: Card(
+            color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -85,6 +86,7 @@ class ExpenseSummary extends StatelessWidget {
         // Muestra el presupuesto disponible y un indicador
         Expanded(
           child: Card(
+            color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
