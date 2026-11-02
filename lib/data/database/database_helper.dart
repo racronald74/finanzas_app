@@ -9,14 +9,37 @@ import '../../shared/constants/database_constants.dart';
 /// una única instancia de la base de datos durante
 /// toda la ejecución de la aplicación.
 class DatabaseHelper {
-  /// Instancia única de la clase.
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  // Instancia única utilizada por la aplicación y las pruebas.
+  static DatabaseHelper instance = DatabaseHelper._init();
 
   /// Referencia a la base de datos.
   static Database? _database;
 
-  /// Constructor privado.
+  /// Constructor privado utilizado por el Singleton.
   DatabaseHelper._init();
+
+  /// Constructor utilizado para configurar pruebas.
+  ///
+  /// Sustituye temporalmente la instancia principal por una
+  /// que utiliza la base de datos proporcionada.
+  DatabaseHelper.forTesting(Database database) {
+    _database = database;
+
+    // Permite que los servicios y repositorios utilicen esta instancia.
+    instance = this;
+  }
+
+  /// Inicializa el esquema y las categorías en la base temporal.
+  Future<void> initializeForTesting() async {
+    // Obtiene la conexión temporal de SQLite.
+    final db = await database;
+
+    // Crea todas las tablas de la aplicación.
+    await _createSchema(db);
+
+    // Inserta las categorías predeterminadas.
+    await _seedSystemCategories(db);
+  }
 
   /// Obtiene la instancia de la base de datos.
   ///
@@ -39,18 +62,14 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-
       version: DatabaseConstants.databaseVersion,
-
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
-
       onCreate: (db, version) async {
         await _createSchema(db);
         await _seedSystemCategories(db);
       },
-
       onUpgrade: (db, oldVersion, newVersion) async {
         await _createSchema(db);
         await _migrateExistingColumns(db);
@@ -78,9 +97,6 @@ class DatabaseHelper {
     ''');
 
     // Crea el historial del ingreso fijo mensual.
-    //
-    // Cada registro representa el monto del ingreso fijo
-    // que aplica desde una fecha determinada.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
         id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +109,7 @@ class DatabaseHelper {
       )
     ''');
 
-    /// Crea la tabla de categorías
+    // Crea la tabla de categorías.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS categoria (
         id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,7 +122,8 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de ingresos
+
+    // Crea la tabla de ingresos.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS ingreso (
         id_ingreso INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,32 +144,32 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de gastos
+
+    // Crea la tabla de gastos.
     await db.execute('''
-  CREATE TABLE IF NOT EXISTS gasto (
-    id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    monto REAL NOT NULL CHECK (monto > 0),
-    fecha TEXT NOT NULL,
-    descripcion TEXT,
-    origen TEXT NOT NULL DEFAULT 'MANUAL',
-    id_usuario INTEGER NOT NULL,
-    id_categoria INTEGER NOT NULL,
-    id_pago INTEGER,
-    fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario)
-      REFERENCES usuario(id_usuario)
-      ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS gasto (
+        id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        descripcion TEXT,
+        origen TEXT NOT NULL DEFAULT 'MANUAL',
+        id_usuario INTEGER NOT NULL,
+        id_categoria INTEGER NOT NULL,
+        id_pago INTEGER,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria),
+        FOREIGN KEY (id_pago)
+          REFERENCES pago(id_pago)
+          ON DELETE SET NULL
+      )
+    ''');
 
-    FOREIGN KEY (id_categoria)
-      REFERENCES categoria(id_categoria),
-
-    FOREIGN KEY (id_pago)
-      REFERENCES pago(id_pago)
-      ON DELETE SET NULL
-  )
-''');
-    // Crea la tabla de metas
+    // Crea la tabla de metas.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS meta (
         id_meta INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,7 +189,8 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de aportes a metas
+
+    // Crea la tabla de aportes a metas.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS aporte (
         id_aporte INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -186,14 +204,27 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de deudas
+
+    // Crea la tabla de deudas.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS deuda (
         id_deuda INTEGER PRIMARY KEY AUTOINCREMENT,
         acreedor TEXT NOT NULL,
         monto_total REAL NOT NULL CHECK (monto_total > 0),
         saldo_pendiente REAL NOT NULL CHECK (saldo_pendiente >= 0),
+        saldo_capital REAL NOT NULL DEFAULT 0 CHECK (saldo_capital >= 0),
+
+        -- Capital existente al inicio del período mensual actual.
+        capital_inicio_periodo REAL NOT NULL DEFAULT 0
+          CHECK (capital_inicio_periodo >= 0),
+
+        intereses_pendientes REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pendientes >= 0),
+        fecha_ultimo_calculo_intereses TEXT,
+        tasa_interes_ea REAL NOT NULL DEFAULT 0
+          CHECK (tasa_interes_ea >= 0),
         tasa_interes REAL DEFAULT 0,
+        cuota_mensual REAL,
         plazo INTEGER,
         fecha_inicio TEXT NOT NULL,
         recordatorio INTEGER DEFAULT 0,
@@ -205,11 +236,17 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de pagos de deudas
+
+    // Crea la tabla de pagos de deudas.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS pago (
         id_pago INTEGER PRIMARY KEY AUTOINCREMENT,
         monto REAL NOT NULL CHECK (monto > 0),
+        abono_capital REAL NOT NULL DEFAULT 0 CHECK (abono_capital >= 0),
+        intereses_pagados REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pagados >= 0),
+        tipo_pago TEXT NOT NULL DEFAULT 'ORDINARIO',
+        opcion_abono TEXT,
         fecha TEXT NOT NULL,
         metodo_pago TEXT,
         descripcion TEXT,
@@ -220,7 +257,8 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de obligaciones recurrentes
+
+    // Crea la tabla de obligaciones recurrentes.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS obligacion (
         id_obligacion INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -245,12 +283,13 @@ class DatabaseHelper {
         FOREIGN KEY (id_gasto_generado)
           REFERENCES gasto(id_gasto)
           ON DELETE SET NULL,
-          FOREIGN KEY (id_categoria)
-        REFERENCES categoria(id_categoria)
-        ON DELETE RESTRICT
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE RESTRICT
       )
     ''');
-    // Crea la tabla de presupuestos
+
+    // Crea la tabla de presupuestos.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS presupuesto (
         id_presupuesto INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -267,7 +306,8 @@ class DatabaseHelper {
           ON DELETE CASCADE
       )
     ''');
-    // Crea la tabla de notificaciones
+
+    // Crea la tabla de notificaciones.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS notificacion (
         id_notificacion INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -283,7 +323,7 @@ class DatabaseHelper {
       )
     ''');
 
-    /// Crea índices para mejorar el rendimiento de las consultas.
+    // Crea índices para mejorar el rendimiento de las consultas.
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_ingreso_usuario ON ingreso(id_usuario)',
     );
@@ -299,7 +339,8 @@ class DatabaseHelper {
     );
   }
 
-  /// Aplica migraciones para agregar nuevas columnas a tablas existentes sin perder datos.
+  /// Aplica migraciones para agregar nuevas columnas
+  /// a tablas existentes sin perder datos.
   Future<void> _migrateExistingColumns(Database db) async {
     await _addColumnIfMissing(db, 'usuario', 'idioma', "TEXT DEFAULT 'es'");
     await _addColumnIfMissing(db, 'usuario', 'tema', "TEXT DEFAULT 'claro'");
@@ -326,14 +367,14 @@ class DatabaseHelper {
     await _addColumnIfMissing(db, 'ingreso', 'fuente', 'TEXT');
     await _addColumnIfMissing(db, 'ingreso', 'origen', "TEXT DEFAULT 'Manual'");
     await _addColumnIfMissing(db, 'ingreso', 'fecha_registro', 'TEXT');
+
     await db.execute(
       "UPDATE ingreso SET fecha_registro = COALESCE(fecha_registro, datetime('now'))",
     );
 
     await _addColumnIfMissing(db, 'obligacion', 'id_categoria', 'INTEGER');
 
-    /// Agrega el identificador que permite agrupar
-    /// las obligaciones pertenecientes a una misma recurrencia.
+    // Agrega el identificador para agrupar obligaciones recurrentes.
     await _addColumnIfMissing(
       db,
       'obligacion',
@@ -341,8 +382,7 @@ class DatabaseHelper {
       'INTEGER',
     );
 
-    /// Indica si una obligación recurrente
-    /// continúa generando nuevas ocurrencias.
+    // Indica si una obligación recurrente continúa activa.
     await _addColumnIfMissing(
       db,
       'obligacion',
@@ -351,20 +391,20 @@ class DatabaseHelper {
     );
 
     await db.execute('''
-  UPDATE obligacion
-  SET id_categoria = (
-    SELECT id_categoria
-    FROM categoria
-    WHERE categoria.nombre = obligacion.categoria
-      AND categoria.tipo = 'GASTO'
-      AND categoria.id_usuario IS NULL
-    LIMIT 1
-  )
-  WHERE id_categoria IS NULL
-    AND categoria IS NOT NULL
-''');
+      UPDATE obligacion
+      SET id_categoria = (
+        SELECT id_categoria
+        FROM categoria
+        WHERE categoria.nombre = obligacion.categoria
+          AND categoria.tipo = 'GASTO'
+          AND categoria.id_usuario IS NULL
+        LIMIT 1
+      )
+      WHERE id_categoria IS NULL
+        AND categoria IS NOT NULL
+    ''');
 
-    // Crea el historial del ingreso fijo para bases de datos existentes.
+    // Crea el historial del ingreso fijo para bases existentes.
     await db.execute('''
       CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
         id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -381,9 +421,91 @@ class DatabaseHelper {
       'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
       'ON ingreso_fijo_historico(id_usuario)',
     );
+
+    // Agrega los campos financieros de las deudas.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'saldo_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'tasa_interes_ea',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(db, 'deuda', 'cuota_mensual', 'REAL');
+
+    // Inicializa el capital pendiente con el saldo anterior.
+    await db.execute('''
+      UPDATE deuda
+      SET saldo_capital = saldo_pendiente
+      WHERE saldo_capital = 0
+        AND saldo_pendiente > 0
+    ''');
+
+    // Agrega los campos financieros de los pagos.
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'abono_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'intereses_pagados',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'tipo_pago',
+      "TEXT NOT NULL DEFAULT 'ORDINARIO'",
+    );
+
+    await _addColumnIfMissing(db, 'pago', 'opcion_abono', 'TEXT');
+
+    // Agrega los intereses pendientes a las deudas existentes.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'intereses_pendientes',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Agrega la fecha del último cálculo de intereses.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'fecha_ultimo_calculo_intereses',
+      'TEXT',
+    );
+
+    // Agrega el capital de referencia del período mensual actual.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'capital_inicio_periodo',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Inicializa el capital de referencia de las deudas existentes.
+    // Solo modifica registros que aún no tienen ese valor.
+    await db.execute('''
+      UPDATE deuda
+      SET capital_inicio_periodo = saldo_capital
+      WHERE capital_inicio_periodo = 0
+        AND saldo_capital > 0
+    ''');
   }
 
-  /// Verifica si una columna existe en una tabla y la agrega si falta, utilizando ALTER TABLE.
+  /// Verifica si una columna existe en una tabla y la agrega si falta.
   Future<void> _addColumnIfMissing(
     Database db,
     String table,
@@ -398,8 +520,7 @@ class DatabaseHelper {
     }
   }
 
-  /// Inserta categorías predeterminadas para cada tipo (INGRESO, GASTO, META, OBLIGACION)
-  /// si no existen, marcándolas como de sistema.
+  /// Inserta categorías predeterminadas si todavía no existen.
   Future<void> _seedSystemCategories(Database db) async {
     const categories = [
       ('Salario', 'INGRESO'),
@@ -421,6 +542,7 @@ class DatabaseHelper {
       ('Credito de vivienda', 'GASTO'),
       ('Credito de vehiculo', 'GASTO'),
       ('Suscripciones', 'GASTO'),
+      ('Pago de deuda', 'GASTO'),
       ('Otros', 'GASTO'),
       ('Fondo de emergencia', 'META'),
       ('Viaje', 'META'),
@@ -441,8 +563,7 @@ class DatabaseHelper {
       ('Otros', 'OBLIGACION'),
     ];
 
-    /// Para cada categoría predeterminada, verifica si ya existe una categoría con el mismo nombre
-    /// y tipo sin un usuario asociado. Si no existe, la inserta como categoría de sistema.
+    // Verifica e inserta cada categoría predeterminada.
     for (final category in categories) {
       final exists = await db.query(
         'categoria',
@@ -461,6 +582,7 @@ class DatabaseHelper {
     }
   }
 
+  /// Cierra la conexión con la base de datos.
   Future<void> close() async {
     final db = await instance.database;
     await db.close();

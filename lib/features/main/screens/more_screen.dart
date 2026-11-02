@@ -8,7 +8,10 @@ class MoreScreen extends StatelessWidget {
   /// Acción para abrir la pantalla de Obligaciones.
   final VoidCallback? onObligationsPressed;
 
-  const MoreScreen({super.key, this.onObligationsPressed});
+  /// Acción para abrir la pantalla de Deudas.
+  final VoidCallback? onDebtsPressed;
+
+  const MoreScreen({super.key, this.onObligationsPressed, this.onDebtsPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +39,7 @@ class MoreScreen extends StatelessWidget {
                         title: 'Deudas',
                         description:
                             'Gestiona tus deudas y\ncontrola tus pagos.',
+                        onTap: onDebtsPressed,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
@@ -45,6 +49,7 @@ class MoreScreen extends StatelessWidget {
                         iconBackground: const Color(0xFFD7F3E5),
                         title: 'Obligaciones',
                         description: 'Administra tus obligaciones\nmensuales.',
+                        onTap: onObligationsPressed,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
@@ -159,13 +164,14 @@ class MoreScreen extends StatelessWidget {
     required Color iconBackground,
     required String title,
     required String description,
+    VoidCallback? onTap,
   }) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: onObligationsPressed,
+        onTap: onTap,
         child: SizedBox(
           height: 78,
           child: Padding(

@@ -16,6 +16,7 @@ import 'providers/budget_provider.dart';
 import 'providers/goal_provider.dart';
 import 'providers/contribution_provider.dart';
 import 'providers/obligation_provider.dart';
+import 'providers/debt_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -50,6 +51,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => ContributionProvider()),
         ChangeNotifierProvider(create: (_) => ObligationProvider()),
+        ChangeNotifierProvider(create: (_) => DebtProvider()),
       ],
       child: const MyApp(),
     ),

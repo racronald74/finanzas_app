@@ -10,15 +10,13 @@ class CurrencyFormatter {
 
   /// Devuelve un valor con formato de moneda colombiana.
   ///
-  /// Ejemplo:
-  /// 1300000 -> $1.300.000
+  /// Siempre muestra dos decimales.
+  /// Ejemplo: 3259.3 -> $3.259,30
   static String format(num value) {
-    // Formatea únicamente la parte numérica con separador
-    // de miles y sin decimales.
-    final NumberFormat formatter = NumberFormat.decimalPattern('es_CO');
+    // Configura separadores de miles y decimales para Colombia.
+    final NumberFormat formatter = NumberFormat('#,##0.00', 'es_CO');
 
-    // Agrega manualmente el símbolo de pesos al inicio
-    // para garantizar el mismo formato en toda la aplicación.
+    // Agrega el símbolo de pesos al valor formateado.
     return '\$${formatter.format(value)}';
   }
 }

@@ -7,6 +7,7 @@ import 'more_screen.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../goal/screens/goals_screen.dart';
 import '../../obligaciones/screens/obligations_screen.dart';
+import '../../debt/screens/debts_screen.dart';
 
 import 'package:provider/provider.dart';
 
@@ -108,6 +109,14 @@ class _MainScreenState extends State<MainScreen> {
   /// que se vuelve a abrir.
   Key _obligationsKey = UniqueKey();
 
+  /// Indica si dentro de la sección Más
+  /// se está mostrando Deudas.
+  bool _showDebts = false;
+
+  /// Permite reconstruir DebtsScreen cada vez
+  /// que se vuelve a abrir.
+  Key _debtsKey = UniqueKey();
+
   /// Información de cada pestaña de la aplicación.
   late final List<MainTab> _tabs;
 
@@ -147,7 +156,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
 
       MainTab(
-        screen: MoreScreen(onObligationsPressed: _openObligations),
+        screen: MoreScreen(
+          onObligationsPressed: _openObligations,
+          onDebtsPressed: _openDebts,
+        ),
         title: 'Más',
       ),
     ];
@@ -165,8 +177,21 @@ class _MainScreenState extends State<MainScreen> {
           ..._tabs.take(4).map((tab) => tab.screen),
 
           _showObligations
-              ? ObligationsScreen(key: _obligationsKey)
-              : MoreScreen(onObligationsPressed: _openObligations),
+              ? ObligationsScreen(
+                  key: _obligationsKey,
+                  // Abre el mismo menú lateral utilizado por los demás módulos.
+                  onAvatarPressed: _openDrawer,
+                )
+              : _showDebts
+              ? DebtsScreen(
+                  key: _debtsKey,
+                  // Abre el mismo menú lateral utilizado por los demás módulos.
+                  onAvatarPressed: _openDrawer,
+                )
+              : MoreScreen(
+                  onObligationsPressed: _openObligations,
+                  onDebtsPressed: _openDebts,
+                ),
         ],
       ),
 
@@ -180,6 +205,7 @@ class _MainScreenState extends State<MainScreen> {
             // Al volver a Más, mostrar nuevamente MoreScreen.
             if (index == 4) {
               _showObligations = false;
+              _showDebts = false;
             }
           });
 
@@ -232,6 +258,14 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _obligationsKey = UniqueKey();
       _showObligations = true;
+    });
+  }
+
+  /// Abre Deudas y fuerza una nueva carga de datos.
+  void _openDebts() {
+    setState(() {
+      _debtsKey = UniqueKey();
+      _showDebts = true;
     });
   }
 }

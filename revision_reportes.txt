@@ -1,0 +1,2914 @@
+
+
+========== lib/data/models/income_model.dart ==========
+
+/// Modelo que representa un ingreso financiero.
+class IncomeModel {
+  final int? idIngreso;
+  final String descripcion;
+  final double monto;
+  final String fecha;
+  final String tipo;
+  final String? fuente;
+  final String origen;
+  final int? idCategoria;
+  final int idUsuario;
+  final String? fechaRegistro;
+
+  IncomeModel({
+    this.idIngreso,
+    required this.descripcion,
+    required this.monto,
+    required this.fecha,
+    required this.tipo,
+    this.fuente,
+    this.origen = 'Manual',
+    required this.idCategoria,
+    required this.idUsuario,
+    this.fechaRegistro,
+  });
+
+  /// Convierte el objeto a Map para SQLite
+  Map<String, dynamic> toMap() {
+    final map = {
+      'id_ingreso': idIngreso,
+      'descripcion': descripcion,
+      'monto': monto,
+      'fecha': fecha,
+      'tipo': tipo,
+      'fuente': fuente,
+      'origen': origen,
+      'id_categoria': idCategoria,
+      'id_usuario': idUsuario,
+      'fecha_registro': fechaRegistro,
+    };
+
+    map.removeWhere((_, value) => value == null);
+
+    return map;
+  }
+
+  /// Convierte un Map de SQLite a objeto
+  factory IncomeModel.fromMap(Map<String, dynamic> map) {
+    return IncomeModel(
+      idIngreso: map['id_ingreso'],
+      descripcion: map['descripcion'] ?? '',
+      monto: (map['monto'] as num).toDouble(),
+      fecha: map['fecha'],
+      tipo: map['tipo'] ?? 'ADICIONAL',
+      fuente: map['fuente'],
+      origen: map['origen'] ?? 'Manual',
+      idCategoria: map['id_categoria'],
+      idUsuario: map['id_usuario'],
+      fechaRegistro: map['fecha_registro'],
+    );
+  }
+}
+
+
+========== lib/data/repositories/income_repository.dart ==========
+
+import '../database/database_helper.dart';
+import '../models/income_model.dart';
+
+// Repositorio para manejar operaciones relacionadas con ingresos
+class IncomeRepository {
+  /// Inserta un ingreso
+  Future<int> insertIncome(IncomeModel income) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.insert('ingreso', income.toMap());
+  }
+
+  Future<int> updateIncome(IncomeModel income) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.update(
+      'ingreso',
+      income.toMap(),
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [income.idIngreso, income.idUsuario],
+    );
+  }
+
+  Future<int> deleteIncome({
+    required int idIngreso,
+    required int idUsuario,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.delete(
+      'ingreso',
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [idIngreso, idUsuario],
+    );
+  }
+
+  /// Obtener ingresos de un usuario
+  Future<List<IncomeModel>> getIncomesByUser(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ?',
+
+      whereArgs: [idUsuario],
+
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+
+  /// Obtener ingreso fijo mensual
+  Future<IncomeModel?> getFixedIncome(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ? AND tipo = ?',
+
+      whereArgs: [idUsuario, 'FIJO'],
+
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return IncomeModel.fromMap(result.first);
+  }
+
+  /// Obtener ingresos adicionales
+  Future<List<IncomeModel>> getAdditionalIncomes(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ? AND tipo = ?',
+
+      whereArgs: [idUsuario, 'ADICIONAL'],
+
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+}
+
+
+========== lib/data/services/income_service.dart ==========
+
+import '../models/income_model.dart';
+import '../repositories/income_repository.dart';
+
+// Servicio para manejar la lógica de negocio relacionada con ingresos
+class IncomeService {
+  final IncomeRepository _repository = IncomeRepository();
+
+  Future<int> createIncome(IncomeModel income) async {
+    _validateIncome(income);
+
+    return await _repository.insertIncome(income);
+  }
+
+  Future<int> updateIncome(IncomeModel income) async {
+    if (income.idIngreso == null) {
+      throw ArgumentError('El ingreso no tiene identificador');
+    }
+
+    _validateIncome(income);
+
+    return _repository.updateIncome(income);
+  }
+
+  Future<int> deleteIncome({
+    required int idIngreso,
+    required int idUsuario,
+  }) async {
+    return _repository.deleteIncome(idIngreso: idIngreso, idUsuario: idUsuario);
+  }
+
+  Future<List<IncomeModel>> getIncomesByUser(int idUsuario) async {
+    return await _repository.getIncomesByUser(idUsuario);
+  }
+
+  /// Obtener ingreso fijo mensual
+  Future<IncomeModel?> getFixedIncome(int idUsuario) async {
+    return await _repository.getFixedIncome(idUsuario);
+  }
+
+  /// Obtener ingresos adicionales
+  Future<List<IncomeModel>> getAdditionalIncomes(int idUsuario) async {
+    return await _repository.getAdditionalIncomes(idUsuario);
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _repository.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  void _validateIncome(IncomeModel income) {
+    if (income.monto <= 0) {
+      throw ArgumentError('El monto debe ser mayor a cero');
+    }
+
+    if (income.fecha.trim().isEmpty) {
+      throw ArgumentError('La fecha es obligatoria');
+    }
+
+    if (income.idUsuario <= 0) {
+      throw ArgumentError('Usuario invalido');
+    }
+  }
+}
+
+
+========== lib/providers/income_provider.dart ==========
+
+import 'package:flutter/material.dart';
+
+import '../data/models/income_model.dart';
+import '../data/services/income_service.dart';
+
+/// Proveedor de ingresos
+class IncomeProvider extends ChangeNotifier {
+  final IncomeService _incomeService = IncomeService();
+
+  List<IncomeModel> _incomes = [];
+
+  bool _isLoading = false;
+
+  String? _errorMessage;
+
+  List<IncomeModel> get incomes => _incomes;
+
+  bool get isLoading => _isLoading;
+
+  String? get errorMessage => _errorMessage;
+
+  /// Crear ingreso
+  Future<bool> createIncome(IncomeModel income) async {
+    _isLoading = true;
+    _errorMessage = null;
+
+    notifyListeners();
+
+    try {
+      await _incomeService.createIncome(income);
+
+      await loadIncomeData(income.idUsuario);
+
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateIncome(IncomeModel income) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _incomeService.updateIncome(income);
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteIncome(IncomeModel income) async {
+    if (income.idIngreso == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _incomeService.deleteIncome(
+        idIngreso: income.idIngreso!,
+        idUsuario: income.idUsuario,
+      );
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cargar ingresos de un usuario
+  Future<void> loadIncomes(int idUsuario) async {
+    _incomes = await _incomeService.getIncomesByUser(idUsuario);
+
+    notifyListeners();
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<IncomeModel>> loadIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _incomeService.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  IncomeModel? _fixedIncome;
+
+  List<IncomeModel> _additionalIncomes = [];
+
+  IncomeModel? get fixedIncome => _fixedIncome;
+
+  List<IncomeModel> get additionalIncomes => _additionalIncomes;
+
+  /// Cargar información de ingresos
+  Future<void> loadIncomeData(int idUsuario) async {
+    _isLoading = true;
+
+    notifyListeners();
+
+    _fixedIncome = await _incomeService.getFixedIncome(idUsuario);
+
+    _additionalIncomes = await _incomeService.getAdditionalIncomes(idUsuario);
+
+    _isLoading = false;
+
+    notifyListeners();
+  }
+
+  /// Total de ingresos adicionales del usuario.
+  double get totalIncome {
+    double total = 0;
+
+    for (final income in _additionalIncomes) {
+      total += income.monto;
+    }
+
+    return total;
+  }
+
+  /// Total de ingresos adicionales del mes actual.
+  double get currentMonthAdditionalIncome {
+    final now = DateTime.now();
+    double total = 0;
+
+    for (final income in _additionalIncomes) {
+      final fecha = DateTime.tryParse(income.fecha);
+
+      if (fecha == null) continue;
+
+      if (fecha.year == now.year && fecha.month == now.month) {
+        total += income.monto;
+      }
+    }
+
+    return total;
+  }
+
+  /// Total utilizado para el cálculo del presupuesto.
+  ///
+  /// Corresponde al ingreso fijo mensual más
+  /// todos los ingresos adicionales registrados.
+  double get totalBudgetIncome {
+    double total = totalIncome;
+
+    if (_fixedIncome != null) {
+      total += _fixedIncome!.monto;
+    }
+
+    return total;
+  }
+}
+
+
+========== lib/data/models/expense_model.dart ==========
+
+/// Modelo que representa un gasto del usuario.
+///
+/// Su responsabilidad es transportar información entre
+/// SQLite, Repositories, Services, Providers y Pantallas.
+class ExpenseModel {
+  /// Identificador del gasto
+  final int? idGasto;
+
+  /// Nombre del gasto
+  final String nombre;
+
+  /// Valor del gasto
+  final double monto;
+
+  /// Fecha del gasto en formato ISO (YYYY-MM-DD)
+  final String fecha;
+
+  /// Descripción del gasto
+  final String descripcion;
+
+  /// Categoría del gasto
+  final int idCategoria;
+
+  /// Identificador del usuario propietario del gasto
+  final int idUsuario;
+
+  /// Origen del gasto MANUAL OBLIGACION DEUDA
+  final String origen;
+
+  /// Fecha de creación del registro
+  final String fechaRegistro;
+
+  // Constructor con parámetros requeridos y opcionales
+  const ExpenseModel({
+    this.idGasto,
+    required this.nombre,
+    required this.monto,
+    required this.fecha,
+    required this.descripcion,
+    required this.idCategoria,
+    required this.idUsuario,
+    required this.origen,
+    required this.fechaRegistro,
+  });
+
+  /// Convierte el objeto en un Map para SQLite
+  Map<String, dynamic> toMap() {
+    return {
+      'id_gasto': idGasto,
+      'nombre': nombre,
+      'monto': monto,
+      'fecha': fecha,
+      'descripcion': descripcion,
+      'id_categoria': idCategoria,
+      'id_usuario': idUsuario,
+      'origen': origen,
+      'fecha_registro': fechaRegistro,
+    };
+  }
+
+  /// Crea un ExpenseModel a partir de un Map obtenido de SQLite
+  factory ExpenseModel.fromMap(Map<String, dynamic> map) {
+    return ExpenseModel(
+      idGasto: map['id_gasto'],
+      nombre: map['nombre'],
+      monto: (map['monto'] as num).toDouble(),
+      fecha: map['fecha'],
+      descripcion: map['descripcion'] ?? '',
+      idCategoria: map['id_categoria'],
+      idUsuario: map['id_usuario'],
+      origen: map['origen'],
+      fechaRegistro: map['fecha_registro'],
+    );
+  }
+
+  /// Crea una copia modificando únicamente
+  /// los campos enviados como parámetro.
+  ExpenseModel copyWith({
+    int? idGasto,
+    String? nombre,
+    double? monto,
+    String? fecha,
+    String? descripcion,
+    int? idCategoria,
+    int? idUsuario,
+    String? origen,
+    String? fechaRegistro,
+  }) {
+    return ExpenseModel(
+      idGasto: idGasto ?? this.idGasto,
+      nombre: nombre ?? this.nombre,
+      monto: monto ?? this.monto,
+      fecha: fecha ?? this.fecha,
+      descripcion: descripcion ?? this.descripcion,
+      idCategoria: idCategoria ?? this.idCategoria,
+      idUsuario: idUsuario ?? this.idUsuario,
+      origen: origen ?? this.origen,
+      fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+    );
+  }
+}
+
+
+========== lib/data/repositories/expense_repository.dart ==========
+
+// Permite utilizar la base de datos SQLite
+import 'package:sqflite/sqflite.dart';
+
+// Helper que administra la conexión a la base de datos
+import '../database/database_helper.dart';
+
+// Modelo de gastos
+import '../models/expense_model.dart';
+
+/// Repositorio encargado de todas las operaciones
+/// sobre la tabla gasto.
+///
+/// Esta clase es la única que accede directamente
+/// a SQLite.
+class ExpenseRepository {
+  /// Instancia del helper de base de datos
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  /// Inserta un nuevo gasto
+  Future<int> insertExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
+    final DatabaseExecutor db = executor ?? await _databaseHelper.database;
+
+    return await db.insert('gasto', expense.toMap());
+  }
+
+  /// Obtiene todos los gastos de un usuario
+  /// ordenados desde el más reciente.
+  Future<List<ExpenseModel>> getExpensesByUser(int idUsuario) async {
+    final Database db = await _databaseHelper.database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'gasto',
+      where: 'id_usuario = ?',
+      whereArgs: [idUsuario],
+      orderBy: 'fecha DESC',
+    );
+    return result.map((item) => ExpenseModel.fromMap(item)).toList();
+  }
+
+  /// Actualiza un gasto existente
+  Future<int> updateExpense(ExpenseModel expense) async {
+    final Database db = await _databaseHelper.database;
+
+    return await db.update(
+      'gasto',
+      expense.toMap(),
+      where: 'id_gasto = ?',
+      whereArgs: [expense.idGasto],
+    );
+  }
+
+  /// Elimina un gasto
+  Future<int> deleteExpense(int idGasto) async {
+    final Database db = await _databaseHelper.database;
+    return await db.delete(
+      'gasto',
+      where: 'id_gasto = ?',
+      whereArgs: [idGasto],
+    );
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final Database db = await _databaseHelper.database;
+
+    final result = await db.query(
+      'gasto',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((item) => ExpenseModel.fromMap(item)).toList();
+  }
+}
+
+
+========== lib/data/services/expense_service.dart ==========
+
+import 'package:sqflite/sqflite.dart';
+
+// Modelo del gasto
+import '../models/expense_model.dart';
+
+// Repositorio encargado de SQLite
+import '../repositories/expense_repository.dart';
+
+/// Servicio del módulo Gastos.
+///
+/// Aquí se implementan las reglas de negocio
+/// antes de acceder a la base de datos.
+class ExpenseService {
+  /// Repositorio de gastos
+  final ExpenseRepository _expenseRepository = ExpenseRepository();
+
+  /// Registrar un nuevo gasto.
+  ///
+  /// Devuelve el ID generado por SQLite.
+  Future<int> createExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
+    // RN13: El nombre es obligatorio
+    if (expense.nombre.trim().isEmpty) {
+      throw Exception('Debe ingresar un nombre para el gasto');
+    }
+
+    // RN12: El monto debe ser mayor que cero
+    if (expense.monto <= 0) {
+      throw Exception('El monto debe ser mayor que cero');
+    }
+
+    return await _expenseRepository.insertExpense(expense, executor: executor);
+  }
+
+  /// Obtener gastos de un usuario
+  Future<List<ExpenseModel>> getExpensesByUser(int idUsuario) async {
+    return await _expenseRepository.getExpensesByUser(idUsuario);
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseRepository.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  /// Actualizar un gasto existente
+  Future<void> updateExpense(ExpenseModel expense) async {
+    // RN13
+    if (expense.nombre.trim().isEmpty) {
+      throw Exception('Debe ingresar un nombre para el gasto');
+    }
+
+    // RN12
+    if (expense.monto <= 0) {
+      throw Exception('El monto debe ser mayor que cero');
+    }
+
+    await _expenseRepository.updateExpense(expense);
+  }
+
+  /// Eliminar un gasto
+  Future<void> deleteExpense(int idGasto) async {
+    await _expenseRepository.deleteExpense(idGasto);
+  }
+}
+
+
+========== lib/providers/expense_provider.dart ==========
+
+// Permite notificar cambios a la interfaz
+import 'package:flutter/material.dart';
+
+// Modelo de gastos
+import '../data/models/expense_model.dart';
+
+// Servicio del módulo gastos
+import '../data/services/expense_service.dart';
+
+/// Provider encargado de administrar el estado
+/// del módulo Gastos.
+///
+/// Es el intermediario entre la interfaz y la
+/// lógica de negocio.
+class ExpenseProvider extends ChangeNotifier {
+  /// Servicio del módulo
+  final ExpenseService _expenseService = ExpenseService();
+
+  /// Lista de gastos del usuario
+  List<ExpenseModel> _expenses = [];
+
+  /// Indica si existe una operación en ejecución
+  bool _isLoading = false;
+
+  /// Mensaje de error para mostrar en pantalla
+  String _errorMessage = '';
+
+  /// Lectura pública de la lista
+  List<ExpenseModel> get expenses => _expenses;
+
+  /// Estado de carga
+  bool get isLoading => _isLoading;
+
+  /// Último mensaje de error
+  String get errorMessage => _errorMessage;
+
+  /// Registrar un nuevo gasto
+  Future<bool> createExpense(ExpenseModel expense) async {
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      // Aplica reglas de negocio
+      await _expenseService.createExpense(expense);
+      // Recarga la lista
+      await loadExpenses(expense.idUsuario);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Obtener gastos del usuario
+  Future<void> loadExpenses(int idUsuario) async {
+    _expenses = await _expenseService.getExpensesByUser(idUsuario);
+    notifyListeners();
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<ExpenseModel>> loadExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseService.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  /// Actualizar gasto
+  Future<bool> updateExpense(ExpenseModel expense) async {
+    try {
+      await _expenseService.updateExpense(expense);
+      await loadExpenses(expense.idUsuario);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Eliminar gasto
+  Future<void> deleteExpense(int idGasto, int idUsuario) async {
+    await _expenseService.deleteExpense(idGasto);
+    await loadExpenses(idUsuario);
+  }
+
+  /// Total gastado durante el período actual.
+  ///
+  /// Los gastos históricos permanecen almacenados en SQLite,
+  /// pero solamente los gastos del mes actual participan
+  /// en el cálculo del presupuesto.
+  double get totalExpenses {
+    final now = DateTime.now();
+
+    double total = 0;
+
+    for (final expense in _expenses) {
+      final fecha = DateTime.parse(expense.fecha);
+
+      final esPeriodoActual =
+          fecha.year == now.year && fecha.month == now.month;
+
+      if (esPeriodoActual) {
+        total += expense.monto;
+      }
+    }
+
+    return total;
+  }
+}
+
+
+========== lib/data/database/database_helper.dart ==========
+
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+import '../../shared/constants/database_constants.dart';
+
+/// Clase encargada de administrar la conexión con SQLite.
+///
+/// Implementa el patrón Singleton para mantener
+/// una única instancia de la base de datos durante
+/// toda la ejecución de la aplicación.
+class DatabaseHelper {
+  // Instancia única utilizada por la aplicación y las pruebas.
+  static DatabaseHelper instance = DatabaseHelper._init();
+
+  /// Referencia a la base de datos.
+  static Database? _database;
+
+  /// Constructor privado utilizado por el Singleton.
+  DatabaseHelper._init();
+
+  /// Constructor utilizado para configurar pruebas.
+  ///
+  /// Sustituye temporalmente la instancia principal por una
+  /// que utiliza la base de datos proporcionada.
+  DatabaseHelper.forTesting(Database database) {
+    _database = database;
+
+    // Permite que los servicios y repositorios utilicen esta instancia.
+    instance = this;
+  }
+
+  /// Inicializa el esquema y las categorías en la base temporal.
+  Future<void> initializeForTesting() async {
+    // Obtiene la conexión temporal de SQLite.
+    final db = await database;
+
+    // Crea todas las tablas de la aplicación.
+    await _createSchema(db);
+
+    // Inserta las categorías predeterminadas.
+    await _seedSystemCategories(db);
+  }
+
+  /// Obtiene la instancia de la base de datos.
+  ///
+  /// Si aún no existe, la crea automáticamente.
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+
+    _database = await _initDB(DatabaseConstants.databaseName);
+
+    return _database!;
+  }
+
+  /// Inicializa la base de datos.
+  ///
+  /// Crea las tablas necesarias y aplica las migraciones
+  /// cuando cambia la versión del esquema.
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return openDatabase(
+      path,
+      version: DatabaseConstants.databaseVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+      onCreate: (db, version) async {
+        await _createSchema(db);
+        await _seedSystemCategories(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await _createSchema(db);
+        await _migrateExistingColumns(db);
+        await _seedSystemCategories(db);
+      },
+    );
+  }
+
+  Future<void> _createSchema(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS usuario (
+        id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        correo TEXT NOT NULL UNIQUE,
+        contrasena TEXT NOT NULL,
+        idioma TEXT DEFAULT 'es',
+        tema TEXT DEFAULT 'claro',
+        tamano_texto TEXT DEFAULT 'normal',
+        alto_contraste INTEGER DEFAULT 0,
+        ingreso_fijo_mensual REAL DEFAULT 0,
+        fecha_registro TEXT NOT NULL,
+        ultimo_acceso TEXT,
+        notificaciones_activas INTEGER DEFAULT 1
+      )
+    ''');
+
+    // Crea el historial del ingreso fijo mensual.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de categorías.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS categoria (
+        id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        es_sistema INTEGER NOT NULL DEFAULT 0,
+        id_usuario INTEGER,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de ingresos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso (
+        id_ingreso INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        fuente TEXT,
+        descripcion TEXT,
+        origen TEXT DEFAULT 'Manual',
+        tipo TEXT DEFAULT 'ADICIONAL',
+        id_categoria INTEGER,
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE SET NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de gastos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS gasto (
+        id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        descripcion TEXT,
+        origen TEXT NOT NULL DEFAULT 'MANUAL',
+        id_usuario INTEGER NOT NULL,
+        id_categoria INTEGER NOT NULL,
+        id_pago INTEGER,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria),
+        FOREIGN KEY (id_pago)
+          REFERENCES pago(id_pago)
+          ON DELETE SET NULL
+      )
+    ''');
+
+    // Crea la tabla de metas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS meta (
+        id_meta INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        monto_objetivo REAL NOT NULL CHECK (monto_objetivo > 0),
+        monto_acumulado REAL NOT NULL DEFAULT 0 CHECK (monto_acumulado >= 0),
+        fecha_limite TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'Activa',
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        prioridad TEXT,
+        recordatorio INTEGER DEFAULT 0,
+        categoria TEXT,
+        fecha_cumplimiento TEXT,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de aportes a metas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS aporte (
+        id_aporte INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        origen TEXT NOT NULL DEFAULT 'Manual',
+        id_meta INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_meta)
+          REFERENCES meta(id_meta)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de deudas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS deuda (
+        id_deuda INTEGER PRIMARY KEY AUTOINCREMENT,
+        acreedor TEXT NOT NULL,
+        monto_total REAL NOT NULL CHECK (monto_total > 0),
+        saldo_pendiente REAL NOT NULL CHECK (saldo_pendiente >= 0),
+        saldo_capital REAL NOT NULL DEFAULT 0 CHECK (saldo_capital >= 0),
+
+        -- Capital existente al inicio del período mensual actual.
+        capital_inicio_periodo REAL NOT NULL DEFAULT 0
+          CHECK (capital_inicio_periodo >= 0),
+
+        intereses_pendientes REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pendientes >= 0),
+        fecha_ultimo_calculo_intereses TEXT,
+        tasa_interes_ea REAL NOT NULL DEFAULT 0
+          CHECK (tasa_interes_ea >= 0),
+        tasa_interes REAL DEFAULT 0,
+        cuota_mensual REAL,
+        plazo INTEGER,
+        fecha_inicio TEXT NOT NULL,
+        recordatorio INTEGER DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Activa',
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de pagos de deudas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pago (
+        id_pago INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        abono_capital REAL NOT NULL DEFAULT 0 CHECK (abono_capital >= 0),
+        intereses_pagados REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pagados >= 0),
+        tipo_pago TEXT NOT NULL DEFAULT 'ORDINARIO',
+        opcion_abono TEXT,
+        fecha TEXT NOT NULL,
+        metodo_pago TEXT,
+        descripcion TEXT,
+        id_deuda INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_deuda)
+          REFERENCES deuda(id_deuda)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de obligaciones recurrentes.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS obligacion (
+        id_obligacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_grupo_recurrencia INTEGER,
+        recurrencia_activa INTEGER DEFAULT 1,
+        nombre TEXT NOT NULL,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha_vencimiento TEXT NOT NULL,
+        recordatorio INTEGER DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Pendiente',
+        es_recurrente INTEGER DEFAULT 0,
+        dia_vencimiento INTEGER,
+        id_usuario INTEGER NOT NULL,
+        id_gasto_generado INTEGER,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        frecuencia TEXT,
+        categoria TEXT,
+        id_categoria INTEGER,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_gasto_generado)
+          REFERENCES gasto(id_gasto)
+          ON DELETE SET NULL,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE RESTRICT
+      )
+    ''');
+
+    // Crea la tabla de presupuestos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS presupuesto (
+        id_presupuesto INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto_limite REAL NOT NULL CHECK (monto_limite >= 0),
+        fecha_inicio TEXT NOT NULL,
+        fecha_fin TEXT NOT NULL,
+        id_usuario INTEGER NOT NULL,
+        id_categoria INTEGER NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de notificaciones.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS notificacion (
+        id_notificacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL,
+        mensaje TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        leida INTEGER NOT NULL DEFAULT 0,
+        id_usuario INTEGER NOT NULL,
+        fecha_lectura TEXT,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea índices para mejorar el rendimiento de las consultas.
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_usuario ON ingreso(id_usuario)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_gasto_usuario ON gasto(id_usuario)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_categoria_tipo ON categoria(tipo)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
+  }
+
+  /// Aplica migraciones para agregar nuevas columnas
+  /// a tablas existentes sin perder datos.
+  Future<void> _migrateExistingColumns(Database db) async {
+    await _addColumnIfMissing(db, 'usuario', 'idioma', "TEXT DEFAULT 'es'");
+    await _addColumnIfMissing(db, 'usuario', 'tema', "TEXT DEFAULT 'claro'");
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'tamano_texto',
+      "TEXT DEFAULT 'normal'",
+    );
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'alto_contraste',
+      'INTEGER DEFAULT 0',
+    );
+    await _addColumnIfMissing(db, 'usuario', 'ultimo_acceso', 'TEXT');
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'notificaciones_activas',
+      'INTEGER DEFAULT 1',
+    );
+
+    await _addColumnIfMissing(db, 'ingreso', 'fuente', 'TEXT');
+    await _addColumnIfMissing(db, 'ingreso', 'origen', "TEXT DEFAULT 'Manual'");
+    await _addColumnIfMissing(db, 'ingreso', 'fecha_registro', 'TEXT');
+
+    await db.execute(
+      "UPDATE ingreso SET fecha_registro = COALESCE(fecha_registro, datetime('now'))",
+    );
+
+    await _addColumnIfMissing(db, 'obligacion', 'id_categoria', 'INTEGER');
+
+    // Agrega el identificador para agrupar obligaciones recurrentes.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'id_grupo_recurrencia',
+      'INTEGER',
+    );
+
+    // Indica si una obligación recurrente continúa activa.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'recurrencia_activa',
+      'INTEGER DEFAULT 1',
+    );
+
+    await db.execute('''
+      UPDATE obligacion
+      SET id_categoria = (
+        SELECT id_categoria
+        FROM categoria
+        WHERE categoria.nombre = obligacion.categoria
+          AND categoria.tipo = 'GASTO'
+          AND categoria.id_usuario IS NULL
+        LIMIT 1
+      )
+      WHERE id_categoria IS NULL
+        AND categoria IS NOT NULL
+    ''');
+
+    // Crea el historial del ingreso fijo para bases existentes.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
+
+    // Agrega los campos financieros de las deudas.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'saldo_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'tasa_interes_ea',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(db, 'deuda', 'cuota_mensual', 'REAL');
+
+    // Inicializa el capital pendiente con el saldo anterior.
+    await db.execute('''
+      UPDATE deuda
+      SET saldo_capital = saldo_pendiente
+      WHERE saldo_capital = 0
+        AND saldo_pendiente > 0
+    ''');
+
+    // Agrega los campos financieros de los pagos.
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'abono_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'intereses_pagados',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'tipo_pago',
+      "TEXT NOT NULL DEFAULT 'ORDINARIO'",
+    );
+
+    await _addColumnIfMissing(db, 'pago', 'opcion_abono', 'TEXT');
+
+    // Agrega los intereses pendientes a las deudas existentes.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'intereses_pendientes',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Agrega la fecha del último cálculo de intereses.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'fecha_ultimo_calculo_intereses',
+      'TEXT',
+    );
+
+    // Agrega el capital de referencia del período mensual actual.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'capital_inicio_periodo',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Inicializa el capital de referencia de las deudas existentes.
+    // Solo modifica registros que aún no tienen ese valor.
+    await db.execute('''
+      UPDATE deuda
+      SET capital_inicio_periodo = saldo_capital
+      WHERE capital_inicio_periodo = 0
+        AND saldo_capital > 0
+    ''');
+  }
+
+  /// Verifica si una columna existe en una tabla y la agrega si falta.
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String column,
+    String definition,
+  ) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = columns.any((row) => row['name'] == column);
+
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+    }
+  }
+
+  /// Inserta categorías predeterminadas si todavía no existen.
+  Future<void> _seedSystemCategories(Database db) async {
+    const categories = [
+      ('Salario', 'INGRESO'),
+      ('Negocio', 'INGRESO'),
+      ('Freelance', 'INGRESO'),
+      ('Otros', 'INGRESO'),
+      ('Alimentacion', 'GASTO'),
+      ('Transporte', 'GASTO'),
+      ('Salud', 'GASTO'),
+      ('Educacion', 'GASTO'),
+      ('Vivienda', 'GASTO'),
+      ('Entretenimiento', 'GASTO'),
+      ('Servicios publicos', 'GASTO'),
+      ('Internet', 'GASTO'),
+      ('Telefonia movil', 'GASTO'),
+      ('Arriendo', 'GASTO'),
+      ('Administracion', 'GASTO'),
+      ('Tarjeta de credito', 'GASTO'),
+      ('Credito de vivienda', 'GASTO'),
+      ('Credito de vehiculo', 'GASTO'),
+      ('Suscripciones', 'GASTO'),
+      ('Pago de deuda', 'GASTO'),
+      ('Otros', 'GASTO'),
+      ('Fondo de emergencia', 'META'),
+      ('Viaje', 'META'),
+      ('Vivienda', 'META'),
+      ('Vehiculo', 'META'),
+      ('Educacion', 'META'),
+      ('Tecnologia', 'META'),
+      ('Otros', 'META'),
+      ('Servicios publicos', 'OBLIGACION'),
+      ('Internet', 'OBLIGACION'),
+      ('Telefonia movil', 'OBLIGACION'),
+      ('Arriendo', 'OBLIGACION'),
+      ('Administracion', 'OBLIGACION'),
+      ('Tarjeta de credito', 'OBLIGACION'),
+      ('Credito de vivienda', 'OBLIGACION'),
+      ('Credito de vehiculo', 'OBLIGACION'),
+      ('Suscripciones', 'OBLIGACION'),
+      ('Otros', 'OBLIGACION'),
+    ];
+
+    // Verifica e inserta cada categoría predeterminada.
+    for (final category in categories) {
+      final exists = await db.query(
+        'categoria',
+        where: 'nombre = ? AND tipo = ? AND id_usuario IS NULL',
+        whereArgs: [category.$1, category.$2],
+        limit: 1,
+      );
+
+      if (exists.isEmpty) {
+        await db.insert('categoria', {
+          'nombre': category.$1,
+          'tipo': category.$2,
+          'es_sistema': 1,
+        });
+      }
+    }
+  }
+
+  /// Cierra la conexión con la base de datos.
+  Future<void> close() async {
+    final db = await instance.database;
+    await db.close();
+    _database = null;
+  }
+
+  /// Ejecuta varias operaciones dentro de una transacción SQLite.
+  ///
+  /// Si alguna operación falla, SQLite revierte todos los cambios.
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
+    final Database db = await database;
+
+    return await db.transaction(action);
+  }
+}
+
+
+========== lib/shared/constants/database_constants.dart ==========
+
+/// Constantes relacionadas con la base de datos.
+///
+/// Centraliza el nombre y la versión de la base de datos
+/// para evitar valores repetidos en el proyecto.
+class DatabaseConstants {
+  DatabaseConstants._();
+
+  /// Nombre del archivo de la base de datos.
+  static const String databaseName = 'finanzas_app.db';
+
+  /// Versión actual de la base de datos.
+  static const int databaseVersion = 13;
+}
+
+
+========== lib/data/models/income_model.dart ==========
+
+/// Modelo que representa un ingreso financiero.
+class IncomeModel {
+  final int? idIngreso;
+  final String descripcion;
+  final double monto;
+  final String fecha;
+  final String tipo;
+  final String? fuente;
+  final String origen;
+  final int? idCategoria;
+  final int idUsuario;
+  final String? fechaRegistro;
+
+  IncomeModel({
+    this.idIngreso,
+    required this.descripcion,
+    required this.monto,
+    required this.fecha,
+    required this.tipo,
+    this.fuente,
+    this.origen = 'Manual',
+    required this.idCategoria,
+    required this.idUsuario,
+    this.fechaRegistro,
+  });
+
+  /// Convierte el objeto a Map para SQLite
+  Map<String, dynamic> toMap() {
+    final map = {
+      'id_ingreso': idIngreso,
+      'descripcion': descripcion,
+      'monto': monto,
+      'fecha': fecha,
+      'tipo': tipo,
+      'fuente': fuente,
+      'origen': origen,
+      'id_categoria': idCategoria,
+      'id_usuario': idUsuario,
+      'fecha_registro': fechaRegistro,
+    };
+
+    map.removeWhere((_, value) => value == null);
+
+    return map;
+  }
+
+  /// Convierte un Map de SQLite a objeto
+  factory IncomeModel.fromMap(Map<String, dynamic> map) {
+    return IncomeModel(
+      idIngreso: map['id_ingreso'],
+      descripcion: map['descripcion'] ?? '',
+      monto: (map['monto'] as num).toDouble(),
+      fecha: map['fecha'],
+      tipo: map['tipo'] ?? 'ADICIONAL',
+      fuente: map['fuente'],
+      origen: map['origen'] ?? 'Manual',
+      idCategoria: map['id_categoria'],
+      idUsuario: map['id_usuario'],
+      fechaRegistro: map['fecha_registro'],
+    );
+  }
+}
+
+
+========== lib/data/repositories/income_repository.dart ==========
+
+import '../database/database_helper.dart';
+import '../models/income_model.dart';
+
+// Repositorio para manejar operaciones relacionadas con ingresos
+class IncomeRepository {
+  /// Inserta un ingreso
+  Future<int> insertIncome(IncomeModel income) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return await db.insert('ingreso', income.toMap());
+  }
+
+  Future<int> updateIncome(IncomeModel income) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.update(
+      'ingreso',
+      income.toMap(),
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [income.idIngreso, income.idUsuario],
+    );
+  }
+
+  Future<int> deleteIncome({
+    required int idIngreso,
+    required int idUsuario,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    return db.delete(
+      'ingreso',
+      where: 'id_ingreso = ? AND id_usuario = ?',
+      whereArgs: [idIngreso, idUsuario],
+    );
+  }
+
+  /// Obtener ingresos de un usuario
+  Future<List<IncomeModel>> getIncomesByUser(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ?',
+
+      whereArgs: [idUsuario],
+
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+
+  /// Obtener ingreso fijo mensual
+  Future<IncomeModel?> getFixedIncome(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ? AND tipo = ?',
+
+      whereArgs: [idUsuario, 'FIJO'],
+
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return IncomeModel.fromMap(result.first);
+  }
+
+  /// Obtener ingresos adicionales
+  Future<List<IncomeModel>> getAdditionalIncomes(int idUsuario) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+
+      where: 'id_usuario = ? AND tipo = ?',
+
+      whereArgs: [idUsuario, 'ADICIONAL'],
+
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final db = await DatabaseHelper.instance.database;
+
+    final result = await db.query(
+      'ingreso',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((e) => IncomeModel.fromMap(e)).toList();
+  }
+}
+
+
+========== lib/data/services/income_service.dart ==========
+
+import '../models/income_model.dart';
+import '../repositories/income_repository.dart';
+
+// Servicio para manejar la lógica de negocio relacionada con ingresos
+class IncomeService {
+  final IncomeRepository _repository = IncomeRepository();
+
+  Future<int> createIncome(IncomeModel income) async {
+    _validateIncome(income);
+
+    return await _repository.insertIncome(income);
+  }
+
+  Future<int> updateIncome(IncomeModel income) async {
+    if (income.idIngreso == null) {
+      throw ArgumentError('El ingreso no tiene identificador');
+    }
+
+    _validateIncome(income);
+
+    return _repository.updateIncome(income);
+  }
+
+  Future<int> deleteIncome({
+    required int idIngreso,
+    required int idUsuario,
+  }) async {
+    return _repository.deleteIncome(idIngreso: idIngreso, idUsuario: idUsuario);
+  }
+
+  Future<List<IncomeModel>> getIncomesByUser(int idUsuario) async {
+    return await _repository.getIncomesByUser(idUsuario);
+  }
+
+  /// Obtener ingreso fijo mensual
+  Future<IncomeModel?> getFixedIncome(int idUsuario) async {
+    return await _repository.getFixedIncome(idUsuario);
+  }
+
+  /// Obtener ingresos adicionales
+  Future<List<IncomeModel>> getAdditionalIncomes(int idUsuario) async {
+    return await _repository.getAdditionalIncomes(idUsuario);
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<IncomeModel>> getIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _repository.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  void _validateIncome(IncomeModel income) {
+    if (income.monto <= 0) {
+      throw ArgumentError('El monto debe ser mayor a cero');
+    }
+
+    if (income.fecha.trim().isEmpty) {
+      throw ArgumentError('La fecha es obligatoria');
+    }
+
+    if (income.idUsuario <= 0) {
+      throw ArgumentError('Usuario invalido');
+    }
+  }
+}
+
+
+========== lib/providers/income_provider.dart ==========
+
+import 'package:flutter/material.dart';
+
+import '../data/models/income_model.dart';
+import '../data/services/income_service.dart';
+
+/// Proveedor de ingresos
+class IncomeProvider extends ChangeNotifier {
+  final IncomeService _incomeService = IncomeService();
+
+  List<IncomeModel> _incomes = [];
+
+  bool _isLoading = false;
+
+  String? _errorMessage;
+
+  List<IncomeModel> get incomes => _incomes;
+
+  bool get isLoading => _isLoading;
+
+  String? get errorMessage => _errorMessage;
+
+  /// Crear ingreso
+  Future<bool> createIncome(IncomeModel income) async {
+    _isLoading = true;
+    _errorMessage = null;
+
+    notifyListeners();
+
+    try {
+      await _incomeService.createIncome(income);
+
+      await loadIncomeData(income.idUsuario);
+
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateIncome(IncomeModel income) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _incomeService.updateIncome(income);
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteIncome(IncomeModel income) async {
+    if (income.idIngreso == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _incomeService.deleteIncome(
+        idIngreso: income.idIngreso!,
+        idUsuario: income.idUsuario,
+      );
+      await loadIncomeData(income.idUsuario);
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cargar ingresos de un usuario
+  Future<void> loadIncomes(int idUsuario) async {
+    _incomes = await _incomeService.getIncomesByUser(idUsuario);
+
+    notifyListeners();
+  }
+
+  /// Obtiene los ingresos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<IncomeModel>> loadIncomesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _incomeService.getIncomesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  IncomeModel? _fixedIncome;
+
+  List<IncomeModel> _additionalIncomes = [];
+
+  IncomeModel? get fixedIncome => _fixedIncome;
+
+  List<IncomeModel> get additionalIncomes => _additionalIncomes;
+
+  /// Cargar información de ingresos
+  Future<void> loadIncomeData(int idUsuario) async {
+    _isLoading = true;
+
+    notifyListeners();
+
+    _fixedIncome = await _incomeService.getFixedIncome(idUsuario);
+
+    _additionalIncomes = await _incomeService.getAdditionalIncomes(idUsuario);
+
+    _isLoading = false;
+
+    notifyListeners();
+  }
+
+  /// Total de ingresos adicionales del usuario.
+  double get totalIncome {
+    double total = 0;
+
+    for (final income in _additionalIncomes) {
+      total += income.monto;
+    }
+
+    return total;
+  }
+
+  /// Total de ingresos adicionales del mes actual.
+  double get currentMonthAdditionalIncome {
+    final now = DateTime.now();
+    double total = 0;
+
+    for (final income in _additionalIncomes) {
+      final fecha = DateTime.tryParse(income.fecha);
+
+      if (fecha == null) continue;
+
+      if (fecha.year == now.year && fecha.month == now.month) {
+        total += income.monto;
+      }
+    }
+
+    return total;
+  }
+
+  /// Total utilizado para el cálculo del presupuesto.
+  ///
+  /// Corresponde al ingreso fijo mensual más
+  /// todos los ingresos adicionales registrados.
+  double get totalBudgetIncome {
+    double total = totalIncome;
+
+    if (_fixedIncome != null) {
+      total += _fixedIncome!.monto;
+    }
+
+    return total;
+  }
+}
+
+
+========== lib/data/models/expense_model.dart ==========
+
+/// Modelo que representa un gasto del usuario.
+///
+/// Su responsabilidad es transportar información entre
+/// SQLite, Repositories, Services, Providers y Pantallas.
+class ExpenseModel {
+  /// Identificador del gasto
+  final int? idGasto;
+
+  /// Nombre del gasto
+  final String nombre;
+
+  /// Valor del gasto
+  final double monto;
+
+  /// Fecha del gasto en formato ISO (YYYY-MM-DD)
+  final String fecha;
+
+  /// Descripción del gasto
+  final String descripcion;
+
+  /// Categoría del gasto
+  final int idCategoria;
+
+  /// Identificador del usuario propietario del gasto
+  final int idUsuario;
+
+  /// Origen del gasto MANUAL OBLIGACION DEUDA
+  final String origen;
+
+  /// Fecha de creación del registro
+  final String fechaRegistro;
+
+  // Constructor con parámetros requeridos y opcionales
+  const ExpenseModel({
+    this.idGasto,
+    required this.nombre,
+    required this.monto,
+    required this.fecha,
+    required this.descripcion,
+    required this.idCategoria,
+    required this.idUsuario,
+    required this.origen,
+    required this.fechaRegistro,
+  });
+
+  /// Convierte el objeto en un Map para SQLite
+  Map<String, dynamic> toMap() {
+    return {
+      'id_gasto': idGasto,
+      'nombre': nombre,
+      'monto': monto,
+      'fecha': fecha,
+      'descripcion': descripcion,
+      'id_categoria': idCategoria,
+      'id_usuario': idUsuario,
+      'origen': origen,
+      'fecha_registro': fechaRegistro,
+    };
+  }
+
+  /// Crea un ExpenseModel a partir de un Map obtenido de SQLite
+  factory ExpenseModel.fromMap(Map<String, dynamic> map) {
+    return ExpenseModel(
+      idGasto: map['id_gasto'],
+      nombre: map['nombre'],
+      monto: (map['monto'] as num).toDouble(),
+      fecha: map['fecha'],
+      descripcion: map['descripcion'] ?? '',
+      idCategoria: map['id_categoria'],
+      idUsuario: map['id_usuario'],
+      origen: map['origen'],
+      fechaRegistro: map['fecha_registro'],
+    );
+  }
+
+  /// Crea una copia modificando únicamente
+  /// los campos enviados como parámetro.
+  ExpenseModel copyWith({
+    int? idGasto,
+    String? nombre,
+    double? monto,
+    String? fecha,
+    String? descripcion,
+    int? idCategoria,
+    int? idUsuario,
+    String? origen,
+    String? fechaRegistro,
+  }) {
+    return ExpenseModel(
+      idGasto: idGasto ?? this.idGasto,
+      nombre: nombre ?? this.nombre,
+      monto: monto ?? this.monto,
+      fecha: fecha ?? this.fecha,
+      descripcion: descripcion ?? this.descripcion,
+      idCategoria: idCategoria ?? this.idCategoria,
+      idUsuario: idUsuario ?? this.idUsuario,
+      origen: origen ?? this.origen,
+      fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+    );
+  }
+}
+
+
+========== lib/data/repositories/expense_repository.dart ==========
+
+// Permite utilizar la base de datos SQLite
+import 'package:sqflite/sqflite.dart';
+
+// Helper que administra la conexión a la base de datos
+import '../database/database_helper.dart';
+
+// Modelo de gastos
+import '../models/expense_model.dart';
+
+/// Repositorio encargado de todas las operaciones
+/// sobre la tabla gasto.
+///
+/// Esta clase es la única que accede directamente
+/// a SQLite.
+class ExpenseRepository {
+  /// Instancia del helper de base de datos
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+
+  /// Inserta un nuevo gasto
+  Future<int> insertExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
+    final DatabaseExecutor db = executor ?? await _databaseHelper.database;
+
+    return await db.insert('gasto', expense.toMap());
+  }
+
+  /// Obtiene todos los gastos de un usuario
+  /// ordenados desde el más reciente.
+  Future<List<ExpenseModel>> getExpensesByUser(int idUsuario) async {
+    final Database db = await _databaseHelper.database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'gasto',
+      where: 'id_usuario = ?',
+      whereArgs: [idUsuario],
+      orderBy: 'fecha DESC',
+    );
+    return result.map((item) => ExpenseModel.fromMap(item)).toList();
+  }
+
+  /// Actualiza un gasto existente
+  Future<int> updateExpense(ExpenseModel expense) async {
+    final Database db = await _databaseHelper.database;
+
+    return await db.update(
+      'gasto',
+      expense.toMap(),
+      where: 'id_gasto = ?',
+      whereArgs: [expense.idGasto],
+    );
+  }
+
+  /// Elimina un gasto
+  Future<int> deleteExpense(int idGasto) async {
+    final Database db = await _databaseHelper.database;
+    return await db.delete(
+      'gasto',
+      where: 'id_gasto = ?',
+      whereArgs: [idGasto],
+    );
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// El período se define mediante una fecha de inicio
+  /// incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    final Database db = await _databaseHelper.database;
+
+    final result = await db.query(
+      'gasto',
+      where: 'id_usuario = ? AND fecha >= ? AND fecha < ?',
+      whereArgs: [idUsuario, fechaInicio, fechaFin],
+      orderBy: 'fecha DESC',
+    );
+
+    return result.map((item) => ExpenseModel.fromMap(item)).toList();
+  }
+}
+
+
+========== lib/data/services/expense_service.dart ==========
+
+import 'package:sqflite/sqflite.dart';
+
+// Modelo del gasto
+import '../models/expense_model.dart';
+
+// Repositorio encargado de SQLite
+import '../repositories/expense_repository.dart';
+
+/// Servicio del módulo Gastos.
+///
+/// Aquí se implementan las reglas de negocio
+/// antes de acceder a la base de datos.
+class ExpenseService {
+  /// Repositorio de gastos
+  final ExpenseRepository _expenseRepository = ExpenseRepository();
+
+  /// Registrar un nuevo gasto.
+  ///
+  /// Devuelve el ID generado por SQLite.
+  Future<int> createExpense(
+    ExpenseModel expense, {
+    DatabaseExecutor? executor,
+  }) async {
+    // RN13: El nombre es obligatorio
+    if (expense.nombre.trim().isEmpty) {
+      throw Exception('Debe ingresar un nombre para el gasto');
+    }
+
+    // RN12: El monto debe ser mayor que cero
+    if (expense.monto <= 0) {
+      throw Exception('El monto debe ser mayor que cero');
+    }
+
+    return await _expenseRepository.insertExpense(expense, executor: executor);
+  }
+
+  /// Obtener gastos de un usuario
+  Future<List<ExpenseModel>> getExpensesByUser(int idUsuario) async {
+    return await _expenseRepository.getExpensesByUser(idUsuario);
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// Recibe una fecha de inicio incluida y una fecha de fin no incluida.
+  Future<List<ExpenseModel>> getExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseRepository.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  /// Actualizar un gasto existente
+  Future<void> updateExpense(ExpenseModel expense) async {
+    // RN13
+    if (expense.nombre.trim().isEmpty) {
+      throw Exception('Debe ingresar un nombre para el gasto');
+    }
+
+    // RN12
+    if (expense.monto <= 0) {
+      throw Exception('El monto debe ser mayor que cero');
+    }
+
+    await _expenseRepository.updateExpense(expense);
+  }
+
+  /// Eliminar un gasto
+  Future<void> deleteExpense(int idGasto) async {
+    await _expenseRepository.deleteExpense(idGasto);
+  }
+}
+
+
+========== lib/providers/expense_provider.dart ==========
+
+// Permite notificar cambios a la interfaz
+import 'package:flutter/material.dart';
+
+// Modelo de gastos
+import '../data/models/expense_model.dart';
+
+// Servicio del módulo gastos
+import '../data/services/expense_service.dart';
+
+/// Provider encargado de administrar el estado
+/// del módulo Gastos.
+///
+/// Es el intermediario entre la interfaz y la
+/// lógica de negocio.
+class ExpenseProvider extends ChangeNotifier {
+  /// Servicio del módulo
+  final ExpenseService _expenseService = ExpenseService();
+
+  /// Lista de gastos del usuario
+  List<ExpenseModel> _expenses = [];
+
+  /// Indica si existe una operación en ejecución
+  bool _isLoading = false;
+
+  /// Mensaje de error para mostrar en pantalla
+  String _errorMessage = '';
+
+  /// Lectura pública de la lista
+  List<ExpenseModel> get expenses => _expenses;
+
+  /// Estado de carga
+  bool get isLoading => _isLoading;
+
+  /// Último mensaje de error
+  String get errorMessage => _errorMessage;
+
+  /// Registrar un nuevo gasto
+  Future<bool> createExpense(ExpenseModel expense) async {
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      // Aplica reglas de negocio
+      await _expenseService.createExpense(expense);
+      // Recarga la lista
+      await loadExpenses(expense.idUsuario);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Obtener gastos del usuario
+  Future<void> loadExpenses(int idUsuario) async {
+    _expenses = await _expenseService.getExpensesByUser(idUsuario);
+    notifyListeners();
+  }
+
+  /// Obtiene los gastos registrados dentro de un período.
+  ///
+  /// La fecha de inicio se incluye y la fecha de fin no se incluye.
+  Future<List<ExpenseModel>> loadExpensesByPeriod(
+    int idUsuario,
+    String fechaInicio,
+    String fechaFin,
+  ) async {
+    return await _expenseService.getExpensesByPeriod(
+      idUsuario,
+      fechaInicio,
+      fechaFin,
+    );
+  }
+
+  /// Actualizar gasto
+  Future<bool> updateExpense(ExpenseModel expense) async {
+    try {
+      await _expenseService.updateExpense(expense);
+      await loadExpenses(expense.idUsuario);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Eliminar gasto
+  Future<void> deleteExpense(int idGasto, int idUsuario) async {
+    await _expenseService.deleteExpense(idGasto);
+    await loadExpenses(idUsuario);
+  }
+
+  /// Total gastado durante el período actual.
+  ///
+  /// Los gastos históricos permanecen almacenados en SQLite,
+  /// pero solamente los gastos del mes actual participan
+  /// en el cálculo del presupuesto.
+  double get totalExpenses {
+    final now = DateTime.now();
+
+    double total = 0;
+
+    for (final expense in _expenses) {
+      final fecha = DateTime.parse(expense.fecha);
+
+      final esPeriodoActual =
+          fecha.year == now.year && fecha.month == now.month;
+
+      if (esPeriodoActual) {
+        total += expense.monto;
+      }
+    }
+
+    return total;
+  }
+}
+
+
+========== lib/data/database/database_helper.dart ==========
+
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+import '../../shared/constants/database_constants.dart';
+
+/// Clase encargada de administrar la conexión con SQLite.
+///
+/// Implementa el patrón Singleton para mantener
+/// una única instancia de la base de datos durante
+/// toda la ejecución de la aplicación.
+class DatabaseHelper {
+  // Instancia única utilizada por la aplicación y las pruebas.
+  static DatabaseHelper instance = DatabaseHelper._init();
+
+  /// Referencia a la base de datos.
+  static Database? _database;
+
+  /// Constructor privado utilizado por el Singleton.
+  DatabaseHelper._init();
+
+  /// Constructor utilizado para configurar pruebas.
+  ///
+  /// Sustituye temporalmente la instancia principal por una
+  /// que utiliza la base de datos proporcionada.
+  DatabaseHelper.forTesting(Database database) {
+    _database = database;
+
+    // Permite que los servicios y repositorios utilicen esta instancia.
+    instance = this;
+  }
+
+  /// Inicializa el esquema y las categorías en la base temporal.
+  Future<void> initializeForTesting() async {
+    // Obtiene la conexión temporal de SQLite.
+    final db = await database;
+
+    // Crea todas las tablas de la aplicación.
+    await _createSchema(db);
+
+    // Inserta las categorías predeterminadas.
+    await _seedSystemCategories(db);
+  }
+
+  /// Obtiene la instancia de la base de datos.
+  ///
+  /// Si aún no existe, la crea automáticamente.
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+
+    _database = await _initDB(DatabaseConstants.databaseName);
+
+    return _database!;
+  }
+
+  /// Inicializa la base de datos.
+  ///
+  /// Crea las tablas necesarias y aplica las migraciones
+  /// cuando cambia la versión del esquema.
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return openDatabase(
+      path,
+      version: DatabaseConstants.databaseVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+      onCreate: (db, version) async {
+        await _createSchema(db);
+        await _seedSystemCategories(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await _createSchema(db);
+        await _migrateExistingColumns(db);
+        await _seedSystemCategories(db);
+      },
+    );
+  }
+
+  Future<void> _createSchema(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS usuario (
+        id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        correo TEXT NOT NULL UNIQUE,
+        contrasena TEXT NOT NULL,
+        idioma TEXT DEFAULT 'es',
+        tema TEXT DEFAULT 'claro',
+        tamano_texto TEXT DEFAULT 'normal',
+        alto_contraste INTEGER DEFAULT 0,
+        ingreso_fijo_mensual REAL DEFAULT 0,
+        fecha_registro TEXT NOT NULL,
+        ultimo_acceso TEXT,
+        notificaciones_activas INTEGER DEFAULT 1
+      )
+    ''');
+
+    // Crea el historial del ingreso fijo mensual.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de categorías.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS categoria (
+        id_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        es_sistema INTEGER NOT NULL DEFAULT 0,
+        id_usuario INTEGER,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de ingresos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso (
+        id_ingreso INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        fuente TEXT,
+        descripcion TEXT,
+        origen TEXT DEFAULT 'Manual',
+        tipo TEXT DEFAULT 'ADICIONAL',
+        id_categoria INTEGER,
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE SET NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de gastos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS gasto (
+        id_gasto INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        descripcion TEXT,
+        origen TEXT NOT NULL DEFAULT 'MANUAL',
+        id_usuario INTEGER NOT NULL,
+        id_categoria INTEGER NOT NULL,
+        id_pago INTEGER,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria),
+        FOREIGN KEY (id_pago)
+          REFERENCES pago(id_pago)
+          ON DELETE SET NULL
+      )
+    ''');
+
+    // Crea la tabla de metas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS meta (
+        id_meta INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        monto_objetivo REAL NOT NULL CHECK (monto_objetivo > 0),
+        monto_acumulado REAL NOT NULL DEFAULT 0 CHECK (monto_acumulado >= 0),
+        fecha_limite TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'Activa',
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        prioridad TEXT,
+        recordatorio INTEGER DEFAULT 0,
+        categoria TEXT,
+        fecha_cumplimiento TEXT,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de aportes a metas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS aporte (
+        id_aporte INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha TEXT NOT NULL,
+        origen TEXT NOT NULL DEFAULT 'Manual',
+        id_meta INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_meta)
+          REFERENCES meta(id_meta)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de deudas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS deuda (
+        id_deuda INTEGER PRIMARY KEY AUTOINCREMENT,
+        acreedor TEXT NOT NULL,
+        monto_total REAL NOT NULL CHECK (monto_total > 0),
+        saldo_pendiente REAL NOT NULL CHECK (saldo_pendiente >= 0),
+        saldo_capital REAL NOT NULL DEFAULT 0 CHECK (saldo_capital >= 0),
+
+        -- Capital existente al inicio del período mensual actual.
+        capital_inicio_periodo REAL NOT NULL DEFAULT 0
+          CHECK (capital_inicio_periodo >= 0),
+
+        intereses_pendientes REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pendientes >= 0),
+        fecha_ultimo_calculo_intereses TEXT,
+        tasa_interes_ea REAL NOT NULL DEFAULT 0
+          CHECK (tasa_interes_ea >= 0),
+        tasa_interes REAL DEFAULT 0,
+        cuota_mensual REAL,
+        plazo INTEGER,
+        fecha_inicio TEXT NOT NULL,
+        recordatorio INTEGER DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Activa',
+        id_usuario INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de pagos de deudas.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pago (
+        id_pago INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto REAL NOT NULL CHECK (monto > 0),
+        abono_capital REAL NOT NULL DEFAULT 0 CHECK (abono_capital >= 0),
+        intereses_pagados REAL NOT NULL DEFAULT 0
+          CHECK (intereses_pagados >= 0),
+        tipo_pago TEXT NOT NULL DEFAULT 'ORDINARIO',
+        opcion_abono TEXT,
+        fecha TEXT NOT NULL,
+        metodo_pago TEXT,
+        descripcion TEXT,
+        id_deuda INTEGER NOT NULL,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_deuda)
+          REFERENCES deuda(id_deuda)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de obligaciones recurrentes.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS obligacion (
+        id_obligacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_grupo_recurrencia INTEGER,
+        recurrencia_activa INTEGER DEFAULT 1,
+        nombre TEXT NOT NULL,
+        monto REAL NOT NULL CHECK (monto > 0),
+        fecha_vencimiento TEXT NOT NULL,
+        recordatorio INTEGER DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'Pendiente',
+        es_recurrente INTEGER DEFAULT 0,
+        dia_vencimiento INTEGER,
+        id_usuario INTEGER NOT NULL,
+        id_gasto_generado INTEGER,
+        fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        frecuencia TEXT,
+        categoria TEXT,
+        id_categoria INTEGER,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_gasto_generado)
+          REFERENCES gasto(id_gasto)
+          ON DELETE SET NULL,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE RESTRICT
+      )
+    ''');
+
+    // Crea la tabla de presupuestos.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS presupuesto (
+        id_presupuesto INTEGER PRIMARY KEY AUTOINCREMENT,
+        monto_limite REAL NOT NULL CHECK (monto_limite >= 0),
+        fecha_inicio TEXT NOT NULL,
+        fecha_fin TEXT NOT NULL,
+        id_usuario INTEGER NOT NULL,
+        id_categoria INTEGER NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE,
+        FOREIGN KEY (id_categoria)
+          REFERENCES categoria(id_categoria)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea la tabla de notificaciones.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS notificacion (
+        id_notificacion INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL,
+        mensaje TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        leida INTEGER NOT NULL DEFAULT 0,
+        id_usuario INTEGER NOT NULL,
+        fecha_lectura TEXT,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    // Crea índices para mejorar el rendimiento de las consultas.
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_usuario ON ingreso(id_usuario)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_gasto_usuario ON gasto(id_usuario)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_categoria_tipo ON categoria(tipo)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
+  }
+
+  /// Aplica migraciones para agregar nuevas columnas
+  /// a tablas existentes sin perder datos.
+  Future<void> _migrateExistingColumns(Database db) async {
+    await _addColumnIfMissing(db, 'usuario', 'idioma', "TEXT DEFAULT 'es'");
+    await _addColumnIfMissing(db, 'usuario', 'tema', "TEXT DEFAULT 'claro'");
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'tamano_texto',
+      "TEXT DEFAULT 'normal'",
+    );
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'alto_contraste',
+      'INTEGER DEFAULT 0',
+    );
+    await _addColumnIfMissing(db, 'usuario', 'ultimo_acceso', 'TEXT');
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'notificaciones_activas',
+      'INTEGER DEFAULT 1',
+    );
+
+    await _addColumnIfMissing(db, 'ingreso', 'fuente', 'TEXT');
+    await _addColumnIfMissing(db, 'ingreso', 'origen', "TEXT DEFAULT 'Manual'");
+    await _addColumnIfMissing(db, 'ingreso', 'fecha_registro', 'TEXT');
+
+    await db.execute(
+      "UPDATE ingreso SET fecha_registro = COALESCE(fecha_registro, datetime('now'))",
+    );
+
+    await _addColumnIfMissing(db, 'obligacion', 'id_categoria', 'INTEGER');
+
+    // Agrega el identificador para agrupar obligaciones recurrentes.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'id_grupo_recurrencia',
+      'INTEGER',
+    );
+
+    // Indica si una obligación recurrente continúa activa.
+    await _addColumnIfMissing(
+      db,
+      'obligacion',
+      'recurrencia_activa',
+      'INTEGER DEFAULT 1',
+    );
+
+    await db.execute('''
+      UPDATE obligacion
+      SET id_categoria = (
+        SELECT id_categoria
+        FROM categoria
+        WHERE categoria.nombre = obligacion.categoria
+          AND categoria.tipo = 'GASTO'
+          AND categoria.id_usuario IS NULL
+        LIMIT 1
+      )
+      WHERE id_categoria IS NULL
+        AND categoria IS NOT NULL
+    ''');
+
+    // Crea el historial del ingreso fijo para bases existentes.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ingreso_fijo_historico (
+        id_ingreso_fijo INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_usuario INTEGER NOT NULL,
+        monto REAL NOT NULL CHECK (monto >= 0),
+        fecha_inicio TEXT NOT NULL,
+        FOREIGN KEY (id_usuario)
+          REFERENCES usuario(id_usuario)
+          ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_ingreso_fijo_usuario '
+      'ON ingreso_fijo_historico(id_usuario)',
+    );
+
+    // Agrega los campos financieros de las deudas.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'saldo_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'tasa_interes_ea',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(db, 'deuda', 'cuota_mensual', 'REAL');
+
+    // Inicializa el capital pendiente con el saldo anterior.
+    await db.execute('''
+      UPDATE deuda
+      SET saldo_capital = saldo_pendiente
+      WHERE saldo_capital = 0
+        AND saldo_pendiente > 0
+    ''');
+
+    // Agrega los campos financieros de los pagos.
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'abono_capital',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'intereses_pagados',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'pago',
+      'tipo_pago',
+      "TEXT NOT NULL DEFAULT 'ORDINARIO'",
+    );
+
+    await _addColumnIfMissing(db, 'pago', 'opcion_abono', 'TEXT');
+
+    // Agrega los intereses pendientes a las deudas existentes.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'intereses_pendientes',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Agrega la fecha del último cálculo de intereses.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'fecha_ultimo_calculo_intereses',
+      'TEXT',
+    );
+
+    // Agrega el capital de referencia del período mensual actual.
+    await _addColumnIfMissing(
+      db,
+      'deuda',
+      'capital_inicio_periodo',
+      'REAL NOT NULL DEFAULT 0',
+    );
+
+    // Inicializa el capital de referencia de las deudas existentes.
+    // Solo modifica registros que aún no tienen ese valor.
+    await db.execute('''
+      UPDATE deuda
+      SET capital_inicio_periodo = saldo_capital
+      WHERE capital_inicio_periodo = 0
+        AND saldo_capital > 0
+    ''');
+  }
+
+  /// Verifica si una columna existe en una tabla y la agrega si falta.
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String column,
+    String definition,
+  ) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = columns.any((row) => row['name'] == column);
+
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+    }
+  }
+
+  /// Inserta categorías predeterminadas si todavía no existen.
+  Future<void> _seedSystemCategories(Database db) async {
+    const categories = [
+      ('Salario', 'INGRESO'),
+      ('Negocio', 'INGRESO'),
+      ('Freelance', 'INGRESO'),
+      ('Otros', 'INGRESO'),
+      ('Alimentacion', 'GASTO'),
+      ('Transporte', 'GASTO'),
+      ('Salud', 'GASTO'),
+      ('Educacion', 'GASTO'),
+      ('Vivienda', 'GASTO'),
+      ('Entretenimiento', 'GASTO'),
+      ('Servicios publicos', 'GASTO'),
+      ('Internet', 'GASTO'),
+      ('Telefonia movil', 'GASTO'),
+      ('Arriendo', 'GASTO'),
+      ('Administracion', 'GASTO'),
+      ('Tarjeta de credito', 'GASTO'),
+      ('Credito de vivienda', 'GASTO'),
+      ('Credito de vehiculo', 'GASTO'),
+      ('Suscripciones', 'GASTO'),
+      ('Pago de deuda', 'GASTO'),
+      ('Otros', 'GASTO'),
+      ('Fondo de emergencia', 'META'),
+      ('Viaje', 'META'),
+      ('Vivienda', 'META'),
+      ('Vehiculo', 'META'),
+      ('Educacion', 'META'),
+      ('Tecnologia', 'META'),
+      ('Otros', 'META'),
+      ('Servicios publicos', 'OBLIGACION'),
+      ('Internet', 'OBLIGACION'),
+      ('Telefonia movil', 'OBLIGACION'),
+      ('Arriendo', 'OBLIGACION'),
+      ('Administracion', 'OBLIGACION'),
+      ('Tarjeta de credito', 'OBLIGACION'),
+      ('Credito de vivienda', 'OBLIGACION'),
+      ('Credito de vehiculo', 'OBLIGACION'),
+      ('Suscripciones', 'OBLIGACION'),
+      ('Otros', 'OBLIGACION'),
+    ];
+
+    // Verifica e inserta cada categoría predeterminada.
+    for (final category in categories) {
+      final exists = await db.query(
+        'categoria',
+        where: 'nombre = ? AND tipo = ? AND id_usuario IS NULL',
+        whereArgs: [category.$1, category.$2],
+        limit: 1,
+      );
+
+      if (exists.isEmpty) {
+        await db.insert('categoria', {
+          'nombre': category.$1,
+          'tipo': category.$2,
+          'es_sistema': 1,
+        });
+      }
+    }
+  }
+
+  /// Cierra la conexión con la base de datos.
+  Future<void> close() async {
+    final db = await instance.database;
+    await db.close();
+    _database = null;
+  }
+
+  /// Ejecuta varias operaciones dentro de una transacción SQLite.
+  ///
+  /// Si alguna operación falla, SQLite revierte todos los cambios.
+  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
+    final Database db = await database;
+
+    return await db.transaction(action);
+  }
+}
+
+
+========== lib/shared/constants/database_constants.dart ==========
+
+/// Constantes relacionadas con la base de datos.
+///
+/// Centraliza el nombre y la versión de la base de datos
+/// para evitar valores repetidos en el proyecto.
+class DatabaseConstants {
+  DatabaseConstants._();
+
+  /// Nombre del archivo de la base de datos.
+  static const String databaseName = 'finanzas_app.db';
+
+  /// Versión actual de la base de datos.
+  static const int databaseVersion = 13;
+}
