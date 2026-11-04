@@ -17,6 +17,8 @@ import 'providers/goal_provider.dart';
 import 'providers/contribution_provider.dart';
 import 'providers/obligation_provider.dart';
 import 'providers/debt_provider.dart';
+import 'providers/report_provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -26,21 +28,22 @@ import 'shared/themes/app_theme.dart';
 
 /// Punto de entrada principal de la aplicación.
 Future<void> main() async {
-  // Inicializa Flutter antes de configurar la orientación de pantalla.
+  // Inicializa Flutter antes de configurar la aplicación.
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializa los datos de fechas en español colombiano.
+  await initializeDateFormatting('es_CO');
+
   // La aplicación funcionará únicamente en orientación vertical.
-  // Se evita que la interfaz cambie a modo horizontal al girar el teléfono.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Configuración necesaria para Windows.
   if (Platform.isWindows) {
     sqfliteFfiInit();
-
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Ejecutar la aplicación con los proveedores.
+  // Ejecuta la aplicación con los proveedores.
   runApp(
     MultiProvider(
       providers: [
@@ -52,6 +55,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ContributionProvider()),
         ChangeNotifierProvider(create: (_) => ObligationProvider()),
         ChangeNotifierProvider(create: (_) => DebtProvider()),
+        ChangeNotifierProvider(create: (_) => ReportProvider()),
       ],
       child: const MyApp(),
     ),

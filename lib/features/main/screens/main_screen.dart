@@ -15,6 +15,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/expense_provider.dart';
 import '../../../providers/income_provider.dart';
 import '../../../providers/budget_provider.dart';
+import '../../reportes/screens/reports_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -113,6 +114,9 @@ class _MainScreenState extends State<MainScreen> {
   /// se está mostrando Deudas.
   bool _showDebts = false;
 
+  /// Indica si se está mostrando la pantalla de Reportes.
+  bool _showReports = false;
+
   /// Permite reconstruir DebtsScreen cada vez
   /// que se vuelve a abrir.
   Key _debtsKey = UniqueKey();
@@ -159,6 +163,7 @@ class _MainScreenState extends State<MainScreen> {
         screen: MoreScreen(
           onObligationsPressed: _openObligations,
           onDebtsPressed: _openDebts,
+          onReportsPressed: _openReports,
         ),
         title: 'Más',
       ),
@@ -188,9 +193,15 @@ class _MainScreenState extends State<MainScreen> {
                   // Abre el mismo menú lateral utilizado por los demás módulos.
                   onAvatarPressed: _openDrawer,
                 )
+              : _showReports
+              ? ReportsScreen(
+                  // Abre el mismo menú lateral utilizado por los demás módulos.
+                  onAvatarPressed: _openDrawer,
+                )
               : MoreScreen(
                   onObligationsPressed: _openObligations,
                   onDebtsPressed: _openDebts,
+                  onReportsPressed: _openReports,
                 ),
         ],
       ),
@@ -206,6 +217,7 @@ class _MainScreenState extends State<MainScreen> {
             if (index == 4) {
               _showObligations = false;
               _showDebts = false;
+              _showReports = false;
             }
           });
 
@@ -258,6 +270,8 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _obligationsKey = UniqueKey();
       _showObligations = true;
+      _showDebts = false;
+      _showReports = false;
     });
   }
 
@@ -266,6 +280,17 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _debtsKey = UniqueKey();
       _showDebts = true;
+      _showObligations = false;
+      _showReports = false;
+    });
+  }
+
+  /// Abre la pantalla de Reportes.
+  void _openReports() {
+    setState(() {
+      _showObligations = false;
+      _showDebts = false;
+      _showReports = true;
     });
   }
 }

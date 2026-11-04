@@ -43,6 +43,10 @@ dependencies:
   intl: ^0.20.2
   iconsax_flutter: ^1.0.1
 
+    # Generación y visualización de documentos PDF.
+  pdf: ^3.13.1
+  printing: ^5.15.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

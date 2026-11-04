@@ -11,7 +11,15 @@ class MoreScreen extends StatelessWidget {
   /// Acción para abrir la pantalla de Deudas.
   final VoidCallback? onDebtsPressed;
 
-  const MoreScreen({super.key, this.onObligationsPressed, this.onDebtsPressed});
+  /// Acción para abrir la pantalla de Reportes.
+  final VoidCallback? onReportsPressed;
+
+  const MoreScreen({
+    super.key,
+    this.onObligationsPressed,
+    this.onDebtsPressed,
+    this.onReportsPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +68,7 @@ class MoreScreen extends StatelessWidget {
                         title: 'Reportes',
                         description:
                             'Visualiza reportes y análisis\nde tus finanzas.',
+                        onTap: onReportsPressed,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
