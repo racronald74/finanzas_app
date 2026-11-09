@@ -11,8 +11,11 @@ class NotificationModel {
   // Identificador de la meta, deuda u obligación que origina la notificación.
   final int? idEventoOrigen;
 
-  // Fecha del evento que origina la notificación, por ejemplo, el vencimiento.
+  // Fecha del evento que origina la notificación.
   final String? fechaEvento;
+
+  // Indica si el usuario eliminó manualmente la notificación.
+  final bool eliminada;
 
   NotificationModel({
     this.idNotificacion,
@@ -24,6 +27,7 @@ class NotificationModel {
     this.fechaLectura,
     this.idEventoOrigen,
     this.fechaEvento,
+    this.eliminada = false,
   });
 
   /// Convierte la notificación en un mapa para SQLite.
@@ -38,6 +42,7 @@ class NotificationModel {
       'fecha_lectura': fechaLectura,
       'id_evento_origen': idEventoOrigen,
       'fecha_evento': fechaEvento,
+      'eliminada': eliminada ? 1 : 0,
     };
   }
 
@@ -53,6 +58,7 @@ class NotificationModel {
       fechaLectura: map['fecha_lectura'] as String?,
       idEventoOrigen: map['id_evento_origen'] as int?,
       fechaEvento: map['fecha_evento'] as String?,
+      eliminada: map['eliminada'] == 1 || map['eliminada'] == true,
     );
   }
 
@@ -67,6 +73,7 @@ class NotificationModel {
     String? fechaLectura,
     int? idEventoOrigen,
     String? fechaEvento,
+    bool? eliminada,
   }) {
     return NotificationModel(
       idNotificacion: idNotificacion ?? this.idNotificacion,
@@ -78,6 +85,7 @@ class NotificationModel {
       fechaLectura: fechaLectura ?? this.fechaLectura,
       idEventoOrigen: idEventoOrigen ?? this.idEventoOrigen,
       fechaEvento: fechaEvento ?? this.fechaEvento,
+      eliminada: eliminada ?? this.eliminada,
     );
   }
 }

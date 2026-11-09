@@ -37,6 +37,14 @@ class DatabaseHelper {
     // Crea todas las tablas de la aplicación.
     await _createSchema(db);
 
+    // Garantiza que la columna exista también en bases de datos de prueba.
+    await _addColumnIfMissing(
+      db,
+      'notificacion',
+      'eliminada',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
+
     // Inserta las categorías predeterminadas.
     await _seedSystemCategories(db);
   }
@@ -322,6 +330,7 @@ class DatabaseHelper {
         fecha_lectura TEXT,
         id_evento_origen INTEGER,
         fecha_evento TEXT,
+        eliminada INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (id_usuario)
           REFERENCES usuario(id_usuario)
           ON DELETE CASCADE
@@ -400,6 +409,14 @@ class DatabaseHelper {
 
     // Agrega la fecha del evento que originó la notificación.
     await _addColumnIfMissing(db, 'notificacion', 'fecha_evento', 'TEXT');
+
+    // Identifica las notificaciones eliminadas manualmente.
+    await _addColumnIfMissing(
+      db,
+      'notificacion',
+      'eliminada',
+      'INTEGER NOT NULL DEFAULT 0',
+    );
 
     // Conserva un único registro por usuario, evento y fecha del recordatorio.
     await _eliminarDuplicadosNotificaciones(db);

@@ -169,7 +169,7 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
-  /// Carga las metas registradas de un usuario.
+  /// Carga las metas y sincroniza sus recordatorios.
   Future<void> loadGoals(int idUsuario) async {
     _isLoading = true;
     _errorMessage = null;
@@ -177,7 +177,11 @@ class GoalProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Recupera las metas registradas del usuario.
       _goals = await _goalService.listarMetas(idUsuario);
+
+      // Sincroniza las alarmas y recupera registros internos pendientes.
+      await _goalService.sincronizarRecordatorios(idUsuario);
     } catch (error) {
       _errorMessage = error.toString();
     } finally {
@@ -187,7 +191,7 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
-  /// Carga únicamente las metas activas.
+  /// Carga las metas activas y sincroniza sus recordatorios.
   Future<void> loadActiveGoals(int idUsuario) async {
     _isLoading = true;
     _errorMessage = null;
@@ -195,7 +199,11 @@ class GoalProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Recupera las metas activas.
       _goals = await _goalService.listarMetasActivas(idUsuario);
+
+      // Sincroniza los recordatorios de todas las metas del usuario.
+      await _goalService.sincronizarRecordatorios(idUsuario);
     } catch (error) {
       _errorMessage = error.toString();
     } finally {

@@ -5,11 +5,17 @@ import '../data/services/notification_service.dart';
 import '../data/models/user_model.dart';
 import '../data/repositories/user_repository.dart';
 
+// Servicio encargado de sincronizar los recordatorios de metas.
+import '../data/services/goal_service.dart';
+
 /// Provider encargado de administrar el estado
 /// del módulo de Notificaciones.
 class NotificationProvider extends ChangeNotifier {
   /// Servicio encargado de la lógica de notificaciones.
   final NotificationService _notificationService = NotificationService();
+
+  // Servicio encargado de administrar los recordatorios de metas.
+  final GoalService _goalService = GoalService();
 
   /// Repositorio para consultar y actualizar las preferencias del usuario.
   final UserRepository _userRepository = UserRepository();
@@ -97,13 +103,17 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
-  /// Carga las notificaciones del usuario.
+  /// Carga las notificaciones del usuario y sincroniza los recordatorios de metas.
   Future<void> loadNotifications(int idUsuario) async {
     _isLoading = true;
     _errorMessage = '';
     notifyListeners();
 
     try {
+      // Sincroniza exclusivamente los recordatorios de metas.
+      await _goalService.sincronizarRecordatorios(idUsuario);
+
+      // Consulta las notificaciones después de completar la sincronización.
       _notifications = await _notificationService.listarNotificaciones(
         idUsuario,
       );

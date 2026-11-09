@@ -58,7 +58,7 @@ class NotificationRepository {
 
     final result = await db.query(
       'notificacion',
-      where: 'id_usuario = ?',
+      where: 'id_usuario = ? AND eliminada = 0',
       whereArgs: [idUsuario],
       orderBy: 'fecha DESC, id_notificacion DESC',
     );
@@ -72,7 +72,7 @@ class NotificationRepository {
 
     final result = await db.query(
       'notificacion',
-      where: 'id_usuario = ? AND leida = 0',
+      where: 'id_usuario = ? AND leida = 0 AND eliminada = 0',
       whereArgs: [idUsuario],
       orderBy: 'fecha DESC, id_notificacion DESC',
     );
@@ -86,7 +86,7 @@ class NotificationRepository {
 
     final result = await db.query(
       'notificacion',
-      where: 'id_usuario = ? AND leida = 1',
+      where: 'id_usuario = ? AND leida = 1 AND eliminada = 0',
       whereArgs: [idUsuario],
       orderBy: 'fecha DESC, id_notificacion DESC',
     );
@@ -122,12 +122,37 @@ class NotificationRepository {
   }
 
   /// Elimina una notificación de un usuario.
+  /// Las notificaciones de metas se conservan marcadas como eliminadas.
   Future<int> deleteNotification({
     required int idNotificacion,
     required int idUsuario,
   }) async {
     final Database db = await _databaseHelper.database;
 
+    // Consulta el tipo de notificación antes de eliminarla.
+    final resultado = await db.query(
+      'notificacion',
+      columns: ['tipo'],
+      where: 'id_notificacion = ? AND id_usuario = ?',
+      whereArgs: [idNotificacion, idUsuario],
+      limit: 1,
+    );
+
+    if (resultado.isEmpty) return 0;
+
+    final tipo = resultado.first['tipo'];
+
+    // Conserva el registro de las metas para evitar que se regenere.
+    if (tipo == 'meta') {
+      return await db.update(
+        'notificacion',
+        {'eliminada': 1},
+        where: 'id_notificacion = ? AND id_usuario = ?',
+        whereArgs: [idNotificacion, idUsuario],
+      );
+    }
+
+    // Mantiene la eliminación física para los demás tipos.
     return await db.delete(
       'notificacion',
       where: 'id_notificacion = ? AND id_usuario = ?',
@@ -135,15 +160,29 @@ class NotificationRepository {
     );
   }
 
-  /// Elimina todas las notificaciones de un usuario.
+  /// Elimina todas las notificaciones del historial.
+  /// Las de metas se marcan como eliminadas para conservar su registro.
   Future<int> deleteAllNotifications(int idUsuario) async {
     final Database db = await _databaseHelper.database;
 
-    return await db.delete(
-      'notificacion',
-      where: 'id_usuario = ?',
-      whereArgs: [idUsuario],
-    );
+    return await db.transaction((txn) async {
+      // Marca las notificaciones de metas como eliminadas.
+      final metasEliminadas = await txn.update(
+        'notificacion',
+        {'eliminada': 1},
+        where: "id_usuario = ? AND tipo = 'meta' AND eliminada = 0",
+        whereArgs: [idUsuario],
+      );
+
+      // Elimina físicamente las notificaciones de otros tipos.
+      await txn.delete(
+        'notificacion',
+        where: "id_usuario = ? AND tipo != 'meta'",
+        whereArgs: [idUsuario],
+      );
+
+      return metasEliminadas;
+    });
   }
 
   /// Comprueba si ya existe una notificación para el mismo evento y fecha.
@@ -314,6 +353,15 @@ class NotificationRepository {
         final id = await txn.insert('notificacion', notification.toMap());
 
         return NotificationSaveResult(idNotificacion: id, idsDuplicados: []);
+      }
+
+      // No reactiva una notificación de meta eliminada por el usuario.
+      if (notification.tipo == 'meta' &&
+          existentes.any((registro) => registro['eliminada'] == 1)) {
+        return NotificationSaveResult(
+          idNotificacion: existentes.first['id_notificacion'] as int,
+          idsDuplicados: [],
+        );
       }
 
       // Conserva el registro más antiguo.

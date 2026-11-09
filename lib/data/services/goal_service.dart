@@ -158,25 +158,23 @@ class GoalService {
 
   /// Obtiene todas las metas de un usuario.
   Future<List<GoalModel>> listarMetas(int idUsuario) async {
-    // Recupera todas las metas registradas del usuario.
-    final List<GoalModel> metas = await _repository.listarMetas(idUsuario);
-
-    // Sincroniza los recordatorios de todas las metas.
-    await _generateUpcomingGoalNotifications(metas);
-
-    return metas;
+    // Recupera las metas registradas sin duplicar la sincronización.
+    return await _repository.listarMetas(idUsuario);
   }
 
   /// Obtiene las metas activas.
   Future<List<GoalModel>> listarMetasActivas(int idUsuario) async {
-    final List<GoalModel> metas = await _repository.listarMetasActivas(
-      idUsuario,
-    );
+    // Recupera únicamente las metas activas del usuario.
+    return await _repository.listarMetasActivas(idUsuario);
+  }
 
-    // Comprueba si existen metas activas que requieren un recordatorio.
+  /// Sincroniza los recordatorios de todas las metas del usuario.
+  Future<void> sincronizarRecordatorios(int idUsuario) async {
+    // Consulta directamente las metas registradas en SQLite.
+    final List<GoalModel> metas = await _repository.listarMetas(idUsuario);
+
+    // Programa las alarmas y recupera los registros internos pendientes.
     await _generateUpcomingGoalNotifications(metas);
-
-    return metas;
   }
 
   /// Obtiene las metas completadas.
@@ -192,37 +190,16 @@ class GoalService {
   }
 
   /// Programa únicamente el próximo recordatorio mensual de una meta.
-  Future<void> _programarRecordatoriosMeta(
-    GoalModel meta, {
-    bool limpiarExistentes = false,
-  }) async {
+  Future<void> _programarRecordatoriosMeta(GoalModel meta) async {
     // No se pueden programar recordatorios sin identificador.
     if (meta.id == null) return;
 
-    // Cancela la alarma local anterior cuando se sincroniza la meta.
-    if (limpiarExistentes) {
-      await _notificationService.cancelarRecordatorioMeta(meta.id!);
-
-      // Elimina también los registros internos asociados a la meta.
-      await _notificationService.eliminarNotificacionesPorEvento(
-        idUsuario: meta.userId,
-        tipo: 'meta',
-        idEventoOrigen: meta.id!,
-      );
-    }
-
-    // Las metas que no requieren recordatorios cancelan su alarma.
+    // Cancela únicamente la alarma Android cuando la meta no requiere recordatorios.
     if (!meta.reminderEnabled ||
         meta.status != 'Activa' ||
         meta.createdAt == null ||
         meta.targetAmount <= meta.savedAmount) {
       await _notificationService.cancelarRecordatorioMeta(meta.id!);
-
-      await _notificationService.eliminarNotificacionesPorEvento(
-        idUsuario: meta.userId,
-        tipo: 'meta',
-        idEventoOrigen: meta.id!,
-      );
       return;
     }
 
@@ -242,66 +219,114 @@ class GoalService {
       meta.deadline.day,
     );
 
-    // Cancela recordatorios de metas vencidas.
+    // Cancela únicamente la alarma Android de las metas vencidas.
     if (fechaLimite.isBefore(fechaHoy) || !fechaLimite.isAfter(fechaInicio)) {
       await _notificationService.cancelarRecordatorioMeta(meta.id!);
-
-      await _notificationService.eliminarNotificacionesPorEvento(
-        idUsuario: meta.userId,
-        tipo: 'meta',
-        idEventoOrigen: meta.id!,
-      );
       return;
     }
 
     // Calcula el dinero que todavía falta para alcanzar el objetivo.
     final double montoRestante = meta.targetAmount - meta.savedAmount;
 
-    // Busca el próximo aniversario mensual pendiente.
+    // Busca los aniversarios mensuales hasta encontrar el próximo recordatorio.
     int mes = 1;
-    DateTime aniversario;
+    DateTime? proximoAniversario;
 
     while (true) {
-      aniversario = _monthlyAnniversary(fechaInicio, mes);
+      // Calcula el aniversario conservando la fecha original de creación.
+      final DateTime aniversario = _monthlyAnniversary(fechaInicio, mes);
 
-      // No se consideran eventos posteriores a la fecha límite.
+      // No se consideran aportes posteriores a la fecha límite.
       if (aniversario.isAfter(fechaLimite)) {
-        await _notificationService.cancelarRecordatorioMeta(meta.id!);
-        return;
+        break;
       }
 
+      // El recordatorio corresponde al día anterior al aporte.
       final DateTime fechaRecordatorio = aniversario.subtract(
         const Duration(days: 1),
       );
 
-      // Busca un recordatorio cuya fecha todavía no haya pasado.
-      if (fechaRecordatorio.isAfter(fechaInicio) &&
-          !fechaRecordatorio.isBefore(fechaHoy)) {
+      // Evita generar recordatorios anteriores o iguales a la fecha de inicio.
+      if (!fechaRecordatorio.isAfter(fechaInicio)) {
+        mes++;
+        continue;
+      }
+
+      // Construye el mensaje correspondiente al aniversario.
+      final String mensaje =
+          'Recuerda que el ${DateFormat('dd/MM/yyyy').format(aniversario)} '
+          'corresponde realizar el aporte mensual de tu meta '
+          '${meta.name}. Aún necesitas ahorrar '
+          '\$${montoRestante.toStringAsFixed(2)} para alcanzar '
+          'tu objetivo.';
+
+      // Comprueba si el recordatorio corresponde al día actual.
+      final bool recordatorioEsHoy = fechaRecordatorio.isAtSameMomentAs(
+        fechaHoy,
+      );
+
+      // Genera el registro interno cuando el recordatorio ya llegó,
+      // incluyendo los que corresponden al día actual.
+      if (!fechaRecordatorio.isAfter(fechaHoy)) {
+        // guardarNotificacionUnica evita duplicados y conserva
+        // el estado de lectura de las notificaciones existentes.
+        await _notificationService.generarNotificacion(
+          idUsuario: meta.userId,
+          tipo: 'meta',
+          mensaje: mensaje,
+          idEventoOrigen: meta.id!,
+          fechaEvento: aniversario.toIso8601String(),
+          fechaProgramada: fechaRecordatorio,
+          mostrarEnAndroid: false,
+        );
+      }
+
+      // Determina si todavía es posible programar la alarma
+      // de las 9:00 a. m. del día actual.
+      final DateTime horaRecordatorio = DateTime(
+        fechaRecordatorio.year,
+        fechaRecordatorio.month,
+        fechaRecordatorio.day,
+        9,
+      );
+
+      final bool alarmaDeHoyPendiente =
+          recordatorioEsHoy && DateTime.now().isBefore(horaRecordatorio);
+
+      // Conserva el aniversario actual si todavía no llegó
+      // la hora de la alarma, o si corresponde a una fecha futura.
+      if (fechaRecordatorio.isAfter(fechaHoy) || alarmaDeHoyPendiente) {
+        proximoAniversario = aniversario;
         break;
       }
 
+      // Continúa buscando el siguiente recordatorio mensual.
       mes++;
     }
 
-    // Calcula la fecha del recordatorio y su mensaje.
-    final DateTime fechaRecordatorio = aniversario.subtract(
-      const Duration(days: 1),
-    );
+    // Programa únicamente el próximo recordatorio mensual en Android.
+    if (proximoAniversario != null) {
+      final DateTime fechaRecordatorio = proximoAniversario.subtract(
+        const Duration(days: 1),
+      );
 
-    final String mensaje =
-        'Recuerda que el ${DateFormat('dd/MM/yyyy').format(aniversario)} '
-        'corresponde realizar el aporte mensual de tu meta '
-        '${meta.name}. Aún necesitas ahorrar '
-        '\$${montoRestante.toStringAsFixed(2)} para alcanzar '
-        'tu objetivo.';
+      final String mensaje =
+          'Recuerda que el ${DateFormat('dd/MM/yyyy').format(proximoAniversario)} '
+          'corresponde realizar el aporte mensual de tu meta '
+          '${meta.name}. Aún necesitas ahorrar '
+          '\$${montoRestante.toStringAsFixed(2)} para alcanzar '
+          'tu objetivo.';
 
-    // Programa únicamente la alarma local, sin crear registros en SQLite.
-    await _notificationService.programarRecordatorioMeta(
-      idUsuario: meta.userId,
-      idMeta: meta.id!,
-      mensaje: mensaje,
-      fechaProgramada: fechaRecordatorio,
-    );
+      await _notificationService.programarRecordatorioMeta(
+        idUsuario: meta.userId,
+        idMeta: meta.id!,
+        mensaje: mensaje,
+        fechaProgramada: fechaRecordatorio,
+      );
+    } else {
+      // Cancela la alarma si ya no existen aniversarios pendientes.
+      await _notificationService.cancelarRecordatorioMeta(meta.id!);
+    }
   }
 
   /// Calcula un aniversario mensual desde la fecha original.
@@ -329,13 +354,13 @@ class GoalService {
     return DateTime(mesDestino.year, mesDestino.month, dia);
   }
 
-  /// Sincroniza el recordatorio y comprueba las alarmas pendientes.
+  /// Sincroniza el recordatorio sin eliminar el historial interno.
   Future<void> _syncGoalNotification(
     GoalModel meta, {
     DateTime? fechaAnterior,
   }) async {
-    // Cancela la alarma anterior y sincroniza el estado actual de la meta.
-    await _programarRecordatoriosMeta(meta, limpiarExistentes: true);
+    // Actualiza la alarma Android según los datos actuales de la meta.
+    await _programarRecordatoriosMeta(meta);
   }
 
   /// Valida los datos básicos de una meta.
