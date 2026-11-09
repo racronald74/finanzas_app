@@ -529,15 +529,9 @@ class ObligationService {
     });
 
     // Cancela la alarma local independiente de la obligación.
+    // El historial interno se conserva aunque la obligación esté pagada.
     await _notificationService.cancelarRecordatorioObligacion(
       obligation.idObligacion!,
-    );
-
-    // Cancela y elimina la notificación interna después de confirmar la transacción.
-    await _notificationService.eliminarNotificacionesPorEvento(
-      idUsuario: obligation.idUsuario,
-      tipo: 'obligacion',
-      idEventoOrigen: obligation.idObligacion!,
     );
   }
 

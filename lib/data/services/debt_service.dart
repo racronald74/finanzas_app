@@ -89,15 +89,12 @@ class DebtService {
           'Tu saldo pendiente actual es '
           '\$${deudaCreada.saldoPendiente.toStringAsFixed(2)}.';
 
-      // Calcula el recordatorio para un día antes del aniversario.
-      final fechaRecordatorio = anniversary.subtract(const Duration(days: 1));
-
-      // Programa la alarma sin crear un registro en SQLite.
+      // Programa la alarma para el día del aniversario mensual.
       await _notificationService.programarRecordatorioDeuda(
         idUsuario: deudaCreada.idUsuario,
         idDeuda: deudaCreada.idDeuda!,
         mensaje: mensaje,
-        fechaProgramada: fechaRecordatorio,
+        fechaProgramada: anniversary,
       );
     }
 
@@ -152,9 +149,6 @@ class DebtService {
         anniversary = _monthlyAnniversary(startDate, monthOffset);
       }
 
-      // Calcula la fecha del recordatorio.
-      final fechaRecordatorio = anniversary.subtract(const Duration(days: 1));
-
       // Construye el mensaje del recordatorio.
       final mensaje =
           'Hoy se cumple un mes más de tu deuda con ${debt.acreedor}. '
@@ -164,8 +158,16 @@ class DebtService {
       // Identifica la fecha del evento.
       final fechaEvento = anniversary.toIso8601String();
 
+      // Programa Android para el día del aniversario mensual.
+      await _notificationService.programarRecordatorioDeuda(
+        idUsuario: debt.idUsuario,
+        idDeuda: debt.idDeuda!,
+        mensaje: mensaje,
+        fechaProgramada: anniversary,
+      );
+
+      // Genera el registro interno cuando llega el aniversario.
       if (anniversary.isAtSameMomentAs(today)) {
-        // Si llegó el aniversario, genera el registro interno.
         await _notificationService.generarNotificacion(
           idUsuario: debt.idUsuario,
           tipo: 'deuda',
@@ -174,14 +176,6 @@ class DebtService {
           fechaEvento: fechaEvento,
           fechaProgramada: anniversary,
           mostrarEnAndroid: false,
-        );
-      } else {
-        // Programa solamente la alarma local, sin crear un registro interno.
-        await _notificationService.programarRecordatorioDeuda(
-          idUsuario: debt.idUsuario,
-          idDeuda: debt.idDeuda!,
-          mensaje: mensaje,
-          fechaProgramada: fechaRecordatorio,
         );
       }
     }
