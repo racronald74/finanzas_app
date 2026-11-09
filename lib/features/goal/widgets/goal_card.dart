@@ -72,6 +72,9 @@ class GoalCard extends StatelessWidget {
       double.infinity,
     );
 
+    // Comprueba si la meta ya alcanzó su objetivo.
+    final bool isGoalCompleted = remainingAmount <= 0;
+
     /// Indica si la pantalla corresponde a un dispositivo móvil.
     final bool isMobile = ResponsiveHelper.isMobile(context);
 
@@ -302,7 +305,8 @@ class GoalCard extends StatelessWidget {
                             text: 'Aportar',
                             isPrimary: true,
                             primaryColor: AppColors.success,
-                            onPressed: onContribute,
+                            // Deshabilita el aporte cuando la meta está completada.
+                            onPressed: isGoalCompleted ? null : onContribute,
                           ),
                         ),
                       ],

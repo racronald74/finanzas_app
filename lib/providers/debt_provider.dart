@@ -50,6 +50,19 @@ class DebtProvider extends ChangeNotifier {
     }
   }
 
+  /// Actualiza una deuda específica dentro de la lista del Provider.
+  Future<void> _refreshDebtInList(int idDeuda) async {
+    // Consulta los datos actualizados de la deuda en SQLite.
+    final updatedDebt = await _debtService.getDebtById(idDeuda);
+
+    if (updatedDebt == null) return;
+
+    // Reemplaza la deuda anterior por su versión actualizada.
+    _debts = _debts.map((debt) {
+      return debt.idDeuda == idDeuda ? updatedDebt : debt;
+    }).toList();
+  }
+
   /// Obtiene una deuda específica.
   Future<DebtModel?> getDebtById(int idDeuda) async {
     try {
@@ -162,7 +175,7 @@ class DebtProvider extends ChangeNotifier {
 
   /// Registra un pago ordinario de una deuda.
   ///
-  /// DebtService actualiza el saldo y genera el gasto automático.
+  /// Actualiza el historial y la información de la deuda en la lista.
   Future<bool> registerPayment(DebtPaymentModel payment) async {
     _setLoading(true);
 
@@ -173,6 +186,9 @@ class DebtProvider extends ChangeNotifier {
 
       // Actualiza el historial de pagos.
       _payments = await _debtService.getPaymentsByDebt(payment.idDeuda);
+
+      // Actualiza la deuda en la lista principal.
+      await _refreshDebtInList(payment.idDeuda);
 
       return true;
     } catch (e) {
@@ -187,8 +203,7 @@ class DebtProvider extends ChangeNotifier {
 
   /// Registra un abono extraordinario directamente al capital.
   ///
-  /// DebtService aplica la reducción de plazo o de cuota
-  /// y genera el gasto correspondiente.
+  /// Actualiza el historial y la información de la deuda en la lista.
   Future<bool> registerExtraordinaryPayment(DebtPaymentModel payment) async {
     _setLoading(true);
 
@@ -199,6 +214,9 @@ class DebtProvider extends ChangeNotifier {
 
       // Actualiza el historial de movimientos de la deuda.
       _payments = await _debtService.getPaymentsByDebt(payment.idDeuda);
+
+      // Actualiza la deuda en la lista principal.
+      await _refreshDebtInList(payment.idDeuda);
 
       return true;
     } catch (e) {

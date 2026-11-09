@@ -47,11 +47,16 @@ class AppChipButton extends StatelessWidget {
     // Si no se especifica, conserva el azul de la aplicación.
     final Color buttonColor = primaryColor ?? AppColors.primary;
 
+    // Define los colores normales del botón.
     final Color backgroundColor = isPrimary ? buttonColor : Colors.white;
-
     final Color foregroundColor = isPrimary ? Colors.white : buttonColor;
 
-    final Color borderColor = buttonColor;
+    // Utiliza gris cuando el botón está deshabilitado.
+    final Color disabledBackgroundColor = Colors.grey.shade300;
+    final Color disabledForegroundColor = Colors.grey.shade600;
+    final Color borderColor = onPressed == null
+        ? Colors.grey.shade300
+        : buttonColor;
 
     return OutlinedButton.icon(
       onPressed: onPressed,
@@ -74,6 +79,10 @@ class AppChipButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
 
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+
+        // Colores aplicados cuando el botón está deshabilitado.
+        disabledBackgroundColor: disabledBackgroundColor,
+        disabledForegroundColor: disabledForegroundColor,
       ),
     );
   }

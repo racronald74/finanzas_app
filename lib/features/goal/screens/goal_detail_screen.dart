@@ -130,6 +130,9 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     final double remainingAmount = (_goal.montoObjetivo - _goal.montoAcumulado)
         .clamp(0, double.infinity);
 
+    // Comprueba si la meta ya alcanzó su objetivo.
+    final bool isGoalCompleted = remainingAmount <= 0;
+
     // Calcula el porcentaje de avance de la meta.
     final double progress = _goal.montoObjetivo > 0
         ? (_goal.montoAcumulado / _goal.montoObjetivo).clamp(0, 1)
@@ -269,28 +272,33 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () async {
-                              // Abre la pantalla para registrar un nuevo aporte.
-                              final bool? contributionCreated =
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AddContributionScreen(goal: _goal),
-                                    ),
-                                  );
+                            // Impide registrar aportes cuando la meta está completada.
+                            onPressed: isGoalCompleted
+                                ? null
+                                : () async {
+                                    // Abre la pantalla para registrar un nuevo aporte.
+                                    final bool? contributionCreated =
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AddContributionScreen(
+                                                  goal: _goal,
+                                                ),
+                                          ),
+                                        );
 
-                              // Si se registró un aporte correctamente,
-                              // la pantalla se actualizará en el siguiente paso.
-                              if (contributionCreated == true &&
-                                  context.mounted) {
-                                // Actualiza la información general de la meta.
-                                await _reloadGoal();
+                                    // Si se registró un aporte correctamente,
+                                    // la pantalla se actualizará en el siguiente paso.
+                                    if (contributionCreated == true &&
+                                        context.mounted) {
+                                      // Actualiza la información general de la meta.
+                                      await _reloadGoal();
 
-                                // Actualiza el historial de aportes.
-                                await _loadContributions();
-                              }
-                            },
+                                      // Actualiza el historial de aportes.
+                                      await _loadContributions();
+                                    }
+                                  },
                             icon: const Icon(Icons.add_circle_outline),
                             label: const Text('Registrar aporte'),
                           ),
