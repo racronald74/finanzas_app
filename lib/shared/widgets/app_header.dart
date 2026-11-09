@@ -28,8 +28,19 @@ class AppHeader extends StatelessWidget {
   /// Indica si debe mostrarse la campana.
   final bool showNotification;
 
+  /// Indica si debe mostrarse el icono de configuración.
+  final bool showSettings;
+
+  /// Acción ejecutada al pulsar el icono de configuración.
+  final VoidCallback? onSettingsPressed;
+
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
+
+  final VoidCallback? onNotificationPressed;
+
+  /// Acción ejecutada al pulsar regresar.
+  final VoidCallback? onBackPressed;
 
   final bool isMoreScreen;
 
@@ -41,8 +52,12 @@ class AppHeader extends StatelessWidget {
     this.showBackButton = false,
     this.showAvatar = false,
     this.showNotification = false,
+    this.showSettings = false,
+    this.onSettingsPressed,
     this.onAvatarPressed,
     this.isMoreScreen = false,
+    this.onNotificationPressed,
+    this.onBackPressed,
   });
 
   @override
@@ -57,6 +72,7 @@ class AppHeader extends StatelessWidget {
         showAvatar: showAvatar,
         showNotification: showNotification,
         onAvatarPressed: onAvatarPressed,
+        onNotificationPressed: onNotificationPressed,
       );
     }
 
@@ -69,7 +85,11 @@ class AppHeader extends StatelessWidget {
       showBackButton: showBackButton,
       showAvatar: showAvatar,
       showNotification: showNotification,
+      showSettings: showSettings,
+      onSettingsPressed: onSettingsPressed,
       onAvatarPressed: onAvatarPressed,
+      onNotificationPressed: onNotificationPressed,
+      onBackPressed: onBackPressed,
     );
   }
 }

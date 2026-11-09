@@ -155,6 +155,20 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
+  /// Obtiene una meta específica mediante su identificador.
+  ///
+  /// Delega la consulta al servicio y devuelve el modelo encontrado.
+  Future<GoalModel?> getGoalById(int idMeta) async {
+    try {
+      return await _goalService.obtenerMetaPorIdMeta(idMeta);
+    } catch (error) {
+      _errorMessage = error.toString();
+      notifyListeners();
+
+      return null;
+    }
+  }
+
   /// Carga las metas registradas de un usuario.
   Future<void> loadGoals(int idUsuario) async {
     _isLoading = true;

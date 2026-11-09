@@ -30,10 +30,14 @@ class ObligationsScreen extends StatefulWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
+  /// Acción ejecutada al pulsar la campana de notificaciones.
+  final VoidCallback? onNotificationPressed;
+
   const ObligationsScreen({
     super.key,
     this.onBackPressed,
     this.onAvatarPressed,
+    this.onNotificationPressed,
   });
 
   @override
@@ -586,6 +590,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
             showAvatar: true,
             showNotification: true,
             onAvatarPressed: widget.onAvatarPressed,
+            onNotificationPressed: widget.onNotificationPressed,
           ),
 
           // Contenido principal.

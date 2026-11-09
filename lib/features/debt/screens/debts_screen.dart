@@ -25,7 +25,14 @@ class DebtsScreen extends StatefulWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
-  const DebtsScreen({super.key, this.onAvatarPressed});
+  /// Acción ejecutada al pulsar la campana de notificaciones.
+  final VoidCallback? onNotificationPressed;
+
+  const DebtsScreen({
+    super.key,
+    this.onAvatarPressed,
+    this.onNotificationPressed,
+  });
 
   @override
   State<DebtsScreen> createState() => _DebtsScreenState();
@@ -155,6 +162,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             showAvatar: true,
             showNotification: true,
             onAvatarPressed: widget.onAvatarPressed,
+            onNotificationPressed: widget.onNotificationPressed,
           ),
 
           Expanded(

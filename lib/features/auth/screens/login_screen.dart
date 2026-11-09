@@ -94,6 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: authProvider.isLoading ? null : _login,
             ),
             const SizedBox(height: 16),
+
             TextButton(
               onPressed: _showResetPasswordDialog,
               child: const Text('Olvide mi contrasena'),

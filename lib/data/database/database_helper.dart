@@ -92,7 +92,10 @@ class DatabaseHelper {
         ingreso_fijo_mensual REAL DEFAULT 0,
         fecha_registro TEXT NOT NULL,
         ultimo_acceso TEXT,
-        notificaciones_activas INTEGER DEFAULT 1
+        notificaciones_activas INTEGER DEFAULT 1,
+        notificaciones_metas INTEGER DEFAULT 1,
+        notificaciones_deudas INTEGER DEFAULT 1,
+        notificaciones_obligaciones INTEGER DEFAULT 1
       )
     ''');
 
@@ -317,6 +320,8 @@ class DatabaseHelper {
         leida INTEGER NOT NULL DEFAULT 0,
         id_usuario INTEGER NOT NULL,
         fecha_lectura TEXT,
+        id_evento_origen INTEGER,
+        fecha_evento TEXT,
         FOREIGN KEY (id_usuario)
           REFERENCES usuario(id_usuario)
           ON DELETE CASCADE
@@ -363,6 +368,46 @@ class DatabaseHelper {
       'notificaciones_activas',
       'INTEGER DEFAULT 1',
     );
+
+    // Agrega las preferencias individuales de notificaciones.
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'notificaciones_metas',
+      'INTEGER DEFAULT 1',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'notificaciones_deudas',
+      'INTEGER DEFAULT 1',
+    );
+
+    await _addColumnIfMissing(
+      db,
+      'usuario',
+      'notificaciones_obligaciones',
+      'INTEGER DEFAULT 1',
+    );
+    // Agrega el identificador del evento que originó la notificación.
+    await _addColumnIfMissing(
+      db,
+      'notificacion',
+      'id_evento_origen',
+      'INTEGER',
+    );
+
+    // Agrega la fecha del evento que originó la notificación.
+    await _addColumnIfMissing(db, 'notificacion', 'fecha_evento', 'TEXT');
+
+    // Conserva un único registro por usuario, evento y fecha del recordatorio.
+    await _eliminarDuplicadosNotificaciones(db);
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_notificacion_evento_unico
+      ON notificacion(id_usuario, tipo, id_evento_origen, fecha_evento)
+      WHERE id_evento_origen IS NOT NULL AND fecha_evento IS NOT NULL
+    ''');
 
     await _addColumnIfMissing(db, 'ingreso', 'fuente', 'TEXT');
     await _addColumnIfMissing(db, 'ingreso', 'origen', "TEXT DEFAULT 'Manual'");
@@ -502,6 +547,21 @@ class DatabaseHelper {
       SET capital_inicio_periodo = saldo_capital
       WHERE capital_inicio_periodo = 0
         AND saldo_capital > 0
+    ''');
+  }
+
+  /// Elimina duplicados antiguos antes de crear el índice único.
+  Future<void> _eliminarDuplicadosNotificaciones(Database db) async {
+    await db.execute('''
+      DELETE FROM notificacion
+      WHERE id_notificacion NOT IN (
+        SELECT MIN(id_notificacion)
+        FROM notificacion
+        WHERE id_evento_origen IS NOT NULL AND fecha_evento IS NOT NULL
+        GROUP BY id_usuario, tipo, id_evento_origen, fecha_evento
+      )
+      AND id_evento_origen IS NOT NULL
+      AND fecha_evento IS NOT NULL
     ''');
   }
 

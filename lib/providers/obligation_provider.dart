@@ -61,6 +61,20 @@ class ObligationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Obtiene una obligación específica mediante su identificador.
+  ///
+  /// Delega la consulta al servicio y devuelve el modelo encontrado.
+  Future<ObligationModel?> getObligationById(int idObligacion) async {
+    try {
+      return await _obligationService.getObligationById(idObligacion);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+
+      return null;
+    }
+  }
+
   /// Actualizar una obligación existente.
   Future<bool> updateObligation(ObligationModel obligation) async {
     try {

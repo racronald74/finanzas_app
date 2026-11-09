@@ -9,9 +9,13 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
-    compileOptions {
+        compileOptions {
+        // Mantiene la compatibilidad con Java 17.
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+
+        // Habilita Core Library Desugaring para las notificaciones locales.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -42,4 +46,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Proporciona compatibilidad con APIs modernas de Java en Android.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

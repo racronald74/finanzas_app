@@ -7,6 +7,11 @@ import '../data/services/auth_service.dart';
 // Modelo usuario
 import '../data/models/user_model.dart';
 
+// Servicio centralizado de sincronización de recordatorios
+import '../data/services/reminder_sync_service.dart';
+// Servicio de notificaciones locales de Android.
+import '../data/services/local_notification_service.dart';
+
 // Proveedor de autenticación para manejar el estado de autenticación del usuario y las operaciones relacionadas.
 class AuthProvider extends ChangeNotifier {
   // Servicio que contiene las reglas de negocio
@@ -51,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Metodo para iniciar sesión
+  /// Método para iniciar sesión.
   Future<bool> login({
     required String correo,
     required String contrasena,
@@ -60,16 +65,57 @@ class AuthProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    _currentUser = await _authService.login(
-      correo: correo,
-      contrasena: contrasena,
-    );
+    try {
+      // Autentica al usuario.
+      _currentUser = await _authService.login(
+        correo: correo,
+        contrasena: contrasena,
+      );
 
-    _isLoading = false;
+      try {
+        // Inicializa el servicio de notificaciones locales.
+        final localNotificationService = LocalNotificationService();
 
-    notifyListeners();
+        // Solicita permiso para mostrar notificaciones.
+        final permisoNotificaciones = await localNotificationService
+            .requestPermissions();
 
-    return _currentUser != null;
+        debugPrint('PERMISO NOTIFICACIONES: $permisoNotificaciones');
+
+        // Comprueba el permiso para programar alarmas exactas.
+        bool permisoExacto = await localNotificationService
+            .canScheduleExactAlarms();
+
+        // Solicita el permiso si todavía no está concedido.
+        if (!permisoExacto) {
+          permisoExacto = await localNotificationService
+              .requestExactAlarmPermission();
+        }
+
+        debugPrint('PERMISO ALARMAS EXACTAS: $permisoExacto');
+
+        // Sincroniza los recordatorios de las tres categorías.
+        final reminderSyncService = ReminderSyncService();
+
+        debugPrint('========== INICIO SINCRONIZACIÓN ==========');
+
+        await reminderSyncService.sincronizarRecordatorios(
+          _currentUser!.idUsuario!,
+        );
+
+        debugPrint('========== FIN SINCRONIZACIÓN ==========');
+      } catch (e) {
+        // Evita que un error de notificaciones impida iniciar sesión.
+        debugPrint('Error al sincronizar recordatorios: $e');
+      }
+
+      return _currentUser != null;
+    } finally {
+      // Restaura el estado de carga incluso si ocurre un error.
+      _isLoading = false;
+
+      notifyListeners();
+    }
   }
 
   /// Metodo para cerrar sesión

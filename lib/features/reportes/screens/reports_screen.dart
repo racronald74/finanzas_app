@@ -21,7 +21,14 @@ class ReportsScreen extends StatefulWidget {
   // Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
-  const ReportsScreen({super.key, this.onAvatarPressed});
+  // Acción ejecutada al pulsar la campana de notificaciones.
+  final VoidCallback? onNotificationPressed;
+
+  const ReportsScreen({
+    super.key,
+    this.onAvatarPressed,
+    this.onNotificationPressed,
+  });
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -87,10 +94,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Genera automáticamente el reporte del mes actual.
+    // Evita generar el reporte más de una vez.
     if (!_initialReportLoaded) {
       _initialReportLoaded = true;
-      _generateReport();
+
+      // Ejecuta la carga después de finalizar la construcción.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _generateReport();
+        }
+      });
     }
   }
 
@@ -430,6 +443,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               showAvatar: true,
               showNotification: true,
               onAvatarPressed: widget.onAvatarPressed,
+              onNotificationPressed: widget.onNotificationPressed,
             ),
 
             // Contenido de los reportes.

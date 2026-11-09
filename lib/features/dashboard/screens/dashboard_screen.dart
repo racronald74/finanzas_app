@@ -8,7 +8,14 @@ class DashboardScreen extends StatelessWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback onAvatarPressed;
 
-  const DashboardScreen({super.key, required this.onAvatarPressed});
+  /// Acción ejecutada al pulsar la campana.
+  final VoidCallback? onNotificationPressed;
+
+  const DashboardScreen({
+    super.key,
+    required this.onAvatarPressed,
+    this.onNotificationPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +31,7 @@ class DashboardScreen extends StatelessWidget {
               showAvatar: true,
               showNotification: true,
               onAvatarPressed: onAvatarPressed,
+              onNotificationPressed: onNotificationPressed,
             ),
 
             // Contenido temporal del Dashboard.

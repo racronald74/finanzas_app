@@ -26,6 +26,9 @@ class DashboardHeader extends StatelessWidget {
   /// Acción al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
+  /// Acción al pulsar la campana.
+  final VoidCallback? onNotificationPressed;
+
   const DashboardHeader({
     super.key,
     required this.greeting,
@@ -33,6 +36,7 @@ class DashboardHeader extends StatelessWidget {
     this.showAvatar = true,
     this.showNotification = true,
     this.onAvatarPressed,
+    this.onNotificationPressed,
   });
 
   @override
@@ -90,7 +94,7 @@ class DashboardHeader extends StatelessWidget {
             // Botón de notificaciones.
             if (showNotification)
               IconButton(
-                onPressed: () {},
+                onPressed: onNotificationPressed,
                 icon: const Icon(Icons.notifications_none, color: Colors.white),
               ),
           ],

@@ -8,17 +8,25 @@ class MoreScreen extends StatelessWidget {
   /// Acción para abrir la pantalla de Obligaciones.
   final VoidCallback? onObligationsPressed;
 
+  // Acción para abrir el menú lateral desde el avatar.
+  final VoidCallback? onAvatarPressed;
+
   /// Acción para abrir la pantalla de Deudas.
   final VoidCallback? onDebtsPressed;
 
   /// Acción para abrir la pantalla de Reportes.
   final VoidCallback? onReportsPressed;
 
+  /// Acción para abrir la pantalla de Notificaciones.
+  final VoidCallback? onNotificationsPressed;
+
   const MoreScreen({
     super.key,
     this.onObligationsPressed,
     this.onDebtsPressed,
     this.onReportsPressed,
+    this.onNotificationsPressed,
+    this.onAvatarPressed,
   });
 
   @override
@@ -79,6 +87,7 @@ class MoreScreen extends StatelessWidget {
                         title: 'Notificaciones',
                         description:
                             'Configura alertas y revisa tu\nhistorial de notificaciones.',
+                        onTap: onNotificationsPressed,
                       ),
                     ],
                   ),

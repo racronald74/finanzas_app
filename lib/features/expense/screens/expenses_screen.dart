@@ -27,7 +27,14 @@ class ExpensesScreen extends StatefulWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
-  const ExpensesScreen({super.key, this.onAvatarPressed});
+  /// Acción ejecutada al pulsar la campana.
+  final VoidCallback? onNotificationPressed;
+
+  const ExpensesScreen({
+    super.key,
+    this.onAvatarPressed,
+    this.onNotificationPressed,
+  });
 
   @override
   State<ExpensesScreen> createState() => _ExpensesScreenState();
@@ -208,6 +215,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               showAvatar: true,
               showNotification: true,
               onAvatarPressed: widget.onAvatarPressed,
+              onNotificationPressed: widget.onNotificationPressed,
             ),
 
             Expanded(

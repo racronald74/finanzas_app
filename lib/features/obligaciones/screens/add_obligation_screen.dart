@@ -144,6 +144,9 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       // Configuración de la obligación.
       _frecuenciaSeleccionada = obligation.frecuencia;
 
+      // Recupera el estado del recordatorio guardado en SQLite.
+      _recordatorio = obligation.recordatorio;
+
       // Carga la fecha de vencimiento existente.
       _fechaVencimiento = DateTime.tryParse(obligation.fechaVencimiento);
     }
@@ -699,20 +702,26 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     // Determina si la obligación será recurrente.
     final bool esRecurrente = _frecuenciaSeleccionada != 'Ninguna';
 
-    // Construye el modelo de obligación.
+    // Recupera la obligación original cuando se está editando.
+    final original = widget.initialObligation;
+
+    // Construye el modelo conservando los datos originales.
     final obligation = ObligationModel(
-      idObligacion: widget.initialObligation?.idObligacion,
+      idObligacion: original?.idObligacion,
+      idGrupoRecurrencia: original?.idGrupoRecurrencia,
+      recurrenciaActiva: original?.recurrenciaActiva ?? true,
       nombre: nombre,
       monto: monto,
       idCategoria: _selectedCategoryId!,
       fechaVencimiento: _formatDate(_fechaVencimiento!),
       recordatorio: _recordatorio,
-      estado: ObligationService.estadoPendiente,
+      estado: original?.estado ?? ObligationService.estadoPendiente,
       esRecurrente: esRecurrente,
       diaVencimiento: esRecurrente ? _fechaVencimiento!.day : null,
       idUsuario: usuario.idUsuario!,
-      idGastoGenerado: null,
-      fechaRegistro: DateTime.now().toIso8601String(),
+      idGastoGenerado: original?.idGastoGenerado,
+      fechaRegistro:
+          original?.fechaRegistro ?? DateTime.now().toIso8601String(),
       frecuencia: _frecuenciaSeleccionada,
     );
 

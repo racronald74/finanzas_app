@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 
 /// Encabezado utilizado por las pantallas de la aplicación
 /// diferentes al Dashboard.
@@ -8,7 +12,7 @@ import 'package:flutter/material.dart';
 /// - Gastos
 /// - Metas
 /// - Más
-class PageHeader extends StatelessWidget {
+class PageHeader extends StatefulWidget {
   /// Título de la pantalla.
   final String title;
 
@@ -21,7 +25,20 @@ class PageHeader extends StatelessWidget {
   /// Indica si debe mostrarse el icono de notificaciones.
   final bool showNotification;
 
+  /// Indica si debe mostrarse el icono de configuración.
+  final bool showSettings;
+
+  /// Acción ejecutada al pulsar el icono de configuración.
+  final VoidCallback? onSettingsPressed;
+
+  /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
+
+  /// Acción ejecutada al pulsar la campana.
+  final VoidCallback? onNotificationPressed;
+
+  /// Acción personalizada al pulsar regresar.
+  final VoidCallback? onBackPressed;
 
   const PageHeader({
     super.key,
@@ -29,8 +46,36 @@ class PageHeader extends StatelessWidget {
     this.showBackButton = false,
     this.showAvatar = true,
     this.showNotification = false,
+    this.showSettings = false,
+    this.onSettingsPressed,
     this.onAvatarPressed,
+    this.onNotificationPressed,
+    this.onBackPressed,
   });
+
+  @override
+  State<PageHeader> createState() => _PageHeaderState();
+}
+
+class _PageHeaderState extends State<PageHeader> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Carga las notificaciones después de construir el encabezado.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadNotifications();
+    });
+  }
+
+  /// Obtiene las notificaciones del usuario autenticado.
+  Future<void> _loadNotifications() async {
+    final idUsuario = context.read<AuthProvider>().currentUser?.idUsuario;
+
+    if (idUsuario != null && mounted) {
+      await context.read<NotificationProvider>().loadNotifications(idUsuario);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,22 +90,21 @@ class PageHeader extends StatelessWidget {
               // ============================================
               // Elemento izquierdo
               // ============================================
-              if (showBackButton)
-                // En pantallas secundarias se mantiene
-                // el botón regresar.
+              if (widget.showBackButton)
+                // Botón regresar para pantallas secundarias.
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed:
+                      widget.onBackPressed ?? () => Navigator.pop(context),
                   icon: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
                     size: 28,
                   ),
                 )
-              else if (showAvatar && showNotification)
-                // En pantallas principales como Metas,
-                // el avatar queda a la izquierda.
+              else if (widget.showAvatar && widget.showNotification)
+                // Avatar ubicado a la izquierda.
                 GestureDetector(
-                  onTap: onAvatarPressed,
+                  onTap: widget.onAvatarPressed,
                   child: const CircleAvatar(
                     radius: 22,
                     child: Icon(Icons.person, size: 26),
@@ -75,7 +119,7 @@ class PageHeader extends StatelessWidget {
               Expanded(
                 child: Center(
                   child: Text(
-                    title,
+                    widget.title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -88,24 +132,70 @@ class PageHeader extends StatelessWidget {
               // ============================================
               // Elemento derecho
               // ============================================
-              if (!showBackButton && showNotification)
-                // Campana de notificaciones.
+              if (widget.showSettings)
+                // Engranaje para abrir la configuración.
                 IconButton(
-                  onPressed: () {
-                    // Las notificaciones se implementarán
-                    // posteriormente.
-                  },
+                  onPressed: widget.onSettingsPressed,
                   icon: const Icon(
-                    Icons.notifications_none,
+                    Icons.settings_outlined,
                     color: Colors.white,
                     size: 30,
                   ),
                 )
-              else if (!showBackButton && showAvatar)
-                // Comportamiento actual para las pantallas
-                // que todavía utilizan el avatar a la derecha.
+              else if (!widget.showBackButton && widget.showNotification)
+                // Campana con contador de notificaciones pendientes.
+                Consumer<NotificationProvider>(
+                  builder: (context, provider, child) {
+                    final unreadCount = provider.unreadCount;
+
+                    return IconButton(
+                      onPressed: widget.onNotificationPressed,
+                      icon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.notifications_none,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+
+                          // El indicador solo aparece si hay pendientes.
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: -8,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  unreadCount > 99
+                                      ? '99+'
+                                      : unreadCount.toString(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              else if (!widget.showBackButton && widget.showAvatar)
+                // Avatar ubicado a la derecha.
                 GestureDetector(
-                  onTap: onAvatarPressed,
+                  onTap: widget.onAvatarPressed,
                   child: const CircleAvatar(
                     radius: 22,
                     child: Icon(Icons.person, size: 26),

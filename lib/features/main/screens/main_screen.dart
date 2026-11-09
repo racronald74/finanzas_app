@@ -16,6 +16,8 @@ import '../../../providers/expense_provider.dart';
 import '../../../providers/income_provider.dart';
 import '../../../providers/budget_provider.dart';
 import '../../reportes/screens/reports_screen.dart';
+import '../../notificaciones/screens/notifications_screen.dart';
+import '../../notificaciones/screens/notification_settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -117,6 +119,18 @@ class _MainScreenState extends State<MainScreen> {
   /// Indica si se está mostrando la pantalla de Reportes.
   bool _showReports = false;
 
+  /// Indica si se está mostrando la pantalla de Notificaciones.
+  bool _showNotifications = false;
+
+  /// Guarda la sección desde la que se abrió Notificaciones.
+  int? _previousIndex;
+
+  /// Guarda si Notificaciones se abrió desde otra pantalla de Más.
+  String? _previousMoreScreen;
+
+  /// Indica si se está mostrando la configuración de notificaciones.
+  bool _showNotificationSettings = false;
+
   /// Permite reconstruir DebtsScreen cada vez
   /// que se vuelve a abrir.
   Key _debtsKey = UniqueKey();
@@ -130,7 +144,10 @@ class _MainScreenState extends State<MainScreen> {
 
     _tabs = [
       MainTab(
-        screen: DashboardScreen(onAvatarPressed: _openDrawer),
+        screen: DashboardScreen(
+          onAvatarPressed: _openDrawer,
+          onNotificationPressed: _openNotifications,
+        ),
         title: 'Dashboard',
         isDashboard: true,
       ),
@@ -147,6 +164,7 @@ class _MainScreenState extends State<MainScreen> {
         screen: ExpensesScreen(
           // Utiliza el mismo Drawer que abre el avatar de Metas.
           onAvatarPressed: _openDrawer,
+          onNotificationPressed: _openNotifications,
         ),
         title: 'Gastos',
       ),
@@ -155,6 +173,7 @@ class _MainScreenState extends State<MainScreen> {
         screen: GoalsScreen(
           // Utiliza el mismo Drawer que abre el avatar del Dashboard.
           onAvatarPressed: _openDrawer,
+          onNotificationPressed: _openNotifications,
         ),
         title: 'Metas',
       ),
@@ -164,6 +183,8 @@ class _MainScreenState extends State<MainScreen> {
           onObligationsPressed: _openObligations,
           onDebtsPressed: _openDebts,
           onReportsPressed: _openReports,
+          onNotificationsPressed: _openNotifications,
+          onAvatarPressed: _openDrawer,
         ),
         title: 'Más',
       ),
@@ -184,24 +205,37 @@ class _MainScreenState extends State<MainScreen> {
           _showObligations
               ? ObligationsScreen(
                   key: _obligationsKey,
-                  // Abre el mismo menú lateral utilizado por los demás módulos.
                   onAvatarPressed: _openDrawer,
+                  onNotificationPressed: _openNotifications,
                 )
               : _showDebts
               ? DebtsScreen(
                   key: _debtsKey,
-                  // Abre el mismo menú lateral utilizado por los demás módulos.
                   onAvatarPressed: _openDrawer,
+                  onNotificationPressed: _openNotifications,
                 )
               : _showReports
               ? ReportsScreen(
-                  // Abre el mismo menú lateral utilizado por los demás módulos.
                   onAvatarPressed: _openDrawer,
+                  onNotificationPressed: _openNotifications,
+                )
+              : _showNotificationSettings
+              ? NotificationSettingsScreen(
+                  onBackPressed: _backToNotifications,
+                  onAvatarPressed: _openDrawer,
+                )
+              : _showNotifications
+              ? NotificationsScreen(
+                  onAvatarPressed: _openDrawer,
+                  onSettingsPressed: _openNotificationSettings,
+                  onBackPressed: _backFromNotifications,
                 )
               : MoreScreen(
                   onObligationsPressed: _openObligations,
                   onDebtsPressed: _openDebts,
                   onReportsPressed: _openReports,
+                  onNotificationsPressed: _openNotifications,
+                  onAvatarPressed: _openDrawer,
                 ),
         ],
       ),
@@ -218,6 +252,8 @@ class _MainScreenState extends State<MainScreen> {
               _showObligations = false;
               _showDebts = false;
               _showReports = false;
+              _showNotifications = false;
+              _showNotificationSettings = false;
             }
           });
 
@@ -291,6 +327,76 @@ class _MainScreenState extends State<MainScreen> {
       _showObligations = false;
       _showDebts = false;
       _showReports = true;
+    });
+  }
+
+  /// Abre Notificaciones y guarda la pantalla de origen.
+  void _openNotifications() {
+    setState(() {
+      // Guarda la pestaña principal desde la que se abrió.
+      _previousIndex = _selectedIndex;
+
+      // Identifica si se abrió desde alguna pantalla de Más.
+      if (_showObligations) {
+        _previousMoreScreen = 'obligations';
+      } else if (_showDebts) {
+        _previousMoreScreen = 'debts';
+      } else if (_showReports) {
+        _previousMoreScreen = 'reports';
+      } else {
+        _previousMoreScreen = null;
+      }
+
+      _selectedIndex = 4;
+
+      // Muestra Notificaciones.
+      _showObligations = false;
+      _showDebts = false;
+      _showReports = false;
+      _showNotificationSettings = false;
+      _showNotifications = true;
+    });
+  }
+
+  /// Abre la configuración de notificaciones.
+  void _openNotificationSettings() {
+    setState(() {
+      _showObligations = false;
+      _showDebts = false;
+      _showReports = false;
+      _showNotifications = false;
+      _showNotificationSettings = true;
+    });
+  }
+
+  /// Regresa a la pantalla desde la que se abrieron las notificaciones.
+  void _backFromNotifications() {
+    setState(() {
+      _showNotifications = false;
+
+      // Si se abrió desde otra pantalla de la sección Más,
+      // restaura esa pantalla.
+      _showObligations = _previousMoreScreen == 'obligations';
+      _showDebts = _previousMoreScreen == 'debts';
+      _showReports = _previousMoreScreen == 'reports';
+
+      // Si no había una pantalla secundaria de Más,
+      // restaura la pestaña principal anterior.
+      if (_previousMoreScreen == null && _previousIndex != null) {
+        _selectedIndex = _previousIndex!;
+      }
+
+      // Limpia el origen guardado.
+      _previousIndex = null;
+      _previousMoreScreen = null;
+    });
+  }
+
+  /// Regresa desde la configuración al listado de notificaciones.
+  void _backToNotifications() {
+    setState(() {
+      _showNotificationSettings = false;
+      _showNotifications = true;
     });
   }
 }

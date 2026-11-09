@@ -28,6 +28,24 @@ class UserRepository {
     return UserModel.fromMap(result.first);
   }
 
+  /// Obtiene un usuario mediante su identificador.
+  Future<UserModel?> getUserById(int idUsuario) async {
+    final Database db = await _databaseHelper.database;
+
+    // Busca el usuario correspondiente al identificador.
+    final result = await db.query(
+      'usuario',
+      where: 'id_usuario = ?',
+      whereArgs: [idUsuario],
+      limit: 1,
+    );
+
+    // Devuelve null si el usuario no existe.
+    if (result.isEmpty) return null;
+
+    return UserModel.fromMap(result.first);
+  }
+
   Future<int> updateUser(Map<String, dynamic> user) async {
     final db = await _databaseHelper.database;
 
@@ -36,6 +54,31 @@ class UserRepository {
       user,
       where: 'id_usuario = ?',
       whereArgs: [user['id_usuario']],
+    );
+  }
+
+  /// Actualiza las preferencias generales e individuales
+  /// de notificaciones de un usuario.
+  Future<int> updateNotificationPreferences({
+    required int idUsuario,
+    required bool notificacionesActivas,
+    required bool notificacionesMetas,
+    required bool notificacionesDeudas,
+    required bool notificacionesObligaciones,
+  }) async {
+    final db = await _databaseHelper.database;
+
+    // Guarda las preferencias como valores enteros en SQLite.
+    return db.update(
+      'usuario',
+      {
+        'notificaciones_activas': notificacionesActivas ? 1 : 0,
+        'notificaciones_metas': notificacionesMetas ? 1 : 0,
+        'notificaciones_deudas': notificacionesDeudas ? 1 : 0,
+        'notificaciones_obligaciones': notificacionesObligaciones ? 1 : 0,
+      },
+      where: 'id_usuario = ?',
+      whereArgs: [idUsuario],
     );
   }
 

@@ -19,6 +19,7 @@ import 'providers/obligation_provider.dart';
 import 'providers/debt_provider.dart';
 import 'providers/report_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'providers/notification_provider.dart';
 
 // Pantalla de inicio de sesión
 import 'features/auth/screens/login_screen.dart';
@@ -56,6 +57,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ObligationProvider()),
         ChangeNotifierProvider(create: (_) => DebtProvider()),
         ChangeNotifierProvider(create: (_) => ReportProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),

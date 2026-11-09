@@ -18,7 +18,14 @@ class GoalsScreen extends StatefulWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
 
-  const GoalsScreen({super.key, this.onAvatarPressed});
+  /// Acción ejecutada al pulsar la campana de notificaciones.
+  final VoidCallback? onNotificationPressed;
+
+  const GoalsScreen({
+    super.key,
+    this.onAvatarPressed,
+    this.onNotificationPressed,
+  });
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -86,6 +93,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('GoalsScreen callback: ${widget.onNotificationPressed != null}');
     return Scaffold(
       body: Column(
         children: [
@@ -94,6 +102,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             showAvatar: true,
             showNotification: true,
             onAvatarPressed: widget.onAvatarPressed,
+            onNotificationPressed: widget.onNotificationPressed,
           ),
 
           Expanded(

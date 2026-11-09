@@ -8,6 +8,7 @@ import '../../../data/repositories/debt_repository.dart';
 import '../../../data/repositories/expense_repository.dart';
 import 'debt_amortization_service.dart';
 import '../models/debt_payment_preview_model.dart';
+import '../../../data/services/notification_service.dart';
 
 /// Servicio encargado de la lógica de negocio de las Deudas.
 ///
@@ -21,6 +22,9 @@ class DebtService {
   // Servicio encargado de los cálculos de amortización.
   final DebtAmortizationService _amortizationService =
       DebtAmortizationService();
+
+  // Servicio encargado de generar y administrar las notificaciones.
+  final NotificationService _notificationService = NotificationService();
 
   // ---------------------------------------------------------------------------
   // DEUDAS
@@ -53,13 +57,134 @@ class DebtService {
       cuotaMensual: cuotaMensual,
     );
 
-    // Guarda la deuda con sus condiciones financieras calculadas.
-    return await _debtRepository.insertDebt(nuevaDeuda);
+    // Guarda la deuda y obtiene su identificador.
+    final idDeuda = await _debtRepository.insertDebt(nuevaDeuda);
+
+    // Consulta la deuda registrada para obtener sus datos completos.
+    final deudaCreada = await _debtRepository.getDebtById(idDeuda);
+
+    if (deudaCreada != null &&
+        deudaCreada.recordatorio &&
+        deudaCreada.estado == 'Activa' &&
+        deudaCreada.saldoPendiente > 0) {
+      // Obtiene la fecha de inicio de la deuda.
+      final startDate = _parseDateOnly(deudaCreada.fechaInicio);
+
+      // Calcula el siguiente aniversario mensual.
+      final today = _parseDateOnly(DateTime.now().toIso8601String());
+
+      var monthOffset = 1;
+      var anniversary = _monthlyAnniversary(startDate, monthOffset);
+
+      // Busca el primer aniversario que todavía no haya pasado.
+      while (anniversary.isBefore(today)) {
+        monthOffset++;
+        anniversary = _monthlyAnniversary(startDate, monthOffset);
+      }
+
+      // Construye el mensaje del recordatorio.
+      final mensaje =
+          'Hoy se cumple un mes más de tu deuda con '
+          '${deudaCreada.acreedor}. '
+          'Tu saldo pendiente actual es '
+          '\$${deudaCreada.saldoPendiente.toStringAsFixed(2)}.';
+
+      // Calcula el recordatorio para un día antes del aniversario.
+      final fechaRecordatorio = anniversary.subtract(const Duration(days: 1));
+
+      // Programa la alarma sin crear un registro en SQLite.
+      await _notificationService.programarRecordatorioDeuda(
+        idUsuario: deudaCreada.idUsuario,
+        idDeuda: deudaCreada.idDeuda!,
+        mensaje: mensaje,
+        fechaProgramada: fechaRecordatorio,
+      );
+    }
+
+    // Devuelve el identificador de la deuda creada.
+    return idDeuda;
   }
 
-  /// Obtiene todas las deudas de un usuario.
+  /// Obtiene todas las deudas de un usuario y genera
+  /// los recordatorios correspondientes al aniversario mensual.
   Future<List<DebtModel>> getDebtsByUser(int idUsuario) async {
-    return await _debtRepository.getDebtsByUser(idUsuario);
+    // Consulta las deudas registradas del usuario.
+    final debts = await _debtRepository.getDebtsByUser(idUsuario);
+
+    // Genera los recordatorios que correspondan al día actual.
+    await _generateMonthlyDebtNotifications(debts);
+
+    return debts;
+  }
+
+  /// Genera los registros internos y programa los recordatorios
+  /// mensuales de las deudas activas.
+  Future<void> _generateMonthlyDebtNotifications(List<DebtModel> debts) async {
+    // Obtiene la fecha actual sin considerar la hora.
+    final today = _parseDateOnly(DateTime.now().toIso8601String());
+
+    for (final debt in debts) {
+      // Omite deudas sin identificador o sin recordatorio activo.
+      if (debt.idDeuda == null || !debt.recordatorio) {
+        continue;
+      }
+
+      // Solo procesa deudas activas con saldo pendiente.
+      if (debt.estado != 'Activa' || debt.saldoPendiente <= 0) {
+        continue;
+      }
+
+      // Obtiene la fecha de inicio de la deuda.
+      final startDate = _parseDateOnly(debt.fechaInicio);
+
+      // Omite deudas cuya fecha de inicio todavía no ha llegado.
+      if (startDate.isAfter(today)) {
+        continue;
+      }
+
+      // Busca el siguiente aniversario mensual.
+      var monthOffset = 1;
+      var anniversary = _monthlyAnniversary(startDate, monthOffset);
+
+      // Avanza hasta encontrar el aniversario actual o futuro.
+      while (anniversary.isBefore(today)) {
+        monthOffset++;
+        anniversary = _monthlyAnniversary(startDate, monthOffset);
+      }
+
+      // Calcula la fecha del recordatorio.
+      final fechaRecordatorio = anniversary.subtract(const Duration(days: 1));
+
+      // Construye el mensaje del recordatorio.
+      final mensaje =
+          'Hoy se cumple un mes más de tu deuda con ${debt.acreedor}. '
+          'Tu saldo pendiente actual es '
+          '\$${debt.saldoPendiente.toStringAsFixed(2)}.';
+
+      // Identifica la fecha del evento.
+      final fechaEvento = anniversary.toIso8601String();
+
+      if (anniversary.isAtSameMomentAs(today)) {
+        // Si llegó el aniversario, genera el registro interno.
+        await _notificationService.generarNotificacion(
+          idUsuario: debt.idUsuario,
+          tipo: 'deuda',
+          mensaje: mensaje,
+          idEventoOrigen: debt.idDeuda!,
+          fechaEvento: fechaEvento,
+          fechaProgramada: anniversary,
+          mostrarEnAndroid: false,
+        );
+      } else {
+        // Programa solamente la alarma local, sin crear un registro interno.
+        await _notificationService.programarRecordatorioDeuda(
+          idUsuario: debt.idUsuario,
+          idDeuda: debt.idDeuda!,
+          mensaje: mensaje,
+          fechaProgramada: fechaRecordatorio,
+        );
+      }
+    }
   }
 
   /// Obtiene el detalle de una deuda.
@@ -67,22 +192,75 @@ class DebtService {
     return await _debtRepository.getDebtById(idDeuda);
   }
 
-  /// Actualiza una deuda existente.
+  /// Actualiza una deuda existente y sincroniza sus recordatorios.
   Future<int> updateDebt(DebtModel debt) async {
+    // Valida los datos antes de actualizar.
     _validateDebt(debt);
 
-    return await _debtRepository.updateDebt(debt);
+    // Verifica que la deuda tenga un identificador.
+    if (debt.idDeuda == null) {
+      throw Exception('La deuda no tiene un identificador.');
+    }
+
+    // Consulta la deuda existente antes de modificarla.
+    final deudaAnterior = await _debtRepository.getDebtById(debt.idDeuda!);
+
+    // Verifica que la deuda exista.
+    if (deudaAnterior == null) {
+      throw Exception('La deuda no existe.');
+    }
+
+    // Actualiza el registro en la base de datos.
+    final resultado = await _debtRepository.updateDebt(debt);
+
+    // Sincroniza las notificaciones únicamente si se actualizó el registro.
+    if (resultado > 0) {
+      // Elimina las notificaciones anteriores almacenadas en SQLite.
+      await _notificationService.eliminarNotificacionesPorEvento(
+        idUsuario: deudaAnterior.idUsuario,
+        tipo: 'deuda',
+        idEventoOrigen: debt.idDeuda!,
+      );
+
+      // Cancela la alarma local que estaba programada anteriormente.
+      await _notificationService.cancelarRecordatorioDeuda(debt.idDeuda!);
+
+      // Genera o programa el recordatorio según los datos actualizados.
+      await _generateMonthlyDebtNotifications([debt]);
+    }
+
+    // Devuelve el resultado de la actualización.
+    return resultado;
   }
 
-  /// Elimina una deuda.
+  /// Elimina una deuda y cancela sus notificaciones pendientes.
   Future<int> deleteDebt(int idDeuda) async {
+    // Consulta la deuda antes de eliminarla.
     final debt = await _debtRepository.getDebtById(idDeuda);
 
+    // Verifica que la deuda exista.
     if (debt == null) {
       throw Exception('La deuda no existe.');
     }
 
-    return await _debtRepository.deleteDebt(idDeuda);
+    // Elimina el registro de la base de datos.
+    final resultado = await _debtRepository.deleteDebt(idDeuda);
+
+    // Cancela las notificaciones únicamente si se eliminó correctamente.
+    if (resultado > 0) {
+      // Elimina las notificaciones almacenadas en SQLite.
+      await _notificationService.eliminarNotificacionesPorEvento(
+        idUsuario: debt.idUsuario,
+        tipo: 'deuda',
+        idEventoOrigen: idDeuda,
+      );
+
+      // Cancela la alarma local programada para esta deuda.
+      await _notificationService.cancelarRecordatorioDeuda(idDeuda);
+    }
+
+    // Devuelve el resultado de la eliminación.
+    return resultado;
   }
 
   // ---------------------------------------------------------------------------
@@ -225,16 +403,20 @@ class DebtService {
   /// Registra un pago ordinario sobre una deuda.
   ///
   /// El proceso se realiza dentro de una única transacción:
-  ///
   /// 1. Calcula los intereses de los períodos vencidos.
   /// 2. Distribuye el pago entre intereses y capital.
   /// 3. Registra el pago con su distribución financiera.
   /// 4. Actualiza los saldos y el estado de la deuda.
   /// 5. Genera el gasto automático correspondiente.
+  /// 6. Cancela los recordatorios si la deuda queda pagada.
   Future<int> registerPayment(DebtPaymentModel payment) async {
+    // Valida los datos básicos del pago.
     _validatePayment(payment);
 
-    return await _databaseHelper.transaction<int>((transaction) async {
+    // Ejecuta todas las operaciones financieras dentro de una transacción.
+    final paymentId = await _databaseHelper.transaction<int>((
+      transaction,
+    ) async {
       // Consulta la deuda dentro de la transacción.
       final debt = await _debtRepository.getDebtById(
         payment.idDeuda,
@@ -411,6 +593,24 @@ class DebtService {
 
       return paymentId;
     });
+
+    // Consulta la deuda después de confirmar la transacción.
+    final deudaActualizada = await _debtRepository.getDebtById(payment.idDeuda);
+
+    // Cancela las notificaciones si la deuda quedó completamente pagada.
+    if (deudaActualizada != null && deudaActualizada.estado == 'Pagada') {
+      // Elimina las notificaciones almacenadas en SQLite.
+      await _notificationService.eliminarNotificacionesPorEvento(
+        idUsuario: deudaActualizada.idUsuario,
+        tipo: 'deuda',
+        idEventoOrigen: payment.idDeuda,
+      );
+
+      // Cancela la alarma local programada para esta deuda.
+      await _notificationService.cancelarRecordatorioDeuda(payment.idDeuda);
+    }
+
+    return paymentId;
   }
 
   /// Obtiene el historial de pagos de una deuda.
@@ -430,7 +630,10 @@ class DebtService {
       throw Exception('La opción del abono extraordinario no es válida.');
     }
 
-    return await _databaseHelper.transaction<int>((transaction) async {
+    // Ejecuta las operaciones financieras dentro de una transacción.
+    final paymentId = await _databaseHelper.transaction<int>((
+      transaction,
+    ) async {
       // Consulta la deuda dentro de la transacción.
       final debt = await _debtRepository.getDebtById(
         payment.idDeuda,
@@ -645,10 +848,30 @@ class DebtService {
         fechaRegistro: payment.fechaRegistro,
       );
 
+      // Registra el gasto dentro de la transacción.
       await _expenseRepository.insertExpense(expense, executor: transaction);
 
       return paymentId;
     });
+
+    // Consulta la deuda después de confirmar la transacción.
+    final deudaActualizada = await _debtRepository.getDebtById(payment.idDeuda);
+
+    // Cancela las notificaciones si la deuda quedó completamente pagada.
+    if (deudaActualizada != null && deudaActualizada.estado == 'Pagada') {
+      // Elimina las notificaciones almacenadas en SQLite.
+      await _notificationService.eliminarNotificacionesPorEvento(
+        idUsuario: deudaActualizada.idUsuario,
+        tipo: 'deuda',
+        idEventoOrigen: payment.idDeuda,
+      );
+
+      // Cancela la alarma local programada para esta deuda.
+      await _notificationService.cancelarRecordatorioDeuda(payment.idDeuda);
+    }
+
+    // Devuelve el identificador del abono registrado.
+    return paymentId;
   }
 
   // ---------------------------------------------------------------------------
