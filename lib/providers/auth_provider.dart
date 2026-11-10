@@ -23,6 +23,11 @@ class AuthProvider extends ChangeNotifier {
   // Mensajes de respuesta para mostrar en pantalla
   String _message = '';
 
+  // Mensaje correspondiente a la última actualización del perfil.
+  String _profileMessage = '';
+
+  String get profileMessage => _profileMessage;
+
   // Indica si se está ejecutando una operación
   bool _isLoading = false;
 
@@ -125,29 +130,49 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Metodo para actualizar datos del usuario autenticado
+  /// Actualiza los datos personales del usuario autenticado.
   Future<bool> updateProfile({
     required String nombre,
     required String correo,
   }) async {
-    if (_currentUser == null) return false;
+    if (_currentUser == null) {
+      _profileMessage = 'No hay un usuario autenticado';
+      notifyListeners();
+      return false;
+    }
 
-    final success = await _authService.updateUser(
-      idUsuario: _currentUser!.idUsuario!,
-      nombre: nombre,
-      correo: correo,
-    );
+    _isLoading = true;
+    notifyListeners();
 
-    if (success) {
+    try {
+      // Solicita al servicio la actualización de los datos.
+      final result = await _authService.updateUser(
+        idUsuario: _currentUser!.idUsuario!,
+        nombre: nombre,
+        correo: correo,
+      );
+
+      if (result != null) {
+        _profileMessage = result;
+        return false;
+      }
+
+      // Actualiza el usuario en memoria después de guardar en SQLite.
       _currentUser = _currentUser!.copyWith(
         nombre: nombre.trim(),
         correo: correo.trim().toLowerCase(),
       );
 
+      _profileMessage = 'Datos personales actualizados correctamente';
+
+      return true;
+    } catch (e) {
+      _profileMessage = 'Ocurrió un error al actualizar los datos';
+      return false;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
-
-    return success;
   }
 
   /// Metodo para cambiar la contraseña del usuario actual

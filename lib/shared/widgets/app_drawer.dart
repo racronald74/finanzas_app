@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/perfil/screens/profile_screen.dart';
+import '../../features/perfil/screens/about_screen.dart';
+import '../../features/perfil/screens/help_screen.dart';
 
 /// Drawer principal de FinanzApp.
 ///
@@ -71,7 +74,17 @@ class AppDrawer extends StatelessWidget {
                   DrawerMenuItem(
                     icon: Icons.person_outline,
                     title: 'Datos personales',
-                    onTap: () {},
+                    onTap: () {
+                      // Cierra el menú lateral antes de abrir el perfil.
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   DrawerMenuItem(
@@ -114,13 +127,29 @@ class AppDrawer extends StatelessWidget {
                   DrawerMenuItem(
                     icon: Icons.help_outline,
                     title: 'Ayuda y soporte',
-                    onTap: () {},
+                    onTap: () {
+                      // Cierra el menú lateral antes de abrir la ayuda.
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HelpScreen()),
+                      );
+                    },
                   ),
 
                   DrawerMenuItem(
                     icon: Icons.info_outline,
                     title: 'Acerca de la app',
-                    onTap: () {},
+                    onTap: () {
+                      // Cierra el menú lateral antes de abrir la información.
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      );
+                    },
                   ),
 
                   const Divider(),

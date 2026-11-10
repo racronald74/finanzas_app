@@ -2,6 +2,8 @@ import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
 import 'password_hasher.dart';
 
+import 'package:sqflite/sqflite.dart';
+
 // Servicio de autenticación para manejar el registro, inicio de sesión y actualización de usuarios.
 class AuthService {
   final UserRepository _userRepository = UserRepository();
@@ -101,26 +103,50 @@ class AuthService {
         : 'No fue posible actualizar la contrasena';
   }
 
-  Future<bool> updateUser({
+  /// Actualiza los datos personales del usuario.
+  /// Comprueba que el correo no esté registrado por otra cuenta.
+  Future<String?> updateUser({
     required int idUsuario,
     required String nombre,
     required String correo,
-    double? ingresoFijoMensual,
   }) async {
     final normalizedName = nombre.trim();
     final normalizedEmail = correo.trim().toLowerCase();
 
-    if (normalizedName.isEmpty || !_isValidEmail(normalizedEmail)) {
-      return false;
+    // Valida el nombre.
+    if (normalizedName.isEmpty) {
+      return 'Ingrese su nombre';
     }
 
-    final result = await _userRepository.updateUser({
-      'id_usuario': idUsuario,
-      'nombre': normalizedName,
-      'correo': normalizedEmail,
-    });
+    // Valida el formato del correo.
+    if (!_isValidEmail(normalizedEmail)) {
+      return 'Ingrese un correo válido';
+    }
 
-    return result > 0;
+    // Comprueba si el correo pertenece a otro usuario.
+    final existingUser = await _userRepository.getUserByEmail(normalizedEmail);
+
+    if (existingUser != null && existingUser.idUsuario != idUsuario) {
+      return 'El correo ya está registrado por otro usuario';
+    }
+
+    try {
+      // Guarda los cambios en SQLite.
+      final result = await _userRepository.updateUser({
+        'id_usuario': idUsuario,
+        'nombre': normalizedName,
+        'correo': normalizedEmail,
+      });
+
+      return result > 0 ? null : 'No fue posible actualizar los datos';
+    } on DatabaseException catch (e) {
+      // Controla posibles conflictos con la restricción UNIQUE.
+      if (e.toString().contains('UNIQUE constraint failed')) {
+        return 'El correo ya está registrado por otro usuario';
+      }
+
+      return 'Ocurrió un error al actualizar los datos';
+    }
   }
 
   Future<bool> updatePassword({
