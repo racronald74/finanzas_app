@@ -9,8 +9,7 @@ import 'register_debt_payment_screen.dart';
 import 'create_debt_screen.dart';
 import 'register_extraordinary_payment_screen.dart';
 
-/// Pantalla que muestra el detalle de una deuda
-/// y el historial de pagos registrados.
+/// Pantalla que muestra el detalle de una deuda y su historial de pagos.
 class DebtDetailScreen extends StatefulWidget {
   final DebtModel debt;
 
@@ -23,10 +22,16 @@ class DebtDetailScreen extends StatefulWidget {
 class _DebtDetailScreenState extends State<DebtDetailScreen> {
   late DebtModel _debt;
 
+  /// Detecta si está activo el alto contraste.
+  bool get _highContrast =>
+      Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+  /// Color principal del tema activo.
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+
   @override
   void initState() {
     super.initState();
-
     _debt = widget.debt;
 
     // Carga la información actualizada y los pagos.
@@ -59,14 +64,12 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     if (_debt.montoTotal <= 0) return 0;
 
     final double paid = _debt.montoTotal - _debt.saldoPendiente;
-
     return (paid / _debt.montoTotal).clamp(0.0, 1.0);
   }
 
-  /// Formatea una fecha para mostrar únicamente día, mes y año.
+  /// Formatea una fecha para mostrar día, mes y año.
   String _formatDate(String value) {
     final DateTime? date = DateTime.tryParse(value);
-
     if (date == null) return value;
 
     final String day = date.day.toString().padLeft(2, '0');
@@ -75,7 +78,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     return '$day/$month/${date.year}';
   }
 
-  /// Determina los colores según el estado de la deuda.
+  /// Determina el color del estado en el modo normal.
   Color _statusColor() {
     switch (_debt.estado) {
       case 'Pagada':
@@ -87,12 +90,27 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     }
   }
 
+  /// Construye una tarjeta adaptable al alto contraste.
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      color: Colors.white,
+      elevation: _highContrast ? 0 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: _highContrast
+            ? const BorderSide(color: Colors.black, width: 1.5)
+            : BorderSide.none,
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DebtProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FC),
+      backgroundColor: _highContrast ? Colors.white : const Color(0xFFF5F8FC),
       appBar: AppBar(
         title: const Text(
           'Detalle de deuda',
@@ -133,7 +151,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       ),
       body: Column(
         children: [
-          // Contenido desplazable del detalle de la deuda.
+          // Contenido desplazable del detalle.
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -152,7 +170,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             ),
           ),
 
-          // Botones para registrar pagos ordinarios y extraordinarios.
+          // Botones fijos para registrar pagos.
           if (_debt.estado != 'Pagada')
             SafeArea(
               top: false,
@@ -160,11 +178,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                 child: Row(
                   children: [
-                    // Botón para registrar un pago ordinario.
                     Expanded(child: _buildRegisterPaymentButton()),
                     const SizedBox(width: 10),
-
-                    // Botón para registrar un abono extraordinario.
                     Expanded(child: _buildRegisterExtraordinaryPaymentButton()),
                   ],
                 ),
@@ -177,19 +192,19 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   /// Encabezado con el nombre del acreedor y estado.
   Widget _buildDebtHeader() {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             CircleAvatar(
               radius: 25,
-              backgroundColor: Colors.blue.shade50,
+              backgroundColor: _highContrast
+                  ? Colors.white
+                  : Colors.blue.shade50,
               child: Icon(
                 Icons.account_balance_outlined,
-                color: Colors.blue.shade700,
+                color: _highContrast ? Colors.black : Colors.blue.shade700,
                 size: 27,
               ),
             ),
@@ -197,22 +212,28 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             Expanded(
               child: Text(
                 _debt.acreedor,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w600,
+                  color: _highContrast ? Colors.black : null,
                 ),
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _statusColor().withValues(alpha: 0.12),
+                color: _highContrast
+                    ? Colors.white
+                    : _statusColor().withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
+                border: _highContrast
+                    ? Border.all(color: Colors.black, width: 1.2)
+                    : null,
               ),
               child: Text(
                 _debt.estado,
                 style: TextStyle(
-                  color: _statusColor(),
+                  color: _highContrast ? Colors.black : _statusColor(),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -228,20 +249,21 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   Widget _buildSummaryCard() {
     final int percentage = (_paidPercentage * 100).round();
 
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Resumen de la deuda',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: _highContrast ? Colors.black : null,
+              ),
             ),
             const SizedBox(height: 18),
-            // Muestra el monto inicial y el capital que aún falta pagar.
             _buildAmountRow('Monto de la deuda', _debt.montoTotal),
             const SizedBox(height: 14),
             _buildAmountRow('Capital pendiente', _debt.saldoPendiente),
@@ -249,25 +271,41 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Progreso de pago', style: TextStyle(fontSize: 13)),
+                Text(
+                  'Progreso de pago',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _highContrast ? Colors.black : null,
+                  ),
+                ),
                 Text(
                   '$percentage%',
-                  style: const TextStyle(
-                    color: Color(0xFF2196F3),
+                  style: TextStyle(
+                    color: _highContrast ? Colors.black : _primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: _paidPercentage,
-                minHeight: 9,
-                backgroundColor: const Color(0xFFD7ECFF),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF2196F3),
+            Container(
+              decoration: _highContrast
+                  ? BoxDecoration(
+                      border: Border.all(color: Colors.black, width: 1),
+                      borderRadius: BorderRadius.circular(10),
+                    )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: _paidPercentage,
+                  minHeight: 9,
+                  backgroundColor: _highContrast
+                      ? Colors.white
+                      : const Color(0xFFD7ECFF),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _highContrast ? _primaryColor : const Color(0xFF2196F3),
+                  ),
                 ),
               ),
             ),
@@ -282,13 +320,25 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 14, color: Colors.black)),
-        Text(
-          CurrencyFormatter.format(amount),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2196F3),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              color: _highContrast ? Colors.black : Colors.black,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            CurrencyFormatter.format(amount),
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: _highContrast ? Colors.black : const Color(0xFF2196F3),
+            ),
           ),
         ),
       ],
@@ -297,17 +347,19 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   /// Muestra los datos generales de la deuda.
   Widget _buildGeneralInformation() {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Información general',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: _highContrast ? Colors.black : null,
+              ),
             ),
             const SizedBox(height: 16),
             _buildInfoRow(
@@ -327,8 +379,6 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 'Plazo',
                 '${_debt.plazo} meses',
               ),
-
-            // Muestra el valor de la cuota mensual calculada.
             _buildInfoRow(
               Icons.payments_outlined,
               'Cuota mensual',
@@ -336,7 +386,6 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                   ? CurrencyFormatter.format(_debt.cuotaMensual!)
                   : 'No definida',
             ),
-
             _buildInfoRow(
               Icons.notifications_none,
               'Recordatorio',
@@ -359,12 +408,32 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          Icon(icon, size: 19, color: Colors.blue.shade700),
+          Icon(
+            icon,
+            size: 19,
+            color: _highContrast ? Colors.black : Colors.blue.shade700,
+          ),
           const SizedBox(width: 10),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 13))),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: _highContrast ? Colors.black : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: _highContrast ? Colors.black : null,
+              ),
+            ),
           ),
         ],
       ),
@@ -380,13 +449,17 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       children: [
         Text(
           'Historial de pagos (${payments.length})',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: _highContrast ? Colors.black : null,
+          ),
         ),
         const SizedBox(height: 12),
         if (provider.isLoading && payments.isEmpty)
           const Center(child: CircularProgressIndicator())
         else if (payments.isEmpty)
-          Card(
+          _buildCard(
             child: Padding(
               padding: const EdgeInsets.all(22),
               child: Center(
@@ -395,12 +468,15 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                     Icon(
                       Icons.receipt_long_outlined,
                       size: 38,
-                      color: Colors.grey.shade500,
+                      color: _highContrast ? Colors.black : Colors.grey,
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'No hay pagos registrados.',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _highContrast ? Colors.black : Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -415,13 +491,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   /// Construye una tarjeta individual para cada pago.
   Widget _buildPaymentItem(DebtPaymentModel payment) {
-    // Identifica si el movimiento es un abono extraordinario.
     final bool isExtraordinary = payment.tipoPago == 'EXTRAORDINARIO';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -430,19 +502,25 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  isExtraordinary ? 'Abono extraordinario' : 'Pago realizado',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    isExtraordinary ? 'Abono extraordinario' : 'Pago realizado',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _highContrast ? Colors.black : null,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   CurrencyFormatter.format(payment.monto),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF16B86A),
+                    color: _highContrast
+                        ? Colors.black
+                        : const Color(0xFF16B86A),
                   ),
                 ),
               ],
@@ -450,7 +528,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             const SizedBox(height: 10),
             Text(
               'Fecha: ${_formatDate(payment.fecha)}',
-              style: const TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(
+                fontSize: 13,
+                color: _highContrast ? Colors.black : Colors.black54,
+              ),
             ),
             if (isExtraordinary && payment.opcionAbono != null)
               Padding(
@@ -459,7 +540,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                   payment.opcionAbono == 'REDUCIR_PLAZO'
                       ? 'Opción: Reducir plazo'
                       : 'Opción: Reducir cuota',
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _highContrast ? Colors.black : null,
+                  ),
                 ),
               ),
             if (payment.metodoPago != null && payment.metodoPago!.isNotEmpty)
@@ -467,7 +551,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   'Método: ${payment.metodoPago}',
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _highContrast ? Colors.black : null,
+                  ),
                 ),
               ),
             if (payment.descripcion != null && payment.descripcion!.isNotEmpty)
@@ -475,7 +562,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   payment.descripcion!,
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _highContrast ? Colors.black : Colors.black54,
+                  ),
                 ),
               ),
           ],
@@ -507,8 +597,14 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2196F3),
+          backgroundColor: _highContrast
+              ? _primaryColor
+              : const Color(0xFF2196F3),
           foregroundColor: Colors.white,
+          elevation: _highContrast ? 0 : 1,
+          side: _highContrast
+              ? const BorderSide(color: Colors.black, width: 1.5)
+              : BorderSide.none,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
@@ -540,8 +636,14 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF16B86A),
+          backgroundColor: _highContrast
+              ? _primaryColor
+              : const Color(0xFF16B86A),
           foregroundColor: Colors.white,
+          elevation: _highContrast ? 0 : 1,
+          side: _highContrast
+              ? const BorderSide(color: Colors.black, width: 1.5)
+              : BorderSide.none,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
@@ -552,12 +654,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   /// Abre el formulario para editar la deuda actual.
   Future<void> _editDebt() async {
-    // Navega al formulario enviando la deuda que se desea editar.
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => CreateDebtScreen(debt: _debt)));
 
-    // Actualiza la información al regresar del formulario.
     if (mounted) {
       await _loadDetails();
     }
@@ -565,10 +665,16 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   /// Solicita confirmación antes de eliminar la deuda.
   Future<void> _confirmDeleteDebt() async {
-    // Muestra un diálogo para confirmar la eliminación.
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: _highContrast
+            ? RoundedRectangleBorder(
+                side: const BorderSide(color: Colors.black, width: 2),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
         title: const Text('Eliminar deuda'),
         content: const Text(
           '¿Estás seguro de que deseas eliminar esta deuda? '
@@ -592,10 +698,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       ),
     );
 
-    // Si el usuario cancela, no realiza ninguna operación.
     if (confirmed != true || !mounted) return;
 
-    // Solicita al Provider eliminar la deuda.
     final provider = context.read<DebtProvider>();
 
     final bool deleted = await provider.deleteDebt(
@@ -606,10 +710,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     if (!mounted) return;
 
     if (deleted) {
-      // Regresa a la pantalla anterior indicando que se eliminó.
       Navigator.of(context).pop(true);
     } else {
-      // Informa si ocurrió algún error.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

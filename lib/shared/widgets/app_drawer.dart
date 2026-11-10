@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'drawer_menu_item.dart';
 import 'package:provider/provider.dart';
 
+import 'drawer_menu_item.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/perfil/screens/profile_screen.dart';
 import '../../features/perfil/screens/about_screen.dart';
 import '../../features/perfil/screens/help_screen.dart';
+import '../../features/perfil/screens/accessibility_screen.dart';
 
 /// Drawer principal de FinanzApp.
 ///
@@ -21,7 +22,11 @@ class AppDrawer extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final usuario = authProvider.currentUser;
 
+    // Consulta la preferencia de alto contraste.
+    final highContrast = usuario?.altoContraste ?? false;
+
     return Drawer(
+      backgroundColor: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
@@ -32,24 +37,36 @@ class AppDrawer extends StatelessWidget {
               color: const Color(0xFF3F6DB5),
               child: Column(
                 children: [
-                  CircleAvatar(radius: 34, child: Icon(Icons.person, size: 34)),
+                  // Avatar del usuario.
+                  CircleAvatar(
+                    radius: 34,
+                    backgroundColor: highContrast
+                        ? const Color(0xFF003B8E)
+                        : null,
+                    foregroundColor: Colors.white,
+                    child: const Icon(Icons.person, size: 34),
+                  ),
 
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
+                  // Nombre del usuario autenticado.
                   Text(
                     usuario?.nombre ?? 'Usuario',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
 
+                  // Correo del usuario autenticado.
                   Text(
                     usuario?.correo ?? '',
-                    style: TextStyle(color: Colors.white70),
+                    style: TextStyle(
+                      color: highContrast ? Colors.white : Colors.white70,
+                    ),
                   ),
                 ],
               ),
@@ -60,13 +77,14 @@ class AppDrawer extends StatelessWidget {
                 children: [
                   const SizedBox(height: 12),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                  // Sección de opciones de cuenta.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Cuenta',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        color: highContrast ? Colors.black : Colors.grey,
                       ),
                     ),
                   ),
@@ -87,6 +105,9 @@ class AppDrawer extends StatelessWidget {
                     },
                   ),
 
+                  // Opciones reservadas para futuras versiones.
+
+                  /*
                   DrawerMenuItem(
                     icon: Icons.lock_outline,
                     title: 'Cambiar contraseña',
@@ -104,22 +125,37 @@ class AppDrawer extends StatelessWidget {
                     title: 'Tema',
                     onTap: () {},
                   ),
-
+                  */
                   DrawerMenuItem(
                     icon: Icons.accessibility_new,
                     title: 'Accesibilidad',
-                    onTap: () {},
+                    onTap: () {
+                      // Cierra el menú lateral antes de abrir accesibilidad.
+                      Navigator.pop(context);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AccessibilityScreen(),
+                        ),
+                      );
+                    },
                   ),
 
-                  const Divider(),
+                  // Separador entre las secciones.
+                  Divider(
+                    color: highContrast ? Colors.black : null,
+                    thickness: highContrast ? 1.5 : null,
+                  ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                  // Sección de soporte.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Soporte',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        color: highContrast ? Colors.black : Colors.grey,
                       ),
                     ),
                   ),
@@ -152,7 +188,11 @@ class AppDrawer extends StatelessWidget {
                     },
                   ),
 
-                  const Divider(),
+                  // Separador antes de cerrar sesión.
+                  Divider(
+                    color: highContrast ? Colors.black : null,
+                    thickness: highContrast ? 1.5 : null,
+                  ),
 
                   DrawerMenuItem(
                     icon: Icons.logout,

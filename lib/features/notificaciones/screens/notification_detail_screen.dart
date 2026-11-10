@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/models/notification_model.dart';
-import 'package:intl/intl.dart';
 
 /// Pantalla que muestra la información completa de una notificación.
 class NotificationDetailScreen extends StatelessWidget {
   final NotificationModel notification;
 
   const NotificationDetailScreen({super.key, required this.notification});
+
+  /// Detecta si está activo el modo de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
 
   /// Convierte el tipo interno en un nombre comprensible.
   String _getCategoryName() {
@@ -70,8 +75,23 @@ class NotificationDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+    final textColor = highContrast ? Colors.black : null;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de notificación')),
+      backgroundColor: highContrast ? Colors.white : null,
+      appBar: AppBar(
+        title: const Text('Detalle de notificación'),
+        backgroundColor: highContrast ? Colors.white : null,
+        foregroundColor: highContrast ? Colors.black : null,
+        elevation: highContrast ? 0 : null,
+        bottom: highContrast
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(2),
+                child: Divider(height: 2, thickness: 2, color: Colors.black),
+              )
+            : null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -84,12 +104,16 @@ class NotificationDetailScreen extends StatelessWidget {
                   Icon(
                     _getCategoryIcon(),
                     size: 52,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: highContrast
+                        ? const Color(0xFF003B8E)
+                        : Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     _getCategoryName(),
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: textColor),
                   ),
                 ],
               ),
@@ -98,27 +122,43 @@ class NotificationDetailScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // Mensaje completo del aviso.
-            Text('Información', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Información',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: textColor),
+            ),
             const SizedBox(height: 12),
             Card(
+              color: highContrast ? Colors.white : null,
+              shape: highContrast
+                  ? RoundedRectangleBorder(
+                      side: const BorderSide(color: Colors.black, width: 1.5),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : null,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   notification.mensaje,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: textColor),
                 ),
               ),
             ),
 
             const SizedBox(height: 24),
 
-            /// Fecha en que debe realizarse el recordatorio.
+            // Fecha en que debe realizarse el recordatorio.
             Text(
               'Fecha del recordatorio',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: textColor),
             ),
             const SizedBox(height: 8),
-            Text(_formatReminderDate()),
+            Text(_formatReminderDate(), style: TextStyle(color: textColor)),
 
             const SizedBox(height: 24),
 
@@ -126,17 +166,27 @@ class NotificationDetailScreen extends StatelessWidget {
             if (notification.tipo.toLowerCase() == 'meta') ...[
               Text(
                 'Fecha del aporte',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: textColor),
               ),
               const SizedBox(height: 8),
-              Text(_formatEventDate()),
+              Text(_formatEventDate(), style: TextStyle(color: textColor)),
               const SizedBox(height: 24),
             ],
 
             // Estado actual de lectura.
-            Text('Estado', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Estado',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: textColor),
+            ),
             const SizedBox(height: 8),
-            Text(notification.leida ? 'Leída' : 'No leída'),
+            Text(
+              notification.leida ? 'Leída' : 'No leída',
+              style: TextStyle(color: textColor),
+            ),
           ],
         ),
       ),

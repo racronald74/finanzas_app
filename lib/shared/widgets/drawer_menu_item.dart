@@ -26,12 +26,30 @@ class DrawerMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el modo de alto contraste.
+    final highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
     return ListTile(
-      leading: Icon(icon, color: iconColor),
+      // Conserva el color específico de cada icono.
+      leading: Icon(
+        icon,
+        color: highContrast && iconColor == Colors.black87
+            ? Colors.black
+            : iconColor,
+      ),
 
-      title: Text(title),
+      // Mejora la legibilidad del texto en alto contraste.
+      title: Text(
+        title,
+        style: TextStyle(color: highContrast ? Colors.black : null),
+      ),
 
-      trailing: const Icon(Icons.chevron_right),
+      // Flecha de navegación con contraste suficiente.
+      trailing: Icon(
+        Icons.chevron_right,
+        color: highContrast ? Colors.black : null,
+      ),
 
       onTap: onTap,
     );

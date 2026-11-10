@@ -1,6 +1,4 @@
-// Librería principal de Flutter
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 
 import '../../../providers/expense_provider.dart';
@@ -17,12 +15,8 @@ import '../../../shared/widgets/app_background.dart';
 
 /// Pantalla principal del módulo de gastos.
 ///
-/// Permite:
-/// - Visualizar el total gastado.
-/// - Consultar el presupuesto disponible.
-/// - Filtrar gastos.
-/// - Consultar el historial.
-/// - Registrar nuevos gastos.
+/// Permite visualizar el total gastado, consultar el presupuesto,
+/// filtrar gastos, consultar el historial y registrar nuevos gastos.
 class ExpensesScreen extends StatefulWidget {
   /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
@@ -42,17 +36,16 @@ class ExpensesScreen extends StatefulWidget {
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
   /// Filtro seleccionado actualmente.
-  ///
-  /// Valores posibles:
-  /// - Todos
-  /// - Hoy
-  /// - Semana
-  /// - Mes
   String _filtroSeleccionado = 'Todos';
 
+  /// Detecta si está activo el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   /// Construye un botón de filtro.
-  /// independientemente de si están seleccionados.
-  Widget _buildFiltro(String texto) {
+  Widget _buildFiltro(BuildContext context, String texto) {
+    final bool highContrast = _isHighContrast(context);
     final bool seleccionado = _filtroSeleccionado == texto;
 
     return SizedBox(
@@ -65,14 +58,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         },
         style: OutlinedButton.styleFrom(
           backgroundColor: seleccionado
-              ? const Color(0xFFD9E4FF)
-              : Colors.transparent,
-          foregroundColor: const Color(0xFF4A4A4A),
+              ? (highContrast
+                    ? const Color(0xFF003B8E)
+                    : const Color(0xFFD9E4FF))
+              : Colors.white,
+          foregroundColor: seleccionado
+              ? (highContrast ? Colors.white : const Color(0xFF4A4A4A))
+              : Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 10),
           side: BorderSide(
-            color: seleccionado
-                ? const Color(0xFFD9E4FF)
-                : const Color(0xFFD0D0D0),
+            color: highContrast
+                ? Colors.black
+                : (seleccionado
+                      ? const Color(0xFFD9E4FF)
+                      : const Color(0xFFD0D0D0)),
+            width: highContrast ? 1.5 : 1,
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -83,7 +83,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               const Icon(Icons.check, size: 18),
               const SizedBox(width: 6),
             ],
-            Text(texto),
+            Flexible(child: Text(texto, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
@@ -160,10 +160,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   @override
-  // Construcción de la interfaz de usuario
   Widget build(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
     // Obtiene el proveedor del módulo de gastos.
-    // Permite acceder a la lista y al total gastado.
     final expenseProvider = Provider.of<ExpenseProvider>(context);
 
     final budgetProvider = Provider.of<BudgetProvider>(context);
@@ -206,10 +206,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
 
     return Scaffold(
-      // Contenido principal
+      backgroundColor: Colors.white,
       body: AppBackground(
         child: Column(
           children: [
+            // Encabezado reutilizable de la aplicación.
             AppHeader(
               title: 'Gastos',
               showAvatar: true,
@@ -223,7 +224,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  // Contenido de la pantalla
                   children: [
                     ExpenseSummary(
                       totalGastado: budgetProvider.summary.totalExpenses,
@@ -241,58 +241,75 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     // Filtros de gastos.
                     Row(
                       children: [
-                        Expanded(child: _buildFiltro('Todos')),
+                        Expanded(child: _buildFiltro(context, 'Todos')),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildFiltro('Hoy')),
+                        Expanded(child: _buildFiltro(context, 'Hoy')),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildFiltro('Semana')),
+                        Expanded(child: _buildFiltro(context, 'Semana')),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildFiltro('Mes')),
+                        Expanded(child: _buildFiltro(context, 'Mes')),
                       ],
                     ),
 
                     const SizedBox(height: 5),
 
-                    const Text(
+                    Text(
                       'Lista de gastos',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
+                        color: highContrast ? Colors.black : null,
                       ),
                     ),
 
-                    /// Historial de gastos.
+                    // Historial de gastos.
                     Expanded(
                       child: gastosFiltrados.isEmpty
                           ? SizedBox(
                               width: double.infinity,
                               child: Card(
                                 color: Colors.white,
+                                elevation: highContrast ? 0 : 1,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: highContrast
+                                      ? const BorderSide(
+                                          color: Colors.black,
+                                          width: 2,
+                                        )
+                                      : BorderSide.none,
+                                ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
                                   child: Column(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.receipt_long,
                                         size: 60,
-                                        color: Colors.grey,
+                                        color: highContrast
+                                            ? Colors.black
+                                            : Colors.grey,
                                       ),
-
                                       const SizedBox(height: 16),
-
-                                      const Text(
+                                      Text(
                                         'No hay gastos registrados',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          color: highContrast
+                                              ? Colors.black
+                                              : null,
                                         ),
                                       ),
-
                                       const SizedBox(height: 8),
-
-                                      const Text(
+                                      Text(
                                         'Registra tu primer gasto para comenzar a controlar tus finanzas.',
                                         textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: highContrast
+                                              ? Colors.black
+                                              : null,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -300,13 +317,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               ),
                             )
                           : ListView.builder(
-                              // Mantiene un espacio entre el título y la primera tarjeta.
+                              // Mantiene un espacio entre el título
+                              // y la primera tarjeta.
                               padding: const EdgeInsets.only(top: 10),
                               itemCount: gastosFiltrados.length,
                               itemBuilder: (context, index) {
                                 final gasto = gastosFiltrados[index];
 
-                                // Construye una tarjeta personalizada para cada gasto.
+                                // Construye una tarjeta personalizada.
                                 return ExpenseCard(
                                   expense: gasto,
                                   onEdit: () async {
@@ -368,9 +386,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                       context: context,
                                       builder: (dialogContext) {
                                         return AlertDialog(
-                                          title: const Text('Eliminar gasto'),
-                                          content: const Text(
+                                          backgroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            side: highContrast
+                                                ? const BorderSide(
+                                                    color: Colors.black,
+                                                    width: 2,
+                                                  )
+                                                : BorderSide.none,
+                                          ),
+                                          title: Text(
+                                            'Eliminar gasto',
+                                            style: TextStyle(
+                                              color: highContrast
+                                                  ? Colors.black
+                                                  : null,
+                                            ),
+                                          ),
+                                          content: Text(
                                             '¿Está seguro de eliminar este gasto?',
+                                            style: TextStyle(
+                                              color: highContrast
+                                                  ? Colors.black
+                                                  : null,
+                                            ),
                                           ),
                                           actions: [
                                             TextButton(
@@ -383,6 +425,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                               child: const Text('Cancelar'),
                                             ),
                                             ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: highContrast
+                                                    ? const Color(0xFF003B8E)
+                                                    : null,
+                                                foregroundColor: highContrast
+                                                    ? Colors.white
+                                                    : null,
+                                              ),
                                               onPressed: () {
                                                 Navigator.pop(
                                                   dialogContext,
@@ -420,6 +470,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               },
                             ),
                     ),
+
                     const SizedBox(height: 12),
 
                     SizedBox(
@@ -444,6 +495,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             ),
                           );
 
+                          if (!mounted) return;
+
                           final usuario = authProvider.currentUser;
 
                           if (usuario != null) {
@@ -463,11 +516,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: highContrast
+                              ? const Color(0xFF003B8E)
+                              : AppColors.primary,
                           foregroundColor: Colors.white,
-                          elevation: 2,
+                          elevation: highContrast ? 0 : 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
+                            side: highContrast
+                                ? const BorderSide(
+                                    color: Colors.black,
+                                    width: 1,
+                                  )
+                                : BorderSide.none,
                           ),
                         ),
                       ),

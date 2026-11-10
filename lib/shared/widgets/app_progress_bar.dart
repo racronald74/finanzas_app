@@ -3,12 +3,6 @@ import 'package:flutter/material.dart';
 import '../themes/app_colors.dart';
 
 /// Barra de progreso reutilizable.
-///
-/// Se utiliza para representar el avance de:
-/// - Metas.
-/// - Presupuesto.
-/// - Gastos.
-/// - Reportes.
 class AppProgressBar extends StatelessWidget {
   /// Valor del progreso entre 0 y 1.
   final double value;
@@ -27,16 +21,40 @@ class AppProgressBar extends StatelessWidget {
     this.color,
   });
 
-  /// Construye la barra de progreso.
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: LinearProgressIndicator(
-        value: value,
-        minHeight: height,
-        backgroundColor: AppColors.progressBackground,
-        color: color ?? AppColors.progress,
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Obtiene los colores según el tema activo.
+    final Color backgroundColor = highContrast
+        ? Colors.white
+        : AppColors.progressBackground;
+
+    final Color progressColor =
+        color ??
+        (highContrast
+            ? Theme.of(context).colorScheme.primary
+            : AppColors.progress);
+
+    return Container(
+      // Agrega un borde negro para mejorar la visibilidad.
+      decoration: highContrast
+          ? BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: LinearProgressIndicator(
+          // Limita el progreso al intervalo permitido.
+          value: value.clamp(0.0, 1.0),
+          minHeight: height,
+          backgroundColor: backgroundColor,
+          color: progressColor,
+        ),
       ),
     );
   }

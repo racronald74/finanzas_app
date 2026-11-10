@@ -30,6 +30,11 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
   bool _reminderEnabled = false;
 
+  /// Detecta si está activo el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   @override
   void dispose() {
     _creditorController.dispose();
@@ -42,6 +47,7 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
   /// Muestra el selector de fecha de inicio.
   Future<void> _selectStartDate() async {
     final DateTime now = DateTime.now();
+    final bool highContrast = _isHighContrast(context);
 
     final DateTime? selectedDate = await showDatePicker(
       context: context,
@@ -51,6 +57,23 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
       helpText: 'Seleccionar fecha de inicio',
       cancelText: 'Cancelar',
       confirmText: 'Aceptar',
+
+      // Adapta el selector de fecha al alto contraste.
+      builder: (context, child) {
+        if (!highContrast) return child!;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate == null) return;
@@ -124,14 +147,12 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
           existingDebt?.fechaRegistro ?? DateTime.now().toIso8601String(),
     );
 
-    // Ejecuta la operación correspondiente según el modo del formulario.
+    // Ejecuta la operación según el modo del formulario.
     final bool success = existingDebt == null
         ? await debtProvider.createDebt(debt)
         : await debtProvider.updateDebt(debt);
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -162,8 +183,14 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FC),
+      // Adapta el fondo al tema activo.
+      backgroundColor: highContrast ? Colors.white : const Color(0xFFF5F8FC),
+
       appBar: AppBar(
         title: Text(
           widget.debt == null ? 'Crear deuda' : 'Editar deuda',
@@ -176,6 +203,7 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
+
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -184,12 +212,14 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Información de la deuda',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF17324D),
+                    color: highContrast
+                        ? Colors.black
+                        : const Color(0xFF17324D),
                   ),
                 ),
 
@@ -199,9 +229,11 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
                   widget.debt == null
                       ? 'Ingresa los datos necesarios para registrar tu deuda.'
                       : 'Actualiza la información de tu deuda.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF667085),
+                    color: highContrast
+                        ? Colors.black
+                        : const Color(0xFF667085),
                   ),
                 ),
 
@@ -308,15 +340,19 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
                 const SizedBox(height: 28),
 
+                // Botón principal del formulario.
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      elevation: 1,
+                      elevation: highContrast ? 0 : 1,
+                      side: highContrast
+                          ? const BorderSide(color: Colors.black, width: 1.5)
+                          : BorderSide.none,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
@@ -333,6 +369,7 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
                 const SizedBox(height: 10),
 
+                // Botón para cancelar el formulario.
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -340,6 +377,11 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
+                    style: TextButton.styleFrom(
+                      foregroundColor: highContrast
+                          ? Colors.black
+                          : primaryColor,
+                    ),
                     child: const Text(
                       'Cancelar',
                       style: TextStyle(
@@ -366,27 +408,43 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
+    final bool highContrast = _isHighContrast(context);
+
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
+      style: TextStyle(color: highContrast ? Colors.black : null),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: highContrast ? Colors.black : null),
+        labelStyle: TextStyle(color: highContrast ? Colors.black : null),
+        hintStyle: TextStyle(color: highContrast ? Colors.black54 : null),
+        errorStyle: const TextStyle(color: Colors.red),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderSide: highContrast
+              ? const BorderSide(color: Colors.black, width: 1.5)
+              : BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE1E7EF)),
+          borderSide: BorderSide(
+            color: highContrast ? Colors.black : const Color(0xFFE1E7EF),
+            width: highContrast ? 1.5 : 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+          borderSide: BorderSide(
+            color: highContrast ? primaryColor : const Color(0xFF2196F3),
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -394,22 +452,33 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
   /// Campo para seleccionar la fecha de inicio.
   Widget _buildDateField() {
+    final bool highContrast = _isHighContrast(context);
+
     return InkWell(
       onTap: _selectStartDate,
       borderRadius: BorderRadius.circular(14),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: 'Fecha de inicio',
-          prefixIcon: const Icon(Icons.event_outlined),
+          labelStyle: TextStyle(color: highContrast ? Colors.black : null),
+          prefixIcon: Icon(
+            Icons.event_outlined,
+            color: highContrast ? Colors.black : null,
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+            borderSide: highContrast
+                ? const BorderSide(color: Colors.black, width: 1.5)
+                : BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFFE1E7EF)),
+            borderSide: BorderSide(
+              color: highContrast ? Colors.black : const Color(0xFFE1E7EF),
+              width: highContrast ? 1.5 : 1,
+            ),
           ),
         ),
         child: Text(
@@ -418,7 +487,9 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
               : _formatDate(_startDate!),
           style: TextStyle(
             fontSize: 16,
-            color: _startDate == null
+            color: highContrast
+                ? Colors.black
+                : _startDate == null
                 ? const Color(0xFF667085)
                 : const Color(0xFF171717),
           ),
@@ -429,25 +500,40 @@ class _CreateDebtScreenState extends State<CreateDebtScreen> {
 
   /// Interruptor para activar o desactivar el recordatorio.
   Widget _buildReminderField() {
+    final bool highContrast = _isHighContrast(context);
+
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE1E7EF)),
+        border: Border.all(
+          color: highContrast ? Colors.black : const Color(0xFFE1E7EF),
+          width: highContrast ? 1.5 : 1,
+        ),
       ),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: const Text(
+        title: Text(
           'Recordatorio de pago',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: highContrast ? Colors.black : null,
+          ),
         ),
         subtitle: Text(
           _reminderEnabled ? 'Activado' : 'Desactivado',
-          style: const TextStyle(fontSize: 13, color: Color(0xFF667085)),
+          style: TextStyle(
+            fontSize: 13,
+            color: highContrast ? Colors.black : const Color(0xFF667085),
+          ),
         ),
         value: _reminderEnabled,
-        activeThumbColor: const Color(0xFF2196F3),
+        activeThumbColor: primaryColor,
+        activeTrackColor: highContrast ? const Color(0xFF003B8E) : null,
         onChanged: (value) {
           setState(() {
             _reminderEnabled = value;

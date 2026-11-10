@@ -33,6 +33,10 @@ class _NotificationSettingsScreenState
   bool _isLoading = true;
   bool _isSaving = false;
 
+  // Detecta si está activo el modo de alto contraste.
+  bool get _highContrast =>
+      context.read<AuthProvider>().currentUser?.altoContraste ?? false;
+
   @override
   void initState() {
     super.initState();
@@ -127,13 +131,14 @@ class _NotificationSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _highContrast;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F4),
+      backgroundColor: highContrast ? Colors.white : const Color(0xFFF4F4F4),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-
+            _buildHeader(highContrast),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -142,32 +147,33 @@ class _NotificationSettingsScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Preferencias',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF17324D),
+                              color: highContrast
+                                  ? Colors.black
+                                  : const Color(0xFF17324D),
                             ),
                           ),
-
                           const SizedBox(height: 6),
-
-                          const Text(
+                          Text(
                             'Administra las notificaciones que deseas recibir.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF667085),
+                              color: highContrast
+                                  ? Colors.black
+                                  : const Color(0xFF667085),
                             ),
                           ),
-
                           const SizedBox(height: 20),
-
                           _buildSwitchTile(
                             title: 'Notificaciones generales',
                             subtitle:
                                 'Activar o desactivar todas las notificaciones.',
                             value: _notificacionesActivas,
+                            highContrast: highContrast,
                             onChanged: (value) {
                               setState(() {
                                 _notificacionesActivas = value;
@@ -175,26 +181,25 @@ class _NotificationSettingsScreenState
                               _saveSettings();
                             },
                           ),
-
                           const SizedBox(height: 20),
-
-                          const Text(
+                          Text(
                             'Tipos de notificaciones',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF17324D),
+                              color: highContrast
+                                  ? Colors.black
+                                  : const Color(0xFF17324D),
                             ),
                           ),
-
                           const SizedBox(height: 10),
-
                           _buildSwitchTile(
                             title: 'Metas',
                             subtitle:
                                 'Recordatorios y avisos relacionados con tus metas.',
                             value: _notificacionesMetas,
                             enabled: _notificacionesActivas,
+                            highContrast: highContrast,
                             onChanged: (value) {
                               setState(() {
                                 _notificacionesMetas = value;
@@ -202,15 +207,14 @@ class _NotificationSettingsScreenState
                               _saveSettings();
                             },
                           ),
-
                           const SizedBox(height: 10),
-
                           _buildSwitchTile(
                             title: 'Deudas',
                             subtitle:
                                 'Recordatorios y avisos relacionados con tus deudas.',
                             value: _notificacionesDeudas,
                             enabled: _notificacionesActivas,
+                            highContrast: highContrast,
                             onChanged: (value) {
                               setState(() {
                                 _notificacionesDeudas = value;
@@ -218,15 +222,14 @@ class _NotificationSettingsScreenState
                               _saveSettings();
                             },
                           ),
-
                           const SizedBox(height: 10),
-
                           _buildSwitchTile(
                             title: 'Obligaciones',
                             subtitle:
                                 'Recordatorios y avisos de tus obligaciones.',
                             value: _notificacionesObligaciones,
                             enabled: _notificacionesActivas,
+                            highContrast: highContrast,
                             onChanged: (value) {
                               setState(() {
                                 _notificacionesObligaciones = value;
@@ -244,8 +247,8 @@ class _NotificationSettingsScreenState
     );
   }
 
-  /// Construye el encabezado siguiendo el diseño de AddObligationScreen.
-  Widget _buildHeader() {
+  /// Construye el encabezado de configuración.
+  Widget _buildHeader(bool highContrast) {
     return Container(
       width: double.infinity,
       height: 84,
@@ -258,9 +261,7 @@ class _NotificationSettingsScreenState
             onPressed: widget.onBackPressed,
             icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
           ),
-
           const SizedBox(width: 2),
-
           const Expanded(
             child: Text(
               'Configuración de notificaciones',
@@ -271,13 +272,14 @@ class _NotificationSettingsScreenState
               ),
             ),
           ),
-
           // Avatar para abrir el menú lateral.
           GestureDetector(
             onTap: widget.onAvatarPressed,
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 22,
-              child: Icon(Icons.person, size: 26),
+              backgroundColor: highContrast ? const Color(0xFF003B8E) : null,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.person, size: 26),
             ),
           ),
         ],
@@ -291,6 +293,7 @@ class _NotificationSettingsScreenState
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool highContrast,
     bool enabled = true,
   }) {
     return Container(
@@ -298,20 +301,33 @@ class _NotificationSettingsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD5E1ED)),
+        border: Border.all(
+          color: highContrast ? Colors.black : const Color(0xFFD5E1ED),
+          width: highContrast ? 1.5 : 1,
+        ),
       ),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(
           title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: highContrast ? Colors.black : null,
+          ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF667085)),
+          style: TextStyle(
+            fontSize: 12,
+            color: highContrast ? Colors.black : const Color(0xFF667085),
+          ),
         ),
         value: value,
-        activeThumbColor: const Color(0xFF2196F3),
+        activeThumbColor: highContrast
+            ? const Color(0xFF003B8E)
+            : const Color(0xFF2196F3),
+        activeTrackColor: highContrast ? const Color(0xFF90CAF9) : null,
         onChanged: enabled && !_isSaving ? onChanged : null,
       ),
     );

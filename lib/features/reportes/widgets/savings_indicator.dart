@@ -14,6 +14,18 @@ class SavingsIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Define los colores según el tema activo.
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+    final Color savingsColor = highContrast
+        ? Colors.black
+        : const Color(0xFF16A765);
+
     // Calcula el porcentaje de ahorro evitando dividir entre cero.
     final double savingsPercentage = totalIngresos > 0
         ? (saldo / totalIngresos) * 100
@@ -26,17 +38,25 @@ class SavingsIndicator extends StatelessWidget {
     final percentageFormat = NumberFormat('##0.00', 'es_CO');
 
     return Card(
+      color: Colors.white,
+      elevation: highContrast ? 0 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Porcentaje de ahorro',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF17324D),
+                color: textColor,
               ),
             ),
             const SizedBox(height: 16),
@@ -45,32 +65,44 @@ class SavingsIndicator extends StatelessWidget {
             Center(
               child: Text(
                 '${percentageFormat.format(savingsPercentage)} %',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF16A765),
+                  color: savingsColor,
                 ),
               ),
             ),
             const SizedBox(height: 14),
 
             // Representa visualmente la proporción de ahorro.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 10,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF16A765),
+            Container(
+              decoration: highContrast
+                  ? BoxDecoration(
+                      border: Border.all(color: Colors.black, width: 1),
+                      borderRadius: BorderRadius.circular(8),
+                    )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 10,
+                  backgroundColor: highContrast
+                      ? Colors.white
+                      : Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    highContrast
+                        ? const Color(0xFF003B8E)
+                        : const Color(0xFF16A765),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'Porcentaje de ingresos que queda disponible '
               'después de cubrir los gastos.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF666666)),
+              style: TextStyle(fontSize: 12, color: textColor),
             ),
           ],
         ),

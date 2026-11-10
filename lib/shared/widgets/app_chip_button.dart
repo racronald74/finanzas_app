@@ -2,18 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../themes/app_colors.dart';
 
-/// Botón reutilizable con estilo tipo "chip".
+/// Botón reutilizable con estilo tipo chip.
 ///
-/// Se utiliza para acciones secundarias dentro de tarjetas,
-/// por ejemplo:
-///
-/// - Ver detalle.
-/// - Aportar.
-/// - Editar.
-/// - Cancelar.
-///
-/// No reemplaza al [CustomButton], ya que este componente
-/// está pensado para acciones pequeñas dentro de un Card.
+/// Se utiliza para acciones secundarias dentro de tarjetas.
 class AppChipButton extends StatelessWidget {
   /// Texto mostrado en el botón.
   final String text;
@@ -40,39 +31,51 @@ class AppChipButton extends StatelessWidget {
     this.primaryColor,
   });
 
-  /// Construye el botón.
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
     // Permite personalizar el color principal del botón.
-    // Si no se especifica, conserva el azul de la aplicación.
     final Color buttonColor = primaryColor ?? AppColors.primary;
 
-    // Define los colores normales del botón.
+    // Define los colores del botón según el tema.
     final Color backgroundColor = isPrimary ? buttonColor : Colors.white;
+
     final Color foregroundColor = isPrimary ? Colors.white : buttonColor;
 
-    // Utiliza gris cuando el botón está deshabilitado.
-    final Color disabledBackgroundColor = Colors.grey.shade300;
-    final Color disabledForegroundColor = Colors.grey.shade600;
-    final Color borderColor = onPressed == null
+    // Define los colores para botones deshabilitados.
+    final Color disabledBackgroundColor = highContrast
+        ? Colors.white
+        : Colors.grey.shade300;
+
+    final Color disabledForegroundColor = highContrast
+        ? Colors.black
+        : Colors.grey.shade600;
+
+    // Define el borde del botón.
+    final Color borderColor = highContrast
+        ? Colors.black
+        : onPressed == null
         ? Colors.grey.shade300
         : buttonColor;
 
     return OutlinedButton.icon(
       onPressed: onPressed,
 
+      // Muestra el icono únicamente cuando fue proporcionado.
       icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 18),
 
       label: Text(text),
 
       style: OutlinedButton.styleFrom(
         elevation: 0,
-
         backgroundColor: backgroundColor,
-
         foregroundColor: foregroundColor,
 
-        side: BorderSide(color: borderColor),
+        // Aumenta el grosor del borde en alto contraste.
+        side: BorderSide(color: borderColor, width: highContrast ? 1.5 : 1),
 
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
 

@@ -19,6 +19,18 @@ class IncomeExpenseChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Define los colores según el tema activo.
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+    final Color secondaryColor = highContrast
+        ? Colors.black
+        : const Color(0xFF60758A);
+
     // Calcula el saldo y el porcentaje de ahorro.
     final saldo = totalIngresos - totalGastos;
     final porcentajeAhorro = totalIngresos > 0
@@ -34,23 +46,26 @@ class IncomeExpenseChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: highContrast ? Border.all(color: Colors.black, width: 2) : null,
+        boxShadow: highContrast
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ingresos vs. gastos',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF17324D),
+              color: textColor,
             ),
           ),
           const SizedBox(height: 20),
@@ -58,9 +73,19 @@ class IncomeExpenseChart extends StatelessWidget {
           // Adapta la distribución según el ancho disponible.
           LayoutBuilder(
             builder: (context, constraints) {
-              final chart = _buildVerticalChart(maxValue);
+              final chart = _buildVerticalChart(
+                maxValue,
+                highContrast,
+                textColor,
+                secondaryColor,
+              );
 
-              final savings = _buildSavingsPanel(saldo, porcentajeAhorro);
+              final savings = _buildSavingsPanel(
+                saldo,
+                porcentajeAhorro,
+                highContrast,
+                textColor,
+              );
 
               // En pantallas amplias, el ahorro aparece al lado.
               if (constraints.maxWidth >= 600) {
@@ -86,7 +111,12 @@ class IncomeExpenseChart extends StatelessWidget {
   }
 
   /// Construye el gráfico con columnas y escala vertical.
-  Widget _buildVerticalChart(double maxValue) {
+  Widget _buildVerticalChart(
+    double maxValue,
+    bool highContrast,
+    Color textColor,
+    Color secondaryColor,
+  ) {
     // Evita divisiones por cero y establece una escala visible.
     final scaleMax = maxValue > 0 ? maxValue : 1.0;
 
@@ -107,10 +137,7 @@ class IncomeExpenseChart extends StatelessWidget {
               children: scaleValues.map((value) {
                 return Text(
                   _formatAxisValue(value),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF60758A),
-                  ),
+                  style: TextStyle(fontSize: 10, color: secondaryColor),
                 );
               }).toList(),
             ),
@@ -135,8 +162,10 @@ class IncomeExpenseChart extends StatelessWidget {
                               left: 0,
                               right: 0,
                               child: Container(
-                                height: 1,
-                                color: const Color(0xFFE1E7EF),
+                                height: highContrast ? 1.5 : 1,
+                                color: highContrast
+                                    ? Colors.black
+                                    : const Color(0xFFE1E7EF),
                               ),
                             );
                           }),
@@ -151,13 +180,21 @@ class IncomeExpenseChart extends StatelessWidget {
                                   title: 'Ingresos',
                                   amount: totalIngresos,
                                   maxValue: scaleMax,
-                                  color: const Color(0xFF16A765),
+                                  color: highContrast
+                                      ? const Color(0xFF003B8E)
+                                      : const Color(0xFF16A765),
+                                  highContrast: highContrast,
+                                  textColor: textColor,
                                 ),
                                 _buildBar(
                                   title: 'Gastos',
                                   amount: totalGastos,
                                   maxValue: scaleMax,
-                                  color: const Color(0xFFE05252),
+                                  color: highContrast
+                                      ? Colors.black
+                                      : const Color(0xFFE05252),
+                                  highContrast: highContrast,
+                                  textColor: textColor,
                                 ),
                               ],
                             ),
@@ -168,16 +205,16 @@ class IncomeExpenseChart extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Text(
                       'Ingresos',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF355C7D)),
+                      style: TextStyle(fontSize: 12, color: secondaryColor),
                     ),
                     Text(
                       'Gastos',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF355C7D)),
+                      style: TextStyle(fontSize: 12, color: secondaryColor),
                     ),
                   ],
                 ),
@@ -195,6 +232,8 @@ class IncomeExpenseChart extends StatelessWidget {
     required double amount,
     required double maxValue,
     required Color color,
+    required bool highContrast,
+    required Color textColor,
   }) {
     final percentage = (amount / maxValue).clamp(0.0, 1.0);
 
@@ -207,10 +246,10 @@ class IncomeExpenseChart extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               _formatCurrency(amount),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF17324D),
+                color: textColor,
               ),
             ),
           ),
@@ -222,6 +261,9 @@ class IncomeExpenseChart extends StatelessWidget {
             height: 135 * percentage,
             decoration: BoxDecoration(
               color: color,
+              border: highContrast
+                  ? Border.all(color: Colors.black, width: 1.5)
+                  : null,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(7),
               ),
@@ -233,8 +275,15 @@ class IncomeExpenseChart extends StatelessWidget {
   }
 
   /// Panel que muestra el ahorro del período.
-  Widget _buildSavingsPanel(double saldo, double percentage) {
-    final savingsColor = saldo >= 0
+  Widget _buildSavingsPanel(
+    double saldo,
+    double percentage,
+    bool highContrast,
+    Color textColor,
+  ) {
+    final savingsColor = highContrast
+        ? Colors.black
+        : saldo >= 0
         ? const Color(0xFF16A765)
         : const Color(0xFFE05252);
 
@@ -242,15 +291,18 @@ class IncomeExpenseChart extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F5FC),
+        color: highContrast ? Colors.white : const Color(0xFFF0F5FC),
         borderRadius: BorderRadius.circular(12),
+        border: highContrast
+            ? Border.all(color: Colors.black, width: 1.5)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ahorro del período',
-            style: TextStyle(fontSize: 14, color: Color(0xFF355C7D)),
+            style: TextStyle(fontSize: 14, color: textColor),
           ),
           const SizedBox(height: 5),
           Text(
@@ -267,7 +319,7 @@ class IncomeExpenseChart extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               _formatCurrency(saldo),
-              style: const TextStyle(fontSize: 13, color: Color(0xFF355C7D)),
+              style: TextStyle(fontSize: 13, color: textColor),
             ),
           ),
         ],

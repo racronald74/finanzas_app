@@ -11,11 +11,16 @@ import '../data/models/user_model.dart';
 import '../data/services/reminder_sync_service.dart';
 // Servicio de notificaciones locales de Android.
 import '../data/services/local_notification_service.dart';
+// Repositorio para guardar las preferencias del usuario.
+import '../data/repositories/user_repository.dart';
 
 // Proveedor de autenticación para manejar el estado de autenticación del usuario y las operaciones relacionadas.
 class AuthProvider extends ChangeNotifier {
   // Servicio que contiene las reglas de negocio
   final AuthService _authService = AuthService();
+
+  // Repositorio para actualizar las preferencias del usuario.
+  final UserRepository _userRepository = UserRepository();
 
   // Usuario autenticado actualmente
   UserModel? _currentUser;
@@ -172,6 +177,45 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Actualiza las preferencias de accesibilidad del usuario autenticado.
+  Future<bool> updateAccessibilityPreferences({
+    required String tamanoTexto,
+    required bool altoContraste,
+  }) async {
+    // Comprueba que exista un usuario autenticado.
+    if (_currentUser == null) {
+      return false;
+    }
+
+    try {
+      // Guarda las preferencias en SQLite.
+      final updatedRows = await _userRepository.updateAccessibilityPreferences(
+        idUsuario: _currentUser!.idUsuario!,
+        tamanoTexto: tamanoTexto,
+        altoContraste: altoContraste,
+      );
+
+      // Comprueba que el usuario haya sido actualizado.
+      if (updatedRows == 0) {
+        return false;
+      }
+
+      // Actualiza las preferencias del usuario en memoria.
+      _currentUser = _currentUser!.copyWith(
+        tamanoTexto: tamanoTexto,
+        altoContraste: altoContraste,
+      );
+
+      // Notifica a los componentes que escuchan este proveedor.
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      debugPrint('Error al actualizar preferencias de accesibilidad: $e');
+      return false;
     }
   }
 

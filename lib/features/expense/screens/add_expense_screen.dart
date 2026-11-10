@@ -1,25 +1,14 @@
-// Librería principal de Flutter para construir interfaces
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 
 import '../../../providers/auth_provider.dart';
 import '../../../providers/expense_provider.dart';
-
 import '../../../data/models/expense_model.dart';
 import 'package:intl/intl.dart';
 
 /// Pantalla para registrar o editar un gasto.
-///
-/// Esta pantalla será reutilizable:
-///
-/// - Registrar gasto
-/// - Editar gasto
 class AddExpenseScreen extends StatefulWidget {
   /// Gasto que será editado.
-  ///
-  /// Si es null, la pantalla funcionará como
-  /// "Registrar gasto".
   final ExpenseModel? expense;
 
   const AddExpenseScreen({super.key, this.expense});
@@ -30,9 +19,6 @@ class AddExpenseScreen extends StatefulWidget {
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   /// Llave del formulario.
-  ///
-  /// Permite validar todos los campos del formulario
-  /// con una sola instrucción.
   final _formKey = GlobalKey<FormState>();
 
   /// Controlador del campo Nombre.
@@ -45,47 +31,84 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final TextEditingController _descripcionController = TextEditingController();
 
   /// Fecha seleccionada.
-  ///
-  /// Por defecto será la fecha actual.
   DateTime _fechaSeleccionada = DateTime.now();
 
   /// Categoría seleccionada.
   int? _categoriaSeleccionada;
 
   /// Categorías disponibles.
-  ///
-  /// Temporalmente se encuentran en memoria.
-  /// Más adelante se cargarán desde SQLite.
   final Map<int, String> _categorias = {
     1: 'Mercado',
-
     2: 'Transporte',
-
     3: 'Alimentación',
-
     4: 'Salud',
-
     5: 'Educación',
-
     6: 'Entretenimiento',
-
     7: 'Otros',
   };
+
+  /// Detecta si está activo el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
 
   /// Formatea el monto para mostrarlo con separador de miles.
   String _formatAmount(double value) {
     return NumberFormat('#,##0', 'es_CO').format(value);
   }
 
-  /// Guarda un nuevo gasto.
-  ///
-  /// Valida el formulario, construye el modelo,
-  /// llama al Provider y regresa a la pantalla
-  /// anterior cuando la operación es exitosa.
+  /// Construye el estilo de los campos del formulario.
+  InputDecoration _inputDecoration({
+    required String label,
+    String? hint,
+    Widget? prefix,
+    bool highContrast = false,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefix: prefix,
+      filled: highContrast,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: highContrast ? Colors.black : Colors.grey,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: highContrast ? Colors.black : Colors.grey,
+          width: highContrast ? 1.5 : 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: highContrast
+              ? const Color(0xFF003B8E)
+              : Theme.of(context).colorScheme.primary,
+          width: 2,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      labelStyle: TextStyle(color: highContrast ? Colors.black : null),
+      hintStyle: TextStyle(color: highContrast ? Colors.black54 : null),
+    );
+  }
+
+  /// Guarda un nuevo gasto o actualiza uno existente.
   Future<void> _guardarGasto() async {
     // Valida todos los campos del formulario.
     if (!_formKey.currentState!.validate()) {
-      // Si algún campo no es válido, no se guarda el gasto.
       return;
     }
 
@@ -102,8 +125,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
-    /// Convierte el monto mostrado con separadores
-    /// de miles al valor numérico utilizado por la aplicación.
+    // Convierte el monto mostrado con separadores de miles.
     final textoMonto = _montoController.text
         .trim()
         .replaceAll('\$', '')
@@ -163,33 +185,47 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Registrar gasto')),
+    final bool highContrast = _isHighContrast(context);
 
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+
+    final Color primaryColor = highContrast
+        ? const Color(0xFF003B8E)
+        : const Color(0xFF4380E5);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          widget.expense != null ? 'Editar gasto' : 'Registrar gasto',
+        ),
+        backgroundColor: highContrast ? Colors.white : null,
+        foregroundColor: highContrast ? Colors.black : null,
+        elevation: highContrast ? 0 : null,
+        shape: highContrast
+            ? const Border(bottom: BorderSide(color: Colors.black, width: 2))
+            : null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Form(
           key: _formKey,
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            // Aquí agregaremos los campos del formulario.
             children: [
-              // Campo Nombre
-              const Text('Nombre'),
-
-              SizedBox(height: 8),
-
+              // Campo Nombre.
+              Text('Nombre', style: TextStyle(color: textColor)),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nombreController,
-
-                decoration: const InputDecoration(
-                  hintText: 'Ejemplo: Supermercado',
-
-                  border: OutlineInputBorder(),
+                style: TextStyle(color: textColor),
+                decoration: _inputDecoration(
+                  label: 'Nombre del gasto',
+                  hint: 'Ejemplo: Supermercado',
+                  highContrast: highContrast,
                 ),
-
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese un nombre';
@@ -198,36 +234,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   return null;
                 },
               ),
-              // Espacio entre campos
+
               const SizedBox(height: 16),
-              // Campo Monto
-              const Text('Monto'),
-              // Espacio entre etiqueta y campo
+
+              // Campo Monto.
+              Text('Monto', style: TextStyle(color: textColor)),
               const SizedBox(height: 8),
-              // Campo de texto para el monto
               TextFormField(
                 controller: _montoController,
-                // Configura el teclado para números decimales
+                style: TextStyle(color: textColor),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                // Decoración del campo
-                decoration: const InputDecoration(
-                  hintText: 'Ejemplo: 120000',
-                  prefixText: r'$',
-                  border: OutlineInputBorder(),
+                decoration: _inputDecoration(
+                  label: 'Monto',
+                  hint: 'Ejemplo: 120000',
+                  prefix: const Text('\$ '),
+                  highContrast: highContrast,
                 ),
-                // Validación del campo
                 validator: (value) {
                   // Verifica que exista un valor.
                   if (value == null || value.trim().isEmpty) {
                     return 'Ingrese un monto';
                   }
+
                   // Intenta convertir el texto a número.
-                  // Convierte el texto a número.
                   final monto = double.tryParse(value);
 
-                  // Si no es un número válido.
                   if (monto == null) {
                     return 'Ingrese un número válido';
                   }
@@ -243,31 +276,36 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               const SizedBox(height: 16),
 
-              const Text('Categoría'),
-
+              // Selector de categoría.
+              Text('Categoría', style: TextStyle(color: textColor)),
               const SizedBox(height: 8),
-              // Campo de selección de categoría
               DropdownButtonFormField<int>(
                 initialValue: _categoriaSeleccionada,
-
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-
-                hint: const Text('Seleccione una categoría'),
-
+                isExpanded: true,
+                dropdownColor: Colors.white,
+                style: TextStyle(color: textColor),
+                decoration: _inputDecoration(
+                  label: 'Categoría',
+                  highContrast: highContrast,
+                ),
+                hint: Text(
+                  'Seleccione una categoría',
+                  style: TextStyle(color: highContrast ? Colors.black54 : null),
+                ),
                 items: _categorias.entries.map((categoria) {
                   return DropdownMenuItem<int>(
                     value: categoria.key,
-
-                    child: Text(categoria.value),
+                    child: Text(
+                      categoria.value,
+                      style: TextStyle(color: textColor),
+                    ),
                   );
                 }).toList(),
-
                 onChanged: (value) {
                   setState(() {
                     _categoriaSeleccionada = value;
                   });
                 },
-
                 validator: (value) {
                   if (value == null) {
                     return 'Seleccione una categoría';
@@ -279,21 +317,32 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               const SizedBox(height: 16),
 
-              const Text('Fecha'),
-
+              // Selector de fecha.
+              Text('Fecha', style: TextStyle(color: textColor)),
               const SizedBox(height: 8),
-              // Campo de selección de fecha
               InkWell(
                 onTap: () async {
-                  // Abre el calendario.
+                  // Abre el calendario adaptado al tema.
                   final DateTime? fecha = await showDatePicker(
                     context: context,
-
                     initialDate: _fechaSeleccionada,
-
                     firstDate: DateTime(2020),
-
                     lastDate: DateTime(2100),
+                    builder: (context, child) {
+                      if (!highContrast) return child!;
+
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: Theme.of(context).colorScheme.copyWith(
+                            primary: const Color(0xFF003B8E),
+                            onPrimary: Colors.white,
+                            surface: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
 
                   // Si el usuario seleccionó una fecha.
@@ -303,48 +352,55 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     });
                   }
                 },
-
                 child: Container(
                   width: double.infinity,
-
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 16,
                   ),
-
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: highContrast ? Colors.black : Colors.grey,
+                      width: highContrast ? 1.5 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-
-                  child: Text(
-                    '${_fechaSeleccionada.day.toString().padLeft(2, '0')}/'
-                    '${_fechaSeleccionada.month.toString().padLeft(2, '0')}/'
-                    '${_fechaSeleccionada.year}',
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined, color: primaryColor),
+                      const SizedBox(width: 10),
+                      Text(
+                        '${_fechaSeleccionada.day.toString().padLeft(2, '0')}/'
+                        '${_fechaSeleccionada.month.toString().padLeft(2, '0')}/'
+                        '${_fechaSeleccionada.year}',
+                        style: TextStyle(color: textColor),
+                      ),
+                      const Spacer(),
+                      Icon(Icons.edit_calendar_outlined, color: primaryColor),
+                    ],
                   ),
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              const Text('Descripción'),
-
+              // Campo Descripción.
+              Text('Descripción', style: TextStyle(color: textColor)),
               const SizedBox(height: 8),
-              // Campo de texto para la descripción
               TextFormField(
                 controller: _descripcionController,
-
                 maxLines: 3,
-
-                decoration: const InputDecoration(
-                  hintText: 'Información adicional (opcional)',
-
-                  border: OutlineInputBorder(),
+                style: TextStyle(color: textColor),
+                decoration: _inputDecoration(
+                  label: 'Descripción',
+                  hint: 'Información adicional (opcional)',
+                  highContrast: highContrast,
                 ),
               ),
 
               const SizedBox(height: 24),
+
               // Botón principal para guardar el gasto.
               SizedBox(
                 width: double.infinity,
@@ -352,16 +408,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _guardarGasto,
                   icon: const Icon(Icons.save_outlined),
-                  label: const Text(
-                    'Guardar gasto',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  label: Text(
+                    widget.expense != null
+                        ? 'Actualizar gasto'
+                        : 'Guardar gasto',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4380E5),
+                    backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
-                    elevation: 2,
+                    elevation: highContrast ? 0 : 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
+                      side: highContrast
+                          ? const BorderSide(color: Colors.black, width: 1)
+                          : BorderSide.none,
                     ),
                   ),
                 ),
@@ -389,5 +453,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       _categoriaSeleccionada = widget.expense!.idCategoria;
     }
+  }
+
+  @override
+  void dispose() {
+    // Libera los controladores al cerrar la pantalla.
+    _nombreController.dispose();
+    _montoController.dispose();
+    _descripcionController.dispose();
+    super.dispose();
   }
 }

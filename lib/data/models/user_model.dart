@@ -6,13 +6,17 @@ class UserModel {
   final double ingresoFijoMensual;
   final String fechaRegistro;
 
-  // Preferencia general para habilitar o deshabilitar notificaciones.
+  // Preferencias generales de notificaciones.
   final bool notificacionesActivas;
 
-  // Preferencias individuales por tipo de notificación.
+  // Preferencias individuales de notificaciones.
   final bool notificacionesMetas;
   final bool notificacionesDeudas;
   final bool notificacionesObligaciones;
+
+  // Preferencias de accesibilidad.
+  final String tamanoTexto;
+  final bool altoContraste;
 
   UserModel({
     this.idUsuario,
@@ -25,6 +29,8 @@ class UserModel {
     this.notificacionesMetas = true,
     this.notificacionesDeudas = true,
     this.notificacionesObligaciones = true,
+    this.tamanoTexto = 'normal',
+    this.altoContraste = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -39,6 +45,8 @@ class UserModel {
       'notificaciones_metas': notificacionesMetas ? 1 : 0,
       'notificaciones_deudas': notificacionesDeudas ? 1 : 0,
       'notificaciones_obligaciones': notificacionesObligaciones ? 1 : 0,
+      'tamano_texto': tamanoTexto,
+      'alto_contraste': altoContraste ? 1 : 0,
     };
   }
 
@@ -64,6 +72,11 @@ class UserModel {
       notificacionesObligaciones:
           map['notificaciones_obligaciones'] == 1 ||
           map['notificaciones_obligaciones'] == true,
+
+      // Recupera las preferencias de accesibilidad.
+      tamanoTexto: map['tamano_texto'] ?? 'normal',
+      altoContraste:
+          map['alto_contraste'] == 1 || map['alto_contraste'] == true,
     );
   }
 
@@ -80,6 +93,8 @@ class UserModel {
     bool? notificacionesMetas,
     bool? notificacionesDeudas,
     bool? notificacionesObligaciones,
+    String? tamanoTexto,
+    bool? altoContraste,
   }) {
     return UserModel(
       idUsuario: idUsuario ?? this.idUsuario,
@@ -94,6 +109,8 @@ class UserModel {
       notificacionesDeudas: notificacionesDeudas ?? this.notificacionesDeudas,
       notificacionesObligaciones:
           notificacionesObligaciones ?? this.notificacionesObligaciones,
+      tamanoTexto: tamanoTexto ?? this.tamanoTexto,
+      altoContraste: altoContraste ?? this.altoContraste,
     );
   }
 }

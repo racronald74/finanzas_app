@@ -1,13 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/debt_model.dart';
 import '../../../data/models/debt_payment_model.dart';
+import '../../../data/models/debt_payment_preview_model.dart';
 import '../../../providers/debt_provider.dart';
 import '../../../shared/helpers/currency_formatter.dart';
-import 'dart:async';
-
-import '../../../data/models/debt_payment_preview_model.dart';
 
 /// Pantalla para registrar un pago de una deuda.
 class RegisterDebtPaymentScreen extends StatefulWidget {
@@ -41,18 +41,25 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
   // Identifica las solicitudes para descartar resultados anteriores.
   int _previewRequestId = 0;
 
+  /// Detecta si está activo el alto contraste.
+  bool get _highContrast =>
+      Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+  /// Color principal del tema.
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+
   @override
   void initState() {
     super.initState();
 
     // Precarga la cuota mensual como valor inicial del pago.
-    // El usuario puede modificarla para realizar un pago parcial.
     final double? installment = widget.debt.cuotaMensual;
 
     if (installment != null && installment > 0) {
       _amountController.text = installment.toStringAsFixed(2);
     }
-    // Calcula la vista previa después de que la pantalla se haya construido.
+
+    // Calcula la vista previa después de construir la pantalla.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _schedulePaymentPreview();
@@ -62,7 +69,7 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
 
   @override
   void dispose() {
-    // Cancela el temporizador si todavía está pendiente.
+    // Cancela el temporizador pendiente.
     _previewTimer?.cancel();
 
     // Invalida cualquier solicitud de vista previa en curso.
@@ -78,6 +85,8 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
 
   /// Permite seleccionar la fecha del pago.
   Future<void> _selectDate() async {
+    final bool highContrast = _highContrast;
+
     final DateTime? selectedDate = await showDatePicker(
       context: context,
       initialDate: _paymentDate,
@@ -86,6 +95,21 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
       helpText: 'Seleccionar fecha del pago',
       cancelText: 'Cancelar',
       confirmText: 'Aceptar',
+      builder: (context, child) {
+        if (!highContrast) return child!;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate == null) return;
@@ -115,15 +139,11 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
 
   /// Programa el cálculo de la vista previa del pago ordinario.
   void _schedulePaymentPreview() {
-    // Cancela el temporizador anterior.
     _previewTimer?.cancel();
-
-    // Invalida cualquier solicitud anterior.
     _previewRequestId++;
 
     final int currentRequestId = _previewRequestId;
 
-    // Obtiene el importe ingresado.
     final double? amount = double.tryParse(
       _amountController.text.trim().replaceAll(',', '.'),
     );
@@ -206,7 +226,6 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     );
 
     final DebtProvider provider = context.read<DebtProvider>();
-
     final bool success = await provider.registerPayment(payment);
 
     if (!mounted) return;
@@ -232,12 +251,27 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     }
   }
 
+  /// Construye una tarjeta adaptable al alto contraste.
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      color: Colors.white,
+      elevation: _highContrast ? 0 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: _highContrast
+            ? const BorderSide(color: Colors.black, width: 1.5)
+            : BorderSide.none,
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final DebtProvider provider = context.watch<DebtProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FC),
+      backgroundColor: _highContrast ? Colors.white : const Color(0xFFF5F8FC),
       appBar: AppBar(
         title: const Text(
           'Registrar pago',
@@ -257,12 +291,14 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
               children: [
                 _buildDebtSummary(),
                 const SizedBox(height: 22),
-                const Text(
+                Text(
                   'Información del pago',
                   style: TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF17324D),
+                    color: _highContrast
+                        ? Colors.black
+                        : const Color(0xFF17324D),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -299,8 +335,12 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
+                      backgroundColor: _primaryColor,
                       foregroundColor: Colors.white,
+                      elevation: _highContrast ? 0 : 1,
+                      side: _highContrast
+                          ? const BorderSide(color: Colors.black, width: 1.5)
+                          : BorderSide.none,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
@@ -315,6 +355,11 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
                     onPressed: provider.isLoading
                         ? null
                         : () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: _highContrast
+                          ? Colors.black
+                          : _primaryColor,
+                    ),
                     child: const Text('Cancelar'),
                   ),
                 ),
@@ -328,9 +373,7 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
 
   /// Muestra el acreedor y el saldo pendiente.
   Widget _buildDebtSummary() {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -338,17 +381,27 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
           children: [
             Text(
               widget.debt.acreedor,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: _highContrast ? Colors.black : null,
+              ),
             ),
             const SizedBox(height: 12),
-            const Text('Saldo pendiente', style: TextStyle(fontSize: 13)),
+            Text(
+              'Saldo pendiente',
+              style: TextStyle(
+                fontSize: 13,
+                color: _highContrast ? Colors.black : null,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               CurrencyFormatter.format(widget.debt.saldoPendiente),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2196F3),
+                color: _highContrast ? Colors.black : const Color(0xFF2196F3),
               ),
             ),
           ],
@@ -362,6 +415,7 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     return TextFormField(
       controller: _amountController,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: TextStyle(color: _highContrast ? Colors.black : null),
       onChanged: (_) {
         _schedulePaymentPreview();
       },
@@ -392,12 +446,11 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     );
   }
 
-  /// Muestra la distribución estimada del pago antes de registrarlo.
+  /// Muestra la distribución estimada del pago.
   Widget _buildPaymentPreview() {
-    // Muestra un indicador mientras se calcula la distribución.
     if (_isPreviewLoading) {
-      return const Card(
-        child: Padding(
+      return _buildCard(
+        child: const Padding(
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
@@ -407,51 +460,42 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               SizedBox(width: 12),
-              Text('Calculando distribución del pago...'),
+              Expanded(child: Text('Calculando distribución del pago...')),
             ],
           ),
         ),
       );
     }
 
-    // No muestra información si todavía no existe una vista previa.
     if (_paymentPreview == null) {
       return const SizedBox.shrink();
     }
 
     final preview = _paymentPreview!;
 
-    return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return _buildCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Distribución estimada del pago',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF17324D),
+                color: _highContrast ? Colors.black : const Color(0xFF17324D),
               ),
             ),
             const SizedBox(height: 14),
-
-            // Importe total que se simulará.
             _buildPreviewRow('Monto del pago', preview.montoPago),
-
-            // Parte del pago destinada a cubrir intereses.
             _buildPreviewRow('Intereses a pagar', preview.interesesPagados),
-
-            // Parte del pago destinada a reducir el capital.
             _buildPreviewRow('Abono a capital', preview.abonoCapital),
-
-            const Divider(height: 24),
-
-            // Saldo que quedaría después de registrar el pago.
+            Divider(
+              height: 24,
+              color: _highContrast ? Colors.black : null,
+              thickness: _highContrast ? 1.5 : null,
+            ),
             _buildPreviewRow(
               'Saldo restante',
               preview.saldoRestante,
@@ -465,12 +509,20 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF4E5),
+                  color: _highContrast ? Colors.white : const Color(0xFFFFF4E5),
                   borderRadius: BorderRadius.circular(10),
+                  border: _highContrast
+                      ? Border.all(color: Colors.black, width: 1.2)
+                      : null,
                 ),
-                child: const Text(
+                child: Text(
                   'El monto ingresado es inferior a la cuota mensual.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF9A6700)),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _highContrast
+                        ? Colors.black
+                        : const Color(0xFF9A6700),
+                  ),
                 ),
               ),
             ],
@@ -491,22 +543,30 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
-              color: const Color(0xFF526477),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+                color: _highContrast ? Colors.black : const Color(0xFF526477),
+              ),
             ),
           ),
-          Text(
-            CurrencyFormatter.format(amount),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: highlight
-                  ? const Color(0xFF2196F3)
-                  : const Color(0xFF17324D),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              CurrencyFormatter.format(amount),
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _highContrast
+                    ? Colors.black
+                    : highlight
+                    ? const Color(0xFF2196F3)
+                    : const Color(0xFF17324D),
+              ),
             ),
           ),
         ],
@@ -526,7 +586,10 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
         ),
         child: Text(
           _formatDate(_paymentDate),
-          style: const TextStyle(fontSize: 15),
+          style: TextStyle(
+            fontSize: 15,
+            color: _highContrast ? Colors.black : null,
+          ),
         ),
       ),
     );
@@ -536,6 +599,7 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
   Widget _buildMethodField() {
     return TextFormField(
       controller: _methodController,
+      style: TextStyle(color: _highContrast ? Colors.black : null),
       decoration: _inputDecoration(
         label: 'Método de pago (opcional)',
         hint: 'Ej. Transferencia, efectivo',
@@ -549,6 +613,7 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     return TextFormField(
       controller: _descriptionController,
       maxLines: 3,
+      style: TextStyle(color: _highContrast ? Colors.black : null),
       decoration: _inputDecoration(
         label: 'Descripción (opcional)',
         hint: 'Agrega información adicional',
@@ -563,23 +628,38 @@ class _RegisterDebtPaymentScreenState extends State<RegisterDebtPaymentScreen> {
     required IconData icon,
     String? hint,
   }) {
+    final Color borderColor = _highContrast
+        ? Colors.black
+        : const Color(0xFFE1E7EF);
+
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(icon),
+      prefixIcon: Icon(icon, color: _highContrast ? Colors.black : null),
+      labelStyle: TextStyle(color: _highContrast ? Colors.black : null),
+      hintStyle: TextStyle(color: _highContrast ? Colors.black54 : null),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(
+          color: borderColor,
+          width: _highContrast ? 1.5 : 1,
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE1E7EF)),
+        borderSide: BorderSide(
+          color: borderColor,
+          width: _highContrast ? 1.5 : 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+        borderSide: BorderSide(
+          color: _highContrast ? _primaryColor : const Color(0xFF2196F3),
+          width: 1.5,
+        ),
       ),
     );
   }

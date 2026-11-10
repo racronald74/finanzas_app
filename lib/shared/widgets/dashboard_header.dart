@@ -45,59 +45,77 @@ class DashboardHeader extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final usuario = authProvider.currentUser;
 
+    // Detecta si está activo el tema de alto contraste.
+    final highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
     return Container(
-      height: 100,
+      // Permite que el encabezado crezca cuando el texto ocupa más espacio.
+      constraints: const BoxConstraints(minHeight: 120),
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(color: Color(0xFF3F6DB5)),
       child: SafeArea(
         bottom: false,
-        child: Row(
-          children: [
-            // Avatar del usuario.
-            if (showAvatar)
-              GestureDetector(
-                onTap: onAvatarPressed,
-                child: const CircleAvatar(
-                  radius: 22,
-                  child: Icon(Icons.person),
+        child: Padding(
+          // Agrega espacio vertical para evitar que el texto quede ajustado.
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar del usuario.
+              if (showAvatar)
+                GestureDetector(
+                  onTap: onAvatarPressed,
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: highContrast
+                        ? const Color(0xFF003B8E)
+                        : null,
+                    foregroundColor: Colors.white,
+                    child: const Icon(Icons.person),
+                  ),
+                ),
+
+              const SizedBox(width: 16),
+
+              // Información del usuario.
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Hola, ${usuario?.nombre ?? greeting}\n',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: subtitle,
+                        style: TextStyle(
+                          color: highContrast ? Colors.white : Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.left,
                 ),
               ),
 
-            const SizedBox(width: 16),
-
-            // Información del usuario.
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Hola, ${usuario?.nombre ?? greeting}\n',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextSpan(
-                      text: subtitle,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+              // Botón de notificaciones.
+              if (showNotification)
+                IconButton(
+                  onPressed: onNotificationPressed,
+                  icon: const Icon(
+                    Icons.notifications_none,
+                    color: Colors.white,
+                  ),
                 ),
-                textAlign: TextAlign.left,
-              ),
-            ),
-
-            // Botón de notificaciones.
-            if (showNotification)
-              IconButton(
-                onPressed: onNotificationPressed,
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

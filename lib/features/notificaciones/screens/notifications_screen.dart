@@ -47,9 +47,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Escucha los cambios de la preferencia de alto contraste.
+    final highContrast =
+        context.watch<AuthProvider>().currentUser?.altoContraste ?? false;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: highContrast ? Colors.white : null,
         body: AppBackground(
           child: Column(
             children: [
@@ -64,17 +69,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
 
               // Acciones generales de las notificaciones.
-              _buildActions(),
+              _buildActions(highContrast),
 
               // Filtros de notificaciones.
               Container(
-                color: Colors.white,
-                child: const TabBar(
-                  labelColor: Color(0xFF3F73BC),
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: Color(0xFF3F73BC),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: highContrast
+                      ? const Border(
+                          bottom: BorderSide(color: Colors.black, width: 1.5),
+                        )
+                      : null,
+                ),
+                child: TabBar(
+                  labelColor: highContrast
+                      ? const Color(0xFF003B8E)
+                      : const Color(0xFF3F73BC),
+                  unselectedLabelColor: highContrast
+                      ? Colors.black
+                      : Colors.grey,
+                  indicatorColor: const Color(0xFF3F73BC),
                   indicatorWeight: 3,
-                  tabs: [
+                  tabs: const [
                     Tab(text: 'Todas'),
                     Tab(text: 'No leídas'),
                     Tab(text: 'Leídas'),
@@ -102,9 +118,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                     return TabBarView(
                       children: [
-                        _buildNotificationList(provider.notifications),
-                        _buildNotificationList(provider.unreadNotifications),
-                        _buildNotificationList(provider.readNotifications),
+                        _buildNotificationList(
+                          provider.notifications,
+                          highContrast,
+                        ),
+                        _buildNotificationList(
+                          provider.unreadNotifications,
+                          highContrast,
+                        ),
+                        _buildNotificationList(
+                          provider.readNotifications,
+                          highContrast,
+                        ),
                       ],
                     );
                   },
@@ -118,35 +143,59 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Construye la sección de acciones generales.
-  Widget _buildActions() {
+  Widget _buildActions(bool highContrast) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, child) {
         return Container(
+          // Ocupa todo el ancho disponible de la pantalla.
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           color: Colors.white,
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Muestra la cantidad de notificaciones sin leer.
               Text(
                 '${provider.unreadCount} sin leer',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF555555)),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: provider.unreadCount == 0 ? null : _markAllAsRead,
-                icon: const Icon(Icons.done_all, size: 18),
-                label: const Text('Marcar todas como leídas'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: highContrast ? Colors.black : const Color(0xFF555555),
+                ),
               ),
 
-              // Permite eliminar todo el historial de notificaciones.
-              IconButton(
-                tooltip: 'Eliminar historial',
-                onPressed: provider.notifications.isEmpty
-                    ? null
-                    : _deleteAllNotifications,
-                icon: const Icon(
-                  Icons.delete_sweep_outlined,
-                  color: Colors.red,
-                ),
+              const SizedBox(height: 8),
+
+              // Permite distribuir las acciones en varias líneas.
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  TextButton.icon(
+                    onPressed: provider.unreadCount == 0
+                        ? null
+                        : _markAllAsRead,
+                    style: TextButton.styleFrom(
+                      foregroundColor: highContrast
+                          ? const Color(0xFF003B8E)
+                          : null,
+                    ),
+                    icon: const Icon(Icons.done_all, size: 18),
+                    label: const Text('Marcar todas como leídas'),
+                  ),
+
+                  // Permite eliminar todo el historial.
+                  IconButton(
+                    tooltip: 'Eliminar historial',
+                    onPressed: provider.notifications.isEmpty
+                        ? null
+                        : _deleteAllNotifications,
+                    icon: const Icon(
+                      Icons.delete_sweep_outlined,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -156,21 +205,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Construye la lista de notificaciones.
-  Widget _buildNotificationList(List<NotificationModel> notifications) {
+  Widget _buildNotificationList(
+    List<NotificationModel> notifications,
+    bool highContrast,
+  ) {
     if (notifications.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.notifications_none_rounded,
               size: 65,
-              color: Colors.grey,
+              color: highContrast ? Colors.black : Colors.grey,
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               'No hay notificaciones',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 16,
+                color: highContrast ? Colors.black : Colors.grey,
+              ),
             ),
           ],
         ),
@@ -196,16 +251,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               padding: const EdgeInsets.only(left: 5, top: 10, bottom: 8),
               child: Text(
                 _formatGroupDate(date),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF355C7D),
+                  color: highContrast ? Colors.black : const Color(0xFF355C7D),
                 ),
               ),
             ),
 
             // Muestra las notificaciones del día.
-            ...items.map(_buildNotificationCard),
+            ...items.map((item) => _buildNotificationCard(item, highContrast)),
           ],
         );
       },
@@ -274,7 +329,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Construye la tarjeta de una notificación.
-  Widget _buildNotificationCard(NotificationModel notification) {
+  Widget _buildNotificationCard(
+    NotificationModel notification,
+    bool highContrast,
+  ) {
     // Obtiene el estilo visual según el tipo de notificación.
     final style = _getNotificationStyle(notification.tipo);
 
@@ -307,8 +365,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Card(
         margin: const EdgeInsets.only(bottom: 9),
         elevation: 1,
-        color: notification.leida ? Colors.white : const Color(0xFFF0F5FC),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: highContrast
+            ? Colors.white
+            : notification.leida
+            ? Colors.white
+            : const Color(0xFFF0F5FC),
+        shape: RoundedRectangleBorder(
+          side: highContrast
+              ? const BorderSide(color: Colors.black, width: 1.5)
+              : BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
 
@@ -339,19 +406,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     children: [
                       Text(
                         _formatNotificationType(notification.tipo),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF17324D),
+                          color: highContrast
+                              ? Colors.black
+                              : const Color(0xFF17324D),
                         ),
                       ),
                       const SizedBox(height: 5),
                       Text(
                         notification.mensaje,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           height: 1.3,
-                          color: Color(0xFF444444),
+                          color: highContrast
+                              ? Colors.black
+                              : const Color(0xFF444444),
                         ),
                       ),
                       const SizedBox(height: 7),
@@ -363,9 +434,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             : DateFormat(
                                 'hh:mm a',
                               ).format(DateTime.parse(notification.fecha)),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey,
+                          color: highContrast ? Colors.black : Colors.grey,
                         ),
                       ),
                     ],
@@ -446,9 +517,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   /// Confirma la eliminación de una notificación.
   Future<bool> _confirmDelete() async {
+    // Consulta la preferencia para adaptar el cuadro de confirmación.
+    final highContrast =
+        context.read<AuthProvider>().currentUser?.altoContraste ?? false;
+
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            backgroundColor: highContrast ? Colors.white : null,
+            titleTextStyle: highContrast
+                ? const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  )
+                : null,
+            contentTextStyle: highContrast
+                ? const TextStyle(color: Colors.black)
+                : null,
             title: const Text('Eliminar notificación'),
             content: const Text(
               '¿Estás seguro de que deseas eliminar esta notificación?',
@@ -473,9 +559,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   /// Solicita confirmación antes de eliminar todo el historial.
   Future<bool> _confirmDeleteAll() async {
+    // Consulta la preferencia para adaptar el cuadro de confirmación.
+    final highContrast =
+        context.read<AuthProvider>().currentUser?.altoContraste ?? false;
+
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            backgroundColor: highContrast ? Colors.white : null,
+            titleTextStyle: highContrast
+                ? const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  )
+                : null,
+            contentTextStyle: highContrast
+                ? const TextStyle(color: Colors.black)
+                : null,
             title: const Text('Eliminar historial'),
             content: const Text(
               '¿Estás seguro de que deseas eliminar todas las notificaciones? '

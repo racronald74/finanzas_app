@@ -32,15 +32,32 @@ class GoalOverviewCard extends StatelessWidget {
     // en una pantalla de teléfono.
     final bool isMobile = ResponsiveHelper.isMobile(context);
 
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Obtiene el color principal del tema actual.
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+
+    // Define el color secundario según el tema.
+    final Color secondaryColor = highContrast
+        ? Colors.black
+        : AppColors.textSecondary;
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
         child: Card(
-          color: Colors.white,
-          elevation: 2,
+          // Mantiene el fondo blanco y agrega un borde en alto contraste.
+          color: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
+            side: highContrast
+                ? const BorderSide(color: Colors.black, width: 2)
+                : BorderSide.none,
           ),
+          elevation: 2,
+
           child: Padding(
             padding: EdgeInsets.all(isMobile ? 12 : 25),
             child: Column(
@@ -59,7 +76,7 @@ class GoalOverviewCard extends StatelessWidget {
                         icon: Icons.savings,
                         title: 'Ahorro\ntotal',
                         value: CurrencyFormatter.format(totalSavings),
-                        color: AppColors.primary,
+                        color: primaryColor,
                         isMobile: isMobile,
                       ),
                     ),
@@ -72,7 +89,7 @@ class GoalOverviewCard extends StatelessWidget {
                         icon: Icons.track_changes,
                         title: 'Metas\nactivas',
                         value: activeGoals.toString(),
-                        color: AppColors.primary,
+                        color: primaryColor,
                         isMobile: isMobile,
                       ),
                     ),
@@ -85,7 +102,7 @@ class GoalOverviewCard extends StatelessWidget {
                         icon: Icons.bar_chart,
                         title: 'Progreso\ntotal',
                         value: '$totalProgress%',
-                        color: AppColors.primary,
+                        color: primaryColor,
                         isMobile: isMobile,
                       ),
                     ),
@@ -98,7 +115,7 @@ class GoalOverviewCard extends StatelessWidget {
                         icon: Icons.calendar_month,
                         title: 'Objetivo\nmensual',
                         value: CurrencyFormatter.format(monthlyGoal),
-                        color: AppColors.primary,
+                        color: primaryColor,
                         isMobile: isMobile,
                       ),
                     ),
@@ -107,7 +124,12 @@ class GoalOverviewCard extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                const Divider(height: 1),
+                // Aumenta la visibilidad del separador en alto contraste.
+                Divider(
+                  height: 1,
+                  thickness: highContrast ? 1.5 : 1,
+                  color: highContrast ? Colors.black : null,
+                ),
 
                 const SizedBox(height: 10),
 
@@ -120,13 +142,11 @@ class GoalOverviewCard extends StatelessWidget {
                     // Icono del mensaje informativo.
                     CircleAvatar(
                       radius: isMobile ? 14 : 15,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
+                      backgroundColor: primaryColor.withValues(alpha: 0.12),
                       child: Icon(
                         Icons.insights,
                         size: isMobile ? 16 : 17,
-                        color: AppColors.primary,
+                        color: primaryColor,
                       ),
                     ),
 
@@ -150,7 +170,7 @@ class GoalOverviewCard extends StatelessWidget {
                           Text(
                             message,
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: secondaryColor,
                               fontSize: isMobile ? 12 : 13,
                             ),
                           ),
@@ -177,10 +197,14 @@ class _IndicatorDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
     return Container(
-      width: 1,
+      width: highContrast ? 2 : 1,
       height: isMobile ? 82 : 90,
-      color: Colors.grey.withValues(alpha: 0.25),
+      color: highContrast ? Colors.black : Colors.grey.withValues(alpha: 0.25),
     );
   }
 }

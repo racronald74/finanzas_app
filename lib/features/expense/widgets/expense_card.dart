@@ -9,8 +9,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 /// Será utilizada por ExpensesScreen para mostrar
 /// cada registro almacenado en SQLite.
 class ExpenseCard extends StatelessWidget {
-  /// Formatea valores monetarios con separador de miles
-  /// y coloca el símbolo de moneda antes del valor.
+  /// Formatea valores monetarios con separador de miles.
   String _formatCurrency(double value) {
     final formatted = NumberFormat('#,##0', 'es_CO').format(value);
 
@@ -89,24 +88,47 @@ class ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Determina si el gasto fue generado por una obligación.
     final bool esObligacion =
         expense.origen.toUpperCase() == 'OBLIGACION' ||
         expense.origen.toUpperCase() == 'OBLIGACIÓN';
 
+    // Define los colores según el tema.
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+
+    final Color secondaryColor = highContrast ? Colors.black : Colors.grey;
+
+    final Color primaryColor = highContrast
+        ? const Color(0xFF003B8E)
+        : Colors.blue;
+
     return Card(
       color: Colors.white,
+      elevation: highContrast ? 0 : 1,
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Row(
-          // Centra verticalmente el icono y el contenido de la tarjeta.
+          // Centra verticalmente el icono y el contenido.
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 26,
-              child: Icon(Iconsax.shopping_cart, size: 26, color: Colors.blue),
+              backgroundColor: highContrast ? Colors.white : null,
+              child: Icon(Iconsax.shopping_cart, size: 26, color: primaryColor),
             ),
-
             const SizedBox(width: 16),
 
             Expanded(
@@ -115,22 +137,25 @@ class ExpenseCard extends StatelessWidget {
                 children: [
                   Text(
                     expense.nombre,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: textColor,
                     ),
                   ),
-
                   const SizedBox(height: 4),
 
                   if (expense.descripcion.trim().isNotEmpty)
-                    Text(expense.descripcion)
+                    Text(
+                      expense.descripcion,
+                      style: TextStyle(color: textColor),
+                    )
                   else
-                    const Text(
+                    Text(
                       'Sin descripción',
                       style: TextStyle(
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey,
+                        color: secondaryColor,
                       ),
                     ),
 
@@ -138,7 +163,7 @@ class ExpenseCard extends StatelessWidget {
 
                   Text(
                     _formatDate(expense.fecha),
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: secondaryColor),
                   ),
                   const SizedBox(height: 4),
 
@@ -149,15 +174,22 @@ class ExpenseCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: _getOrigenBackgroundColor(expense.origen),
+                      color: highContrast
+                          ? Colors.white
+                          : _getOrigenBackgroundColor(expense.origen),
                       borderRadius: BorderRadius.circular(8),
+                      border: highContrast
+                          ? Border.all(color: Colors.black, width: 1.5)
+                          : null,
                     ),
                     child: Text(
                       expense.origen,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: _getOrigenTextColor(expense.origen),
+                        color: highContrast
+                            ? Colors.black
+                            : _getOrigenTextColor(expense.origen),
                       ),
                     ),
                   ),
@@ -172,9 +204,10 @@ class ExpenseCard extends StatelessWidget {
               children: [
                 Text(
                   _formatCurrency(expense.monto),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    color: textColor,
                   ),
                 ),
 
@@ -186,17 +219,17 @@ class ExpenseCard extends StatelessWidget {
                     children: [
                       // Botón para editar el gasto.
                       IconButton(
-                        icon: const Icon(Iconsax.edit, size: 28),
+                        icon: Icon(Iconsax.edit, size: 28, color: primaryColor),
                         tooltip: 'Editar gasto',
                         onPressed: onEdit,
                       ),
 
                       // Botón para eliminar el gasto.
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Iconsax.trash,
                           size: 26,
-                          color: Colors.red,
+                          color: highContrast ? Colors.black : Colors.red,
                         ),
                         tooltip: 'Eliminar gasto',
                         onPressed: onDelete,

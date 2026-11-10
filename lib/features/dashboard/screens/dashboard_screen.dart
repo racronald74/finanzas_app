@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../shared/widgets/app_header.dart';
 import '../../../shared/widgets/app_background.dart';
 import '../providers/dashboard_provider.dart';
-
 import '../models/dashboard_summary.dart';
 
 /// Formatea los valores monetarios con el símbolo al principio.
@@ -19,6 +18,11 @@ String _formatCurrency(double amount) {
 
   // Devuelve el valor con el formato monetario establecido.
   return format.format(amount);
+}
+
+/// Detecta si está activo el tema de alto contraste.
+bool _isHighContrast(BuildContext context) {
+  return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
 }
 
 /// Pantalla principal del Dashboard.
@@ -36,7 +40,10 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Scaffold(
+      backgroundColor: highContrast ? Colors.white : null,
       body: AppBackground(
         child: Column(
           children: [
@@ -84,6 +91,8 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -158,6 +167,13 @@ class _DashboardContent extends StatelessWidget {
           else
             ...summary.recentMovements.map((movement) {
               return Card(
+                color: highContrast ? Colors.white : null,
+                shape: highContrast
+                    ? RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.black, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    : null,
                 child: ListTile(
                   leading: Icon(
                     movement.isIncome
@@ -165,12 +181,16 @@ class _DashboardContent extends StatelessWidget {
                         : Icons.arrow_upward,
                     color: movement.isIncome ? Colors.green : Colors.red,
                   ),
-                  title: Text(movement.title),
+                  title: Text(
+                    movement.title,
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
                   // Convierte la fecha al formato día/mes/año.
                   subtitle: Text(
                     DateFormat(
                       'dd/MM/yyyy',
                     ).format(DateTime.parse(movement.date)),
+                    style: TextStyle(color: highContrast ? Colors.black : null),
                   ),
                   trailing: Text(
                     '${movement.isIncome ? '+' : '-'}'
@@ -197,11 +217,27 @@ class _DashboardContent extends StatelessWidget {
           else
             ...summary.upcomingObligations.take(3).map((obligation) {
               return Card(
+                color: highContrast ? Colors.white : null,
+                shape: highContrast
+                    ? RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.black, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    : null,
                 child: ListTile(
                   leading: const Icon(Icons.event_note, color: Colors.orange),
-                  title: Text(obligation.nombre),
-                  subtitle: Text('Vence: ${obligation.fechaVencimiento}'),
-                  trailing: Text(_formatCurrency(obligation.monto)),
+                  title: Text(
+                    obligation.nombre,
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
+                  subtitle: Text(
+                    'Vence: ${obligation.fechaVencimiento}',
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
+                  trailing: Text(
+                    _formatCurrency(obligation.monto),
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
                 ),
               );
             }),
@@ -217,14 +253,30 @@ class _DashboardContent extends StatelessWidget {
           else
             ...summary.pendingDebts.take(3).map((debt) {
               return Card(
+                color: highContrast ? Colors.white : null,
+                shape: highContrast
+                    ? RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.black, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    : null,
                 child: ListTile(
                   leading: const Icon(
                     Icons.credit_card,
                     color: Colors.redAccent,
                   ),
-                  title: Text(debt.acreedor),
-                  subtitle: const Text('Saldo pendiente'),
-                  trailing: Text(_formatCurrency(debt.saldoPendiente)),
+                  title: Text(
+                    debt.acreedor,
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
+                  subtitle: Text(
+                    'Saldo pendiente',
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
+                  trailing: Text(
+                    _formatCurrency(debt.saldoPendiente),
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
                 ),
               );
             }),
@@ -254,9 +306,22 @@ class _FinancialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Card(
-      // Fondo azul para la tarjeta principal.
-      color: highlighted ? Colors.blue.shade700 : null,
+      // Conserva el fondo azul de la tarjeta principal.
+      color: highlighted
+          ? Colors.blue.shade700
+          : highContrast
+          ? Colors.white
+          : null,
+      // Agrega un borde negro a las tarjetas en alto contraste.
+      shape: highContrast
+          ? RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.black, width: 1.5),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: highlighted
@@ -328,7 +393,10 @@ class _FinancialCard extends StatelessWidget {
                   else
                     Icon(icon, color: color),
                   const SizedBox(height: 10),
-                  Text(title),
+                  Text(
+                    title,
+                    style: TextStyle(color: highContrast ? Colors.black : null),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     _formatCurrency(amount),
@@ -361,15 +429,28 @@ class _IncomeExpenseChart extends StatelessWidget {
     final incomeProgress = maxValue > 0 ? income / maxValue : 0.0;
     final expensesProgress = maxValue > 0 ? expenses / maxValue : 0.0;
 
+    final highContrast = _isHighContrast(context);
+
     return Card(
+      color: highContrast ? Colors.white : null,
+      shape: highContrast
+          ? RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.black, width: 1.5),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Ingresos vs. gastos',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: highContrast ? Colors.black : null,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -413,6 +494,8 @@ class _ChartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -420,7 +503,13 @@ class _ChartBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: highContrast ? Colors.black : null,
+              ),
+            ),
             Text(
               _formatCurrency(amount),
               style: TextStyle(color: color, fontWeight: FontWeight.bold),
@@ -452,11 +541,14 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Text(
       title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: highContrast ? Colors.black : null,
+      ),
     );
   }
 }
@@ -469,9 +561,14 @@ class _EmptyMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(message),
+      child: Text(
+        message,
+        style: TextStyle(color: highContrast ? Colors.black : null),
+      ),
     );
   }
 }
@@ -485,17 +582,30 @@ class _ErrorDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highContrast = _isHighContrast(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40),
+            Icon(
+              Icons.error_outline,
+              size: 40,
+              color: highContrast ? Colors.black : null,
+            ),
             const SizedBox(height: 12),
-            const Text('No fue posible cargar el Dashboard.'),
+            Text(
+              'No fue posible cargar el Dashboard.',
+              style: TextStyle(color: highContrast ? Colors.black : null),
+            ),
             const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: highContrast ? Colors.black : null),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: const Text('Reintentar')),
           ],

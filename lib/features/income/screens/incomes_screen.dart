@@ -29,6 +29,11 @@ class IncomesScreen extends StatefulWidget {
 }
 
 class _IncomesScreenState extends State<IncomesScreen> {
+  /// Detecta si está activo el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   /// Formatea valores monetarios con separador de miles
   /// y coloca el símbolo de moneda antes del valor.
   String _formatCurrency(double value) {
@@ -97,6 +102,21 @@ class _IncomesScreenState extends State<IncomesScreen> {
       helpText: 'Seleccionar período',
       cancelText: 'Cancelar',
       confirmText: 'Aceptar',
+      builder: (context, child) {
+        if (!_isHighContrast(context)) return child!;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: const Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate == null) return;
@@ -178,6 +198,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
         ? budgetProvider.summary.availableBudget
         : _selectedPeriodBudget?.availableBudget ?? 0;
 
+    final bool highContrast = _isHighContrast(context);
+    final Color textColor = highContrast ? Colors.black : Colors.black87;
+    final Color primaryColor = highContrast
+        ? const Color(0xFF003B8E)
+        : AppColors.primary;
+
     return Scaffold(
       body: AppBackground(
         child: Column(
@@ -199,6 +225,16 @@ class _IncomesScreenState extends State<IncomesScreen> {
                         Expanded(
                           child: Card(
                             color: Colors.white,
+                            elevation: highContrast ? 0 : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: highContrast
+                                  ? const BorderSide(
+                                      color: Colors.black,
+                                      width: 2,
+                                    )
+                                  : BorderSide.none,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -206,11 +242,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     MainAxisAlignment.spaceEvenly,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Ingreso fijo',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 14,
+                                      color: textColor,
                                     ),
                                   ),
 
@@ -218,10 +255,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     fit: BoxFit.scaleDown,
                                     child: Text(
                                       _formatCurrency(fixedIncome),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFF3F6DB5),
+                                        color: primaryColor,
                                       ),
                                     ),
                                   ),
@@ -256,6 +293,16 @@ class _IncomesScreenState extends State<IncomesScreen> {
                         Expanded(
                           child: Card(
                             color: Colors.white,
+                            elevation: highContrast ? 0 : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: highContrast
+                                  ? const BorderSide(
+                                      color: Colors.black,
+                                      width: 2,
+                                    )
+                                  : BorderSide.none,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Column(
@@ -275,10 +322,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                     fit: BoxFit.scaleDown,
                                     child: Text(
                                       _formatCurrency(availableBudget),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.green,
+                                        color: highContrast
+                                            ? const Color(0xFF003B8E)
+                                            : Colors.green,
                                       ),
                                     ),
                                   ),
@@ -288,9 +337,11 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                         ? 'Este mes + saldos anteriores'
                                         : 'Saldo del período seleccionado',
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: highContrast
+                                          ? Colors.black
+                                          : Colors.grey,
                                     ),
                                   ),
                                 ],
@@ -314,7 +365,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: highContrast
+                              ? Colors.white
+                              : Colors.blue.shade50,
+                          border: highContrast
+                              ? Border.all(color: Colors.black, width: 1.5)
+                              : null,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -323,7 +379,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
                             Icon(
                               Icons.info,
                               size: 18,
-                              color: Colors.blue.shade600,
+                              color: highContrast
+                                  ? const Color(0xFF003B8E)
+                                  : Colors.blue.shade600,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -331,7 +389,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                 'Saldo anterior: ${NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 0).format(_selectedPeriodPreviousBalance!.amount)}. Corresponde al cierre del mes anterior.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.blue.shade700,
+                                  color: highContrast
+                                      ? Colors.black
+                                      : Colors.blue.shade700,
                                 ),
                               ),
                             ),
@@ -341,11 +401,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     ],
 
                     // Historial de ingresos adicionales.
-                    const Text(
+                    Text(
                       'Historial de ingresos adicionales',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,
+                        color: textColor,
                       ),
                     ),
 
@@ -360,38 +421,53 @@ class _IncomesScreenState extends State<IncomesScreen> {
                               width: double.infinity,
                               child: Card(
                                 color: Colors.white,
+                                elevation: highContrast ? 0 : null,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: highContrast
+                                      ? const BorderSide(
+                                          color: Colors.black,
+                                          width: 2,
+                                        )
+                                      : BorderSide.none,
+                                ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
                                   child: Column(
                                     children: [
                                       // Icono representativo del estado vacío.
-                                      const Icon(
+                                      Icon(
                                         Icons.receipt_long,
                                         size: 60,
-                                        color: Colors.grey,
+                                        color: highContrast
+                                            ? Colors.black
+                                            : Colors.grey,
                                       ),
 
                                       const SizedBox(height: 16),
 
                                       // Mensaje principal.
-                                      const Text(
+                                      Text(
                                         'No hay ingresos registrados',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          color: textColor,
                                         ),
                                       ),
 
                                       const SizedBox(height: 8),
 
                                       // Explicación del estado vacío.
-                                      const Text(
+                                      Text(
                                         'Registra tu primer ingreso para comenzar a controlar tus finanzas.',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey,
+                                          color: highContrast
+                                              ? Colors.black
+                                              : Colors.grey,
                                         ),
                                       ),
                                     ],
@@ -462,9 +538,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
-                          elevation: 2,
+                          elevation: highContrast ? 0 : 2,
+                          side: highContrast
+                              ? const BorderSide(color: Colors.black, width: 1)
+                              : BorderSide.none,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -492,17 +571,33 @@ class _IncomesScreenState extends State<IncomesScreen> {
   /// Construye la tarjeta del ingreso fijo correspondiente
   /// al período seleccionado.
   Widget _fixedIncomeHistoryTile(double monto) {
+    final bool highContrast = _isHighContrast(context);
+    final Color textColor = highContrast ? Colors.black : Colors.black87;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: Colors.white,
+      elevation: highContrast ? 0 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 26,
-              backgroundColor: Color(0xFFC7DFDE),
-              child: Icon(Iconsax.money_recive, size: 30, color: Colors.green),
+              backgroundColor: highContrast
+                  ? Colors.white
+                  : const Color(0xFFC7DFDE),
+              child: Icon(
+                Iconsax.money_recive,
+                size: 30,
+                color: highContrast ? const Color(0xFF003B8E) : Colors.green,
+              ),
             ),
 
             const SizedBox(width: 16),
@@ -518,9 +613,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
                   const SizedBox(height: 4),
 
-                  const Text(
+                  Text(
                     'Ingreso fijo mensual del período',
-                    style: TextStyle(color: Colors.black87),
+                    style: TextStyle(color: textColor),
                   ),
 
                   const SizedBox(height: 4),
@@ -528,7 +623,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
                   Text(
                     '${_selectedPeriod.month.toString().padLeft(2, '0')}/'
                     '${_selectedPeriod.year}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: highContrast ? Colors.black : Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -538,10 +635,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
             Text(
               _formatCurrency(monto),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: highContrast ? const Color(0xFF003B8E) : Colors.green,
               ),
             ),
           ],
@@ -551,17 +648,33 @@ class _IncomesScreenState extends State<IncomesScreen> {
   }
 
   Widget _incomeTile(IncomeModel income) {
+    final bool highContrast = _isHighContrast(context);
+    final Color textColor = highContrast ? Colors.black : Colors.black87;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: Colors.white,
+      elevation: highContrast ? 0 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 26,
-              backgroundColor: Color.fromARGB(255, 199, 223, 222),
-              child: Icon(Iconsax.money_recive, size: 30, color: Colors.green),
+              backgroundColor: highContrast
+                  ? Colors.white
+                  : const Color.fromARGB(255, 199, 223, 222),
+              child: Icon(
+                Iconsax.money_recive,
+                size: 30,
+                color: highContrast ? const Color(0xFF003B8E) : Colors.green,
+              ),
             ),
 
             const SizedBox(width: 16),
@@ -572,9 +685,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
                 children: [
                   Text(
                     income.fuente ?? 'Sin categoría',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      color: textColor,
                     ),
                   ),
 
@@ -588,9 +702,11 @@ class _IncomesScreenState extends State<IncomesScreen> {
                       fontStyle: income.descripcion.trim().isEmpty
                           ? FontStyle.italic
                           : FontStyle.normal,
-                      color: income.descripcion.trim().isEmpty
-                          ? Colors.grey
-                          : Colors.black87,
+                      color: highContrast
+                          ? Colors.black
+                          : (income.descripcion.trim().isEmpty
+                                ? Colors.grey
+                                : Colors.black87),
                     ),
                   ),
 
@@ -598,7 +714,9 @@ class _IncomesScreenState extends State<IncomesScreen> {
 
                   Text(
                     _formatDate(income.fecha),
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: highContrast ? Colors.black : Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -611,9 +729,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
               children: [
                 Text(
                   _formatCurrency(income.monto),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: textColor,
                   ),
                 ),
 
@@ -625,7 +744,11 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     IconButton(
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Iconsax.edit, size: 28),
+                      icon: Icon(
+                        Iconsax.edit,
+                        size: 28,
+                        color: highContrast ? const Color(0xFF003B8E) : null,
+                      ),
                       onPressed: () async {
                         await Navigator.push(
                           context,
@@ -643,10 +766,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
                     IconButton(
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
-                      icon: const Icon(
+                      icon: Icon(
                         Iconsax.trash,
                         size: 28,
-                        color: Colors.red,
+                        color: highContrast ? Colors.black : Colors.red,
                       ),
                       onPressed: () => _confirmDelete(income),
                     ),
@@ -693,9 +816,24 @@ class _IncomesScreenState extends State<IncomesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final bool highContrast = _isHighContrast(context);
+
         return AlertDialog(
-          title: const Text('Eliminar ingreso'),
-          content: const Text('Esta accion no se puede deshacer.'),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: highContrast
+                ? const BorderSide(color: Colors.black, width: 2)
+                : BorderSide.none,
+          ),
+          title: Text(
+            'Eliminar ingreso',
+            style: TextStyle(color: highContrast ? Colors.black : null),
+          ),
+          content: Text(
+            'Esta accion no se puede deshacer.',
+            style: TextStyle(color: highContrast ? Colors.black : null),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -703,6 +841,10 @@ class _IncomesScreenState extends State<IncomesScreen> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: highContrast ? const Color(0xFF003B8E) : null,
+                foregroundColor: highContrast ? Colors.white : null,
+              ),
               child: const Text('Eliminar'),
             ),
           ],
@@ -966,16 +1108,43 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
     return AlertDialog(
-      title: const Text('Ingreso fijo mensual'),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
+      title: Text(
+        'Ingreso fijo mensual',
+        style: TextStyle(color: highContrast ? Colors.black : null),
+      ),
       content: TextField(
         controller: _controller,
+        style: TextStyle(color: highContrast ? Colors.black : null),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         autofocus: true,
         decoration: InputDecoration(
           labelText: 'Monto',
           prefixText: r'$',
           errorText: _errorText,
+          filled: highContrast,
+          fillColor: Colors.white,
+          enabledBorder: highContrast
+              ? const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black, width: 1.5),
+                )
+              : null,
+          focusedBorder: highContrast
+              ? const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF003B8E), width: 2),
+                )
+              : null,
+          labelStyle: TextStyle(color: highContrast ? Colors.black : null),
         ),
       ),
       actions: [
@@ -983,7 +1152,14 @@ class _FixedIncomeDialogState extends State<_FixedIncomeDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(onPressed: _save, child: const Text('Guardar')),
+        ElevatedButton(
+          onPressed: _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: highContrast ? const Color(0xFF003B8E) : null,
+            foregroundColor: highContrast ? Colors.white : null,
+          ),
+          child: const Text('Guardar'),
+        ),
       ],
     );
   }

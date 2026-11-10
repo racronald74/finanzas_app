@@ -30,6 +30,13 @@ class _RegisterExtraordinaryPaymentScreenState
 
   bool _isSaving = false;
 
+  /// Detecta si está activo el alto contraste.
+  bool get _highContrast =>
+      Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+  /// Color principal del tema.
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -47,11 +54,31 @@ class _RegisterExtraordinaryPaymentScreenState
         ? debtStartDate
         : _paymentDate;
 
+    final bool highContrast = _highContrast;
+
     final selectedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: debtStartDate,
       lastDate: DateTime.now(),
+      helpText: 'Seleccionar fecha del abono',
+      cancelText: 'Cancelar',
+      confirmText: 'Aceptar',
+      builder: (context, child) {
+        if (!highContrast) return child!;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate != null) {
@@ -145,12 +172,37 @@ class _RegisterExtraordinaryPaymentScreenState
     required String label,
     required IconData icon,
   }) {
+    final Color borderColor = _highContrast
+        ? Colors.black
+        : const Color(0xFFE1E7EF);
+
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      prefixIcon: Icon(icon, color: _highContrast ? Colors.black : null),
+      labelStyle: TextStyle(color: _highContrast ? Colors.black : null),
       filled: true,
       fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: borderColor,
+          width: _highContrast ? 1.5 : 1,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: borderColor,
+          width: _highContrast ? 1.5 : 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: _highContrast ? _primaryColor : const Color(0xFF3F73BC),
+          width: 1.5,
+        ),
+      ),
     );
   }
 
@@ -159,9 +211,12 @@ class _RegisterExtraordinaryPaymentScreenState
     final capitalPendiente = widget.debt.saldoCapital;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FC),
+      backgroundColor: _highContrast ? Colors.white : const Color(0xFFF5F8FC),
       appBar: AppBar(
-        title: const Text('Abono extraordinario'),
+        title: const Text(
+          'Abono extraordinario',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
         backgroundColor: const Color(0xFF3F73BC),
         foregroundColor: Colors.white,
       ),
@@ -175,7 +230,6 @@ class _RegisterExtraordinaryPaymentScreenState
               children: [
                 // Resumen de la deuda seleccionada.
                 _buildDebtSummary(capitalPendiente),
-
                 const SizedBox(height: 24),
 
                 // Importe del abono.
@@ -184,6 +238,7 @@ class _RegisterExtraordinaryPaymentScreenState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  style: TextStyle(color: _highContrast ? Colors.black : null),
                   decoration: _inputDecoration(
                     label: 'Importe del abono',
                     icon: Icons.payments_outlined,
@@ -208,7 +263,6 @@ class _RegisterExtraordinaryPaymentScreenState
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 18),
 
                 // Fecha del movimiento.
@@ -219,17 +273,24 @@ class _RegisterExtraordinaryPaymentScreenState
                       label: 'Fecha del abono',
                       icon: Icons.calendar_today,
                     ),
-                    child: Text(_formatDate(_paymentDate)),
+                    child: Text(
+                      _formatDate(_paymentDate),
+                      style: TextStyle(
+                        color: _highContrast ? Colors.black : null,
+                      ),
+                    ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
 
-                const Text(
+                Text(
                   '¿Cómo deseas aplicar el abono?',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _highContrast ? Colors.black : null,
+                  ),
                 ),
-
                 const SizedBox(height: 10),
 
                 // Opción para reducir el número de cuotas.
@@ -240,7 +301,6 @@ class _RegisterExtraordinaryPaymentScreenState
                       'Mantener el valor de la cuota y terminar de pagar '
                       'la deuda en menos tiempo.',
                 ),
-
                 const SizedBox(height: 10),
 
                 // Opción para reducir el valor de las cuotas.
@@ -251,19 +311,18 @@ class _RegisterExtraordinaryPaymentScreenState
                       'Mantener la fecha final de la deuda y disminuir '
                       'el valor de las cuotas.',
                 ),
-
                 const SizedBox(height: 18),
 
                 // Descripción opcional del movimiento.
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 3,
+                  style: TextStyle(color: _highContrast ? Colors.black : null),
                   decoration: _inputDecoration(
                     label: 'Descripción (opcional)',
                     icon: Icons.description_outlined,
                   ),
                 ),
-
                 const SizedBox(height: 28),
 
                 // Botón para registrar el abono.
@@ -272,8 +331,12 @@ class _RegisterExtraordinaryPaymentScreenState
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _registerPayment,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3F73BC),
+                      backgroundColor: _primaryColor,
                       foregroundColor: Colors.white,
+                      elevation: _highContrast ? 0 : 1,
+                      side: _highContrast
+                          ? const BorderSide(color: Colors.black, width: 1.5)
+                          : BorderSide.none,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -283,7 +346,6 @@ class _RegisterExtraordinaryPaymentScreenState
                         : const Text('Registrar abono'),
                   ),
                 ),
-
                 const SizedBox(height: 12),
 
                 // Botón para cancelar el registro.
@@ -291,6 +353,14 @@ class _RegisterExtraordinaryPaymentScreenState
                   height: 48,
                   child: OutlinedButton(
                     onPressed: _isSaving ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _highContrast
+                          ? Colors.black
+                          : _primaryColor,
+                      side: _highContrast
+                          ? const BorderSide(color: Colors.black, width: 1.5)
+                          : null,
+                    ),
                     child: const Text('Cancelar'),
                   ),
                 ),
@@ -309,23 +379,42 @@ class _RegisterExtraordinaryPaymentScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: _highContrast
+            ? Border.all(color: Colors.black, width: 1.5)
+            : null,
+        boxShadow: _highContrast
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.debt.acreedor,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: _highContrast ? Colors.black : null,
+            ),
           ),
           const SizedBox(height: 12),
-          const Text('Capital pendiente', style: TextStyle(color: Colors.grey)),
+          Text(
+            'Capital pendiente',
+            style: TextStyle(color: _highContrast ? Colors.black : Colors.grey),
+          ),
           const SizedBox(height: 4),
           Text(
             '\$${capitalPendiente.toStringAsFixed(2)}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF3F73BC),
+              color: _highContrast ? Colors.black : const Color(0xFF3F73BC),
             ),
           ),
         ],
@@ -341,13 +430,24 @@ class _RegisterExtraordinaryPaymentScreenState
   }) {
     final isSelected = _selectedOption == value;
 
+    final Color borderColor = _highContrast
+        ? Colors.black
+        : isSelected
+        ? const Color(0xFF3F73BC)
+        : Colors.grey.shade300;
+
     return Card(
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? const Color(0xFF3F73BC) : Colors.grey.shade300,
+          color: borderColor,
+          width: _highContrast
+              ? 1.5
+              : isSelected
+              ? 1.2
+              : 1,
         ),
       ),
       child: InkWell(
@@ -365,7 +465,11 @@ class _RegisterExtraordinaryPaymentScreenState
                 isSelected
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
-                color: isSelected ? const Color(0xFF3F73BC) : Colors.grey,
+                color: _highContrast
+                    ? Colors.black
+                    : isSelected
+                    ? const Color(0xFF3F73BC)
+                    : Colors.grey,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -374,10 +478,18 @@ class _RegisterExtraordinaryPaymentScreenState
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: _highContrast ? Colors.black : null,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(description),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: _highContrast ? Colors.black : null,
+                      ),
+                    ),
                   ],
                 ),
               ),

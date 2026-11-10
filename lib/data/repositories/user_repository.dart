@@ -82,6 +82,23 @@ class UserRepository {
     );
   }
 
+  /// Actualiza las preferencias de accesibilidad de un usuario.
+  Future<int> updateAccessibilityPreferences({
+    required int idUsuario,
+    required String tamanoTexto,
+    required bool altoContraste,
+  }) async {
+    final db = await _databaseHelper.database;
+
+    // Guarda las preferencias utilizando los tipos compatibles con SQLite.
+    return db.update(
+      'usuario',
+      {'tamano_texto': tamanoTexto, 'alto_contraste': altoContraste ? 1 : 0},
+      where: 'id_usuario = ?',
+      whereArgs: [idUsuario],
+    );
+  }
+
   Future<int> updatePassword({
     required int idUsuario,
     required String nuevaContrasena,

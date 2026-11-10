@@ -9,23 +9,13 @@ import '../../../shared/widgets/app_header.dart';
 import '../widgets/debt_card.dart';
 import '../widgets/debt_summary_card.dart';
 import 'create_debt_screen.dart';
-import '../../../shared/themes/app_colors.dart';
+
 import 'debt_detail_screen.dart';
 import 'register_debt_payment_screen.dart';
 
 /// Pantalla principal del módulo Deudas.
-///
-/// Permite:
-/// - Visualizar el resumen general de las deudas.
-/// - Filtrar las deudas por estado.
-/// - Consultar el listado de deudas.
-/// - Acceder posteriormente al detalle de una deuda.
-/// - Registrar una nueva deuda.
 class DebtsScreen extends StatefulWidget {
-  /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
-
-  /// Acción ejecutada al pulsar la campana de notificaciones.
   final VoidCallback? onNotificationPressed;
 
   const DebtsScreen({
@@ -42,8 +32,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   /// Filtro seleccionado actualmente.
   String _selectedFilter = 'Todas';
 
-  /// Filtros definidos para el módulo de deudas.
-  /// Filtros disponibles para el módulo de deudas.
+  /// Filtros disponibles.
   static const List<String> _filters = [
     'Todas',
     'Activas',
@@ -51,12 +40,16 @@ class _DebtsScreenState extends State<DebtsScreen> {
     'Pagadas',
   ];
 
+  /// Detecta si está activo el alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   @override
   void initState() {
     super.initState();
 
-    /// Carga las deudas después de construir la pantalla,
-    /// permitiendo acceder correctamente a los Providers.
+    // Carga las deudas después de construir la pantalla.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDebts();
     });
@@ -75,7 +68,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
     await debtProvider.loadDebts(user.idUsuario!);
   }
 
-  /// Calcula la fecha de vencimiento sumando el plazo a la fecha de inicio.
+  /// Calcula la fecha de vencimiento sumando el plazo a la fecha inicial.
   DateTime? _calculateDueDate(DebtModel debt) {
     final DateTime? startDate = DateTime.tryParse(debt.fechaInicio);
 
@@ -83,27 +76,24 @@ class _DebtsScreenState extends State<DebtsScreen> {
       return null;
     }
 
-    // Calcula el mes de vencimiento.
     final DateTime targetMonth = DateTime(
       startDate.year,
       startDate.month + debt.plazo!,
       1,
     );
 
-    // Obtiene el último día del mes de vencimiento.
     final int lastDay = DateTime(
       targetMonth.year,
       targetMonth.month + 1,
       0,
     ).day;
 
-    // Evita fechas inválidas en meses con menos días.
     final int day = startDate.day > lastDay ? lastDay : startDate.day;
 
     return DateTime(targetMonth.year, targetMonth.month, day);
   }
 
-  /// Comprueba si una deuda tiene vencido su plazo y conserva saldo pendiente.
+  /// Comprueba si una deuda tiene vencido su plazo.
   bool _isOverdue(DebtModel debt) {
     if (debt.estado == 'Pagada' || debt.saldoPendiente <= 0) {
       return false;
@@ -149,14 +139,53 @@ class _DebtsScreenState extends State<DebtsScreen> {
     });
   }
 
+  /// Construye cada botón de filtro.
+  Widget _buildFilterButton(String filter) {
+    final bool isSelected = _selectedFilter == filter;
+    final bool highContrast = _isHighContrast(context);
+
+    return GestureDetector(
+      onTap: () => _selectFilter(filter),
+      child: Container(
+        width: 76,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: highContrast
+              ? Border.all(color: Colors.black, width: 1.5)
+              : null,
+        ),
+        child: Text(
+          filter,
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected
+                ? Colors.white
+                : highContrast
+                ? Colors.black
+                : Colors.black87,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final debtProvider = Provider.of<DebtProvider>(context);
     final debts = _filterDebts(debtProvider.debts);
+    final bool highContrast = _isHighContrast(context);
 
     return Scaffold(
       body: Column(
         children: [
+          // Encabezado de la aplicación.
           AppHeader(
             title: 'Deudas',
             showAvatar: true,
@@ -169,7 +198,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             child: AppBackground(
               child: Column(
                 children: [
-                  // Tarjeta resumen.
+                  // Tarjeta de resumen.
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: DebtSummaryCard(debts: debtProvider.debts),
@@ -211,7 +240,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                     ),
                   ),
 
-                  // Botón para crear una nueva deuda.
+                  // Botón fijo para crear una deuda.
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: SizedBox(
@@ -234,9 +263,17 @@ class _DebtsScreenState extends State<DebtsScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
-                          elevation: 2,
+                          elevation: highContrast ? 0 : 2,
+                          side: highContrast
+                              ? const BorderSide(
+                                  color: Colors.black,
+                                  width: 1.5,
+                                )
+                              : BorderSide.none,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -258,6 +295,8 @@ class _DebtsScreenState extends State<DebtsScreen> {
     required DebtProvider debtProvider,
     required List<DebtModel> debts,
   }) {
+    final bool highContrast = _isHighContrast(context);
+
     if (debtProvider.isLoading && debtProvider.debts.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
@@ -272,7 +311,11 @@ class _DebtsScreenState extends State<DebtsScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
             const SizedBox(height: 12),
-            Text(debtProvider.errorMessage!, textAlign: TextAlign.center),
+            Text(
+              debtProvider.errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: highContrast ? Colors.black : null),
+            ),
             const SizedBox(height: 12),
             TextButton(onPressed: _loadDebts, child: const Text('Reintentar')),
           ],
@@ -289,28 +332,34 @@ class _DebtsScreenState extends State<DebtsScreen> {
       children: [
         Text(
           'Listado de deudas (${debts.length})',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: highContrast ? Colors.black : null,
+          ),
         ),
         const SizedBox(height: 10),
 
         ...debts.map(
           (debt) => DebtCard(
             debt: debt,
+
             // Abre el detalle de la deuda seleccionada.
             onDetail: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => DebtDetailScreen(debt: debt)),
               );
             },
+
+            // Abre el formulario para registrar un pago.
             onPay: () async {
-              // Abre el formulario de pago de la deuda seleccionada.
               final bool? registered = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => RegisterDebtPaymentScreen(debt: debt),
                 ),
               );
 
-              // Actualiza el listado cuando se registra un pago.
+              // Actualiza el listado después del pago.
               if (registered == true && mounted) {
                 await _loadDebts();
               }
@@ -323,79 +372,66 @@ class _DebtsScreenState extends State<DebtsScreen> {
 
   /// Estado vacío cuando no existen deudas.
   Widget _buildEmptyState() {
+    final bool highContrast = _isHighContrast(context);
+
     return Card(
       color: Colors.white,
-      elevation: 1,
+      elevation: highContrast ? 0 : 1,
       margin: const EdgeInsets.only(top: 8, bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icono representativo del módulo de deudas.
+            // Icono representativo.
             Container(
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFFE3F2FD),
+                color: highContrast ? Colors.white : const Color(0xFFE3F2FD),
                 shape: BoxShape.circle,
+                border: highContrast
+                    ? Border.all(color: Colors.black, width: 1.5)
+                    : null,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_balance_wallet_outlined,
                 size: 32,
-                color: Color(0xFF2196F3),
+                color: highContrast ? Colors.black : const Color(0xFF2196F3),
               ),
             ),
 
             const SizedBox(height: 12),
 
-            const Text(
+            Text(
               'No tienes deudas registradas',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF171717),
+                color: highContrast ? Colors.black : const Color(0xFF171717),
               ),
             ),
 
             const SizedBox(height: 8),
 
-            const Text(
+            Text(
               'Registra tus deudas para llevar un mejor '
               'control de tus pagos y saldos pendientes.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 height: 1.35,
-                color: Color(0xFF777777),
+                color: highContrast ? Colors.black : const Color(0xFF777777),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// Construye cada botón de filtro.
-  Widget _buildFilterButton(String filter) {
-    final bool isSelected = _selectedFilter == filter;
-
-    return GestureDetector(
-      onTap: () => _selectFilter(filter),
-      child: Container(
-        width: 76,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          filter,
-          maxLines: 1,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
     );

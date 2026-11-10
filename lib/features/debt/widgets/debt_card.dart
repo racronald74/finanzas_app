@@ -5,8 +5,8 @@ import '../../../shared/helpers/currency_formatter.dart';
 
 /// Tarjeta reutilizable para mostrar una deuda.
 ///
-/// Permite consultar el resumen de la deuda y ejecutar las acciones
-/// de detalle y pago mediante callbacks.
+/// Permite consultar el resumen de la deuda y ejecutar
+/// las acciones de detalle y pago mediante callbacks.
 class DebtCard extends StatelessWidget {
   final DebtModel debt;
   final VoidCallback? onDetail;
@@ -23,11 +23,13 @@ class DebtCard extends StatelessWidget {
     return (paid / debt.montoTotal).clamp(0.0, 1.0);
   }
 
-  /// Convierte el porcentaje a un valor entero para mostrarlo.
+  /// Convierte el porcentaje a un valor entero.
   int get _percentage => (_paidPercentage * 100).round();
 
   /// Indica si la deuda ya fue pagada.
-  bool get _isPaid => debt.estado == 'Pagada' || debt.saldoPendiente <= 0;
+  bool get _isPaid {
+    return debt.estado == 'Pagada' || debt.saldoPendiente <= 0;
+  }
 
   /// Determina el estado que se mostrará en la tarjeta.
   String get _displayStatus {
@@ -37,6 +39,7 @@ class DebtCard extends StatelessWidget {
 
     if (dueDate != null) {
       final DateTime today = DateTime.now();
+
       final DateTime currentDate = DateTime(today.year, today.month, today.day);
 
       if (currentDate.isAfter(dueDate)) {
@@ -47,7 +50,7 @@ class DebtCard extends StatelessWidget {
     return 'Activa';
   }
 
-  /// Calcula la fecha de vencimiento sumando el plazo a la fecha de inicio.
+  /// Calcula la fecha de vencimiento sumando el plazo.
   DateTime? _calculateDueDate() {
     final DateTime? startDate = DateTime.tryParse(debt.fechaInicio);
 
@@ -70,31 +73,46 @@ class DebtCard extends StatelessWidget {
     return DateTime(targetMonth.year, targetMonth.month, day);
   }
 
+  /// Detecta el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: highContrast ? 0 : 1.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            _buildHeader(highContrast),
             const SizedBox(height: 16),
-            _buildAmounts(),
+            _buildAmounts(highContrast),
             const SizedBox(height: 12),
 
             // Muestra el valor de la cuota mensual.
-            _buildMonthlyInstallment(),
+            _buildMonthlyInstallment(highContrast),
 
             const SizedBox(height: 14),
-            _buildProgress(),
+            _buildProgress(highContrast, primaryColor),
             const SizedBox(height: 14),
-            _buildAdditionalInfo(),
+            _buildAdditionalInfo(highContrast),
             const SizedBox(height: 16),
-            _buildActions(),
+            _buildActions(highContrast, primaryColor),
           ],
         ),
       ),
@@ -102,31 +120,45 @@ class DebtCard extends StatelessWidget {
   }
 
   /// Encabezado con acreedor y estado.
-  Widget _buildHeader() {
+  Widget _buildHeader(bool highContrast) {
     return Row(
       children: [
         CircleAvatar(
           radius: 22,
-          backgroundColor: Colors.blue.shade50,
-          child: Icon(
-            Icons.account_balance_outlined,
-            color: Colors.blue.shade700,
+          backgroundColor: highContrast ? Colors.white : Colors.blue.shade50,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: highContrast
+                ? BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  )
+                : null,
+            child: Icon(
+              Icons.account_balance_outlined,
+              color: highContrast ? Colors.black : Colors.blue.shade700,
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             debt.acreedor,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: highContrast ? Colors.black : null,
+            ),
           ),
         ),
-        _buildStatus(),
+        _buildStatus(highContrast),
       ],
     );
   }
 
-  /// Muestra el estado actual de la deuda con un color según su estado.
-  Widget _buildStatus() {
+  /// Muestra el estado actual de la deuda.
+  Widget _buildStatus(bool highContrast) {
     Color backgroundColor;
     Color textColor;
 
@@ -151,43 +183,47 @@ class DebtCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: highContrast ? Colors.white : backgroundColor,
         borderRadius: BorderRadius.circular(20),
+        border: highContrast
+            ? Border.all(color: Colors.black, width: 1.5)
+            : null,
       ),
       child: Text(
         _displayStatus,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: textColor,
+          color: highContrast ? Colors.black : textColor,
         ),
       ),
     );
   }
 
-  /// Muestra el monto inicial de la deuda y el capital pendiente.
-  Widget _buildAmounts() {
+  /// Muestra el monto inicial y el capital pendiente.
+  Widget _buildAmounts(bool highContrast) {
     return Row(
       children: [
         Expanded(
           child: _AmountItem(
             title: 'Monto de la deuda',
             value: CurrencyFormatter.format(debt.montoTotal),
+            highContrast: highContrast,
           ),
         ),
         Expanded(
           child: _AmountItem(
             title: 'Capital pendiente',
             value: CurrencyFormatter.format(debt.saldoPendiente),
+            highContrast: highContrast,
           ),
         ),
       ],
     );
   }
 
-  /// Muestra el valor de la cuota mensual de la deuda.
-  Widget _buildMonthlyInstallment() {
-    // Evita mostrar un valor de cero cuando no existe una cuota calculada.
+  /// Muestra el valor de la cuota mensual.
+  Widget _buildMonthlyInstallment(bool highContrast) {
     final double? installment = debt.cuotaMensual;
 
     final String installmentValue = installment != null && installment > 0
@@ -198,26 +234,32 @@ class DebtCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: highContrast ? Colors.white : Colors.blue.shade50,
         borderRadius: BorderRadius.circular(10),
+        border: highContrast
+            ? Border.all(color: Colors.black, width: 1.5)
+            : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Cuota mensual',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Colors.black87,
+              color: Colors.black,
             ),
           ),
-          Text(
-            installmentValue,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF2196F3),
+          Flexible(
+            child: Text(
+              installmentValue,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: highContrast ? Colors.black : const Color(0xFF2196F3),
+              ),
             ),
           ),
         ],
@@ -226,48 +268,64 @@ class DebtCard extends StatelessWidget {
   }
 
   /// Muestra el progreso de pago.
-  Widget _buildProgress() {
+  Widget _buildProgress(bool highContrast, Color primaryColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Progreso de pago',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: highContrast ? Colors.black : null,
+              ),
             ),
             Text(
               '$_percentage%',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.blue.shade700,
+                color: highContrast ? Colors.black : Colors.blue.shade700,
               ),
             ),
           ],
         ),
         const SizedBox(height: 7),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: _paidPercentage,
-            minHeight: 8,
-            backgroundColor: const Color(0xFFD7ECFF),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+
+        // Barra de progreso con adaptación al tema.
+        Container(
+          decoration: highContrast
+              ? BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 1),
+                  borderRadius: BorderRadius.circular(10),
+                )
+              : null,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: _paidPercentage,
+              minHeight: 8,
+              backgroundColor: highContrast
+                  ? Colors.white
+                  : const Color(0xFFD7ECFF),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                highContrast ? primaryColor : const Color(0xFF2196F3),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// Formatea la fecha de inicio para mostrar únicamente la fecha.
+  /// Formatea la fecha de inicio.
   String _formatStartDate(String fecha) {
     final DateTime? date = DateTime.tryParse(fecha);
 
-    if (date == null) {
-      return fecha;
-    }
+    if (date == null) return fecha;
 
     final String day = date.day.toString().padLeft(2, '0');
     final String month = date.month.toString().padLeft(2, '0');
@@ -275,8 +333,8 @@ class DebtCard extends StatelessWidget {
     return '$day/$month/${date.year}';
   }
 
-  /// Muestra información adicional disponible en el modelo.
-  Widget _buildAdditionalInfo() {
+  /// Muestra información adicional de la deuda.
+  Widget _buildAdditionalInfo(bool highContrast) {
     return Wrap(
       spacing: 20,
       runSpacing: 8,
@@ -285,25 +343,28 @@ class DebtCard extends StatelessWidget {
           icon: Icons.calendar_today_outlined,
           label: 'Inicio',
           value: _formatStartDate(debt.fechaInicio),
+          highContrast: highContrast,
         ),
         if (debt.tasaInteres > 0)
           _InfoItem(
             icon: Icons.percent,
             label: 'Interés',
             value: '${debt.tasaInteres}%',
+            highContrast: highContrast,
           ),
         if (debt.plazo != null)
           _InfoItem(
             icon: Icons.schedule_outlined,
             label: 'Plazo',
             value: '${debt.plazo}',
+            highContrast: highContrast,
           ),
       ],
     );
   }
 
   /// Botones para consultar el detalle y registrar un pago.
-  Widget _buildActions() {
+  Widget _buildActions(bool highContrast, Color primaryColor) {
     return Row(
       children: [
         Expanded(
@@ -311,6 +372,13 @@ class DebtCard extends StatelessWidget {
             onPressed: onDetail,
             icon: const Icon(Icons.visibility_outlined),
             label: const Text('Detalle'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: highContrast ? Colors.black : primaryColor,
+              side: BorderSide(
+                color: highContrast ? Colors.black : primaryColor,
+                width: highContrast ? 1.5 : 1,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -319,6 +387,13 @@ class DebtCard extends StatelessWidget {
             onPressed: _isPaid ? null : onPay,
             icon: const Icon(Icons.payments_outlined),
             label: const Text('Pagar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: highContrast ? primaryColor : null,
+              foregroundColor: Colors.white,
+              side: highContrast
+                  ? const BorderSide(color: Colors.black, width: 1.5)
+                  : BorderSide.none,
+            ),
           ),
         ),
       ],
@@ -330,8 +405,13 @@ class DebtCard extends StatelessWidget {
 class _AmountItem extends StatelessWidget {
   final String title;
   final String value;
+  final bool highContrast;
 
-  const _AmountItem({required this.title, required this.value});
+  const _AmountItem({
+    required this.title,
+    required this.value,
+    required this.highContrast,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -340,19 +420,19 @@ class _AmountItem extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: Colors.black,
+            color: highContrast ? Colors.black : Colors.black,
           ),
         ),
         const SizedBox(height: 3),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2196F3),
+            color: highContrast ? Colors.black : const Color(0xFF2196F3),
           ),
         ),
       ],
@@ -365,11 +445,13 @@ class _InfoItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool highContrast;
 
   const _InfoItem({
     required this.icon,
     required this.label,
     required this.value,
+    required this.highContrast,
   });
 
   @override
@@ -377,11 +459,18 @@ class _InfoItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey.shade600),
+        Icon(
+          icon,
+          size: 16,
+          color: highContrast ? Colors.black : Colors.grey.shade600,
+        ),
         const SizedBox(width: 5),
         Text(
           '$label: $value',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: TextStyle(
+            fontSize: 12,
+            color: highContrast ? Colors.black : Colors.grey.shade700,
+          ),
         ),
       ],
     );

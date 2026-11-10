@@ -33,11 +33,16 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final usuario = authProvider.currentUser;
+
+    // Consulta la preferencia de alto contraste.
+    final highContrast = usuario?.altoContraste ?? false;
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
+            // Encabezado principal de la pantalla.
             _buildHeader(),
             Expanded(
               child: AppBackground(
@@ -45,7 +50,10 @@ class MoreScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
                   child: Column(
                     children: [
-                      _buildWelcomeSection(usuario?.nombre ?? 'Usuario'),
+                      _buildWelcomeSection(
+                        usuario?.nombre ?? 'Usuario',
+                        highContrast,
+                      ),
                       const SizedBox(height: 12),
                       _buildOptionCard(
                         context,
@@ -56,6 +64,7 @@ class MoreScreen extends StatelessWidget {
                         description:
                             'Gestiona tus deudas y\ncontrola tus pagos.',
                         onTap: onDebtsPressed,
+                        highContrast: highContrast,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
@@ -66,6 +75,7 @@ class MoreScreen extends StatelessWidget {
                         title: 'Obligaciones',
                         description: 'Administra tus obligaciones\nmensuales.',
                         onTap: onObligationsPressed,
+                        highContrast: highContrast,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
@@ -77,6 +87,7 @@ class MoreScreen extends StatelessWidget {
                         description:
                             'Visualiza reportes y análisis\nde tus finanzas.',
                         onTap: onReportsPressed,
+                        highContrast: highContrast,
                       ),
                       const SizedBox(height: 8),
                       _buildOptionCard(
@@ -88,6 +99,7 @@ class MoreScreen extends StatelessWidget {
                         description:
                             'Configura alertas y revisa tu\nhistorial de notificaciones.',
                         onTap: onNotificationsPressed,
+                        highContrast: highContrast,
                       ),
                     ],
                   ),
@@ -100,6 +112,7 @@ class MoreScreen extends StatelessWidget {
     );
   }
 
+  // Construye el encabezado azul de la pantalla.
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -118,7 +131,8 @@ class MoreScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeSection(String nombre) {
+  // Muestra el saludo y la descripción de la pantalla.
+  Widget _buildWelcomeSection(String nombre, bool highContrast) {
     return SizedBox(
       height: 116,
       child: Row(
@@ -128,8 +142,13 @@ class MoreScreen extends StatelessWidget {
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.65),
+                color: highContrast
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(10),
+                border: highContrast
+                    ? Border.all(color: Colors.black, width: 1.5)
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +159,7 @@ class MoreScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF17324D),
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 7),
@@ -149,7 +168,7 @@ class MoreScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.25,
-                      color: Color(0xFF355C7D),
+                      color: Colors.black,
                     ),
                   ),
                 ],
@@ -175,6 +194,7 @@ class MoreScreen extends StatelessWidget {
     );
   }
 
+  // Construye cada opción del menú.
   Widget _buildOptionCard(
     BuildContext context, {
     required IconData icon,
@@ -182,11 +202,19 @@ class MoreScreen extends StatelessWidget {
     required Color iconBackground,
     required String title,
     required String description,
+    required bool highContrast,
     VoidCallback? onTap,
   }) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
+      // Se utiliza shape para definir el borde y las esquinas.
+      // No se combina con la propiedad borderRadius de Material.
+      shape: RoundedRectangleBorder(
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 1.5)
+            : BorderSide.none,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
@@ -196,6 +224,7 @@ class MoreScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
+                // Icono representativo de la opción.
                 Container(
                   width: 44,
                   height: 44,
@@ -216,7 +245,7 @@ class MoreScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF171717),
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -225,7 +254,7 @@ class MoreScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 13,
                           height: 1.2,
-                          color: Color(0xFF333333),
+                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -234,7 +263,7 @@ class MoreScreen extends StatelessWidget {
                 const Icon(
                   Icons.chevron_right_rounded,
                   size: 29,
-                  color: Color(0xFF202020),
+                  color: Colors.black,
                 ),
               ],
             ),

@@ -15,22 +15,9 @@ import '../../../providers/budget_provider.dart';
 import '../../../shared/widgets/app_background.dart';
 
 /// Pantalla principal del módulo Obligaciones.
-///
-/// Permite:
-/// - Visualizar el total de obligaciones pendientes.
-/// - Consultar las obligaciones registradas.
-/// - Filtrar obligaciones fijas y variables.
-/// - Consultar el estado de cada obligación.
-/// - Acceder posteriormente al detalle de una obligación.
-/// - Registrar una nueva obligación.
 class ObligationsScreen extends StatefulWidget {
-  /// Acción para regresar a la pantalla Más.
   final VoidCallback? onBackPressed;
-
-  /// Acción ejecutada al pulsar el avatar.
   final VoidCallback? onAvatarPressed;
-
-  /// Acción ejecutada al pulsar la campana de notificaciones.
   final VoidCallback? onNotificationPressed;
 
   const ObligationsScreen({
@@ -46,17 +33,14 @@ class ObligationsScreen extends StatefulWidget {
 
 class _ObligationsScreenState extends State<ObligationsScreen> {
   /// Filtro seleccionado actualmente.
-  ///
-  /// Valores posibles:
-  /// - Todas
-  /// - Fijas
-  /// - Variables
   String _filtroSeleccionado = 'Todas';
 
+  /// Detecta si está activo el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   /// Obtiene las obligaciones correspondientes al período actual.
-  ///
-  /// Las obligaciones históricas permanecen almacenadas,
-  /// pero solo participan en los filtros del período actual.
   List<ObligationModel> _currentPeriodObligations(
     List<ObligationModel> obligations,
   ) {
@@ -75,8 +59,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   void initState() {
     super.initState();
 
-    /// Carga las obligaciones después de construir
-    /// la pantalla para poder acceder al Provider.
+    // Carga las obligaciones después de construir la pantalla.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadObligations();
     });
@@ -99,10 +82,6 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }
 
   /// Filtra las obligaciones según el filtro seleccionado.
-  ///
-  /// 'Todas' muestra todo el historial.
-  /// Los demás filtros trabajan únicamente con
-  /// las obligaciones del período actual.
   List<ObligationModel> _filterObligations(List<ObligationModel> obligations) {
     if (_filtroSeleccionado == 'Todas') {
       return obligations;
@@ -137,6 +116,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   /// Construye un botón de filtro.
   Widget _buildFilterButton(String text) {
     final bool selected = _filtroSeleccionado == text;
+    final bool highContrast = _isHighContrast(context);
 
     return Expanded(
       child: SizedBox(
@@ -148,11 +128,22 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
             });
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: selected ? AppColors.primary : Colors.white,
-            foregroundColor: selected ? Colors.white : Colors.grey.shade700,
+            backgroundColor: selected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.white,
+            foregroundColor: selected
+                ? Colors.white
+                : highContrast
+                ? Colors.black
+                : Colors.grey.shade700,
             elevation: 0,
             side: BorderSide(
-              color: selected ? AppColors.primary : Colors.grey.shade300,
+              color: highContrast
+                  ? Colors.black
+                  : selected
+                  ? AppColors.primary
+                  : Colors.grey.shade300,
+              width: highContrast ? 1.5 : 1,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -174,10 +165,6 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }
 
   /// Construye la tarjeta superior de resumen.
-  ///
-  /// El icono permanece siempre a la izquierda.
-  /// El contenido de texto se adapta al espacio disponible
-  /// para evitar desbordamientos en diferentes dispositivos.
   Widget _buildSummaryCard({
     required IconData icon,
     required Color iconColor,
@@ -186,66 +173,64 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
     required String value,
     required Color valueColor,
   }) {
+    final bool highContrast = _isHighContrast(context);
+
     return Expanded(
       child: Container(
-        // La tarjeta no tiene una altura fija.
-        // Su contenido determina la altura necesaria.
         constraints: const BoxConstraints(minHeight: 74),
-
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(7),
-          border: Border.all(color: const Color(0xFFD5E1ED)),
+          border: Border.all(
+            color: highContrast ? Colors.black : const Color(0xFFD5E1ED),
+            width: highContrast ? 1.5 : 1,
+          ),
         ),
-
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ==================================================
-            // Icono.
-            //
-            // Se mantiene siempre a la izquierda de la tarjeta.
-            // ==================================================
+            // Icono de la tarjeta.
             Container(
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: iconBackground,
+                color: highContrast ? Colors.white : iconBackground,
                 shape: BoxShape.circle,
+                border: highContrast
+                    ? Border.all(color: Colors.black, width: 1)
+                    : null,
               ),
-              child: Icon(icon, size: 20, color: iconColor),
+              child: Icon(
+                icon,
+                size: 20,
+                color: highContrast
+                    ? Theme.of(context).colorScheme.primary
+                    : iconColor,
+              ),
             ),
 
             const SizedBox(width: 8),
 
-            // ==================================================
             // Contenido de la tarjeta.
-            //
-            // Expanded permite que el texto utilice únicamente
-            // el espacio disponible después del icono.
-            // ==================================================
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Título de la tarjeta.
                   Text(
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: highContrast ? Colors.black : Colors.black87,
+                    ),
                   ),
 
                   const SizedBox(height: 2),
 
-                  // Valor monetario.
-                  //
-                  // FittedBox reduce el tamaño visual si el monto
-                  // no cabe en el ancho disponible.
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -255,7 +240,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: valueColor,
+                        color: highContrast ? Colors.black : valueColor,
                       ),
                     ),
                   ),
@@ -268,28 +253,27 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
     );
   }
 
-  /// Construye la tarjeta individual de una obligación.
-  ///
-  /// La tarjeta muestra:
-  /// - Icono de la obligación.
-  /// - Nombre.
-  /// - Fecha de vencimiento.
-  /// - Tipo y frecuencia.
-  /// - Monto.
-  /// - Estado Pendiente/Pagada.
-  /// - Acción para consultar el detalle.
+  /// Construye la tarjeta de una obligación.
   Widget _buildObligationCard(ObligationModel obligation) {
     final bool pagada = obligation.estado == ObligationService.estadoPagada;
 
+    final bool highContrast = _isHighContrast(context);
+
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      constraints: const BoxConstraints(minHeight: 70),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border(bottom: BorderSide(color: Color(0xFFE0E0E0))),
+        border: Border(
+          bottom: BorderSide(
+            color: highContrast ? Colors.black : const Color(0xFFE0E0E0),
+            width: highContrast ? 1.5 : 1,
+          ),
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Icono de la obligación.
           _buildObligationIcon(obligation),
@@ -299,51 +283,64 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
           // Información principal.
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   obligation.nombre,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: highContrast ? Colors.black : Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 0),
+
+                const SizedBox(height: 3),
+
                 Text(
                   'Vence: ${_formatDate(obligation.fechaVencimiento)}',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: highContrast ? Colors.black : Colors.grey,
+                  ),
                 ),
-                const SizedBox(height: 0),
+
+                const SizedBox(height: 2),
+
                 Text(
                   obligation.esRecurrente
                       ? 'Fija - ${obligation.frecuencia}'
                       : 'Única',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: highContrast ? Colors.black : Colors.grey,
+                  ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
 
-          // Monto y estado.
+          // Monto y estado de la obligación.
           SizedBox(
-            width: 82,
+            width: 100,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   CurrencyFormatter.format(obligation.monto),
-                  maxLines: 1,
+                  maxLines: 2,
+                  textAlign: TextAlign.end,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 14,
@@ -351,7 +348,10 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 3),
+
+                const SizedBox(height: 5),
+
+                // Permite cambiar el estado únicamente si está pendiente.
                 GestureDetector(
                   onTap: pagada
                       ? null
@@ -361,6 +361,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                             listen: false,
                           );
 
+                          // Solicita confirmación antes de registrar el pago.
                           final confirmed = await _confirmMarkAsPaid(
                             obligation,
                           );
@@ -372,7 +373,6 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                           if (!mounted) return;
 
                           if (!success) {
-                            // Muestra el error si no fue posible registrar el pago.
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -382,12 +382,10 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                                 ),
                               ),
                             );
-
                             return;
                           }
 
-                          // Obtiene los Providers necesarios para recalcular
-                          // el presupuesto después de generar el gasto.
+                          // Obtiene los proveedores necesarios.
                           final authProvider = Provider.of<AuthProvider>(
                             context,
                             listen: false,
@@ -412,19 +410,20 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
 
                           if (usuario == null) return;
 
-                          // Recarga los ingresos y gastos para incluir
-                          // inmediatamente el gasto generado por la obligación.
+                          // Recarga ingresos y gastos después del pago.
                           await incomeProvider.loadIncomeData(
                             usuario.idUsuario!,
                           );
+
                           await expenseProvider.loadExpenses(
                             usuario.idUsuario!,
                           );
 
                           if (!mounted) return;
 
-                          // Define el inicio del período financiero actual.
+                          // Calcula el inicio del período financiero actual.
                           final now = DateTime.now();
+
                           final currentPeriodStart = DateTime(
                             now.year,
                             now.month,
@@ -444,7 +443,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
 
                           if (!mounted) return;
 
-                          // Actualiza el resumen del presupuesto con los datos actuales.
+                          // Actualiza el resumen del presupuesto.
                           budgetProvider.updateBudget(
                             initialBalance: initialBalance,
                             fixedIncome: usuario.ingresoFijoMensual,
@@ -454,24 +453,37 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                             totalSavings: 0,
                           );
                         },
+
+                  // Etiqueta del estado.
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                      horizontal: 7,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: pagada
+                      color: highContrast
+                          ? Colors.white
+                          : pagada
                           ? const Color(0xFFD7F3E5)
                           : const Color(0xFFFFCACA),
                       borderRadius: BorderRadius.circular(5),
+                      border: highContrast
+                          ? Border.all(color: Colors.black, width: 1.2)
+                          : null,
                     ),
                     child: Text(
                       pagada ? 'Pagada' : 'Pendiente',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
-                        color: pagada
+                        color: highContrast
+                            ? Colors.black
+                            : pagada
                             ? const Color(0xFF15965A)
                             : const Color(0xFFE53935),
+                        fontWeight: highContrast
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -480,9 +492,9 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
             ),
           ),
 
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
 
-          // Abre el detalle de la obligación.
+          // Permite consultar o editar una obligación pendiente.
           if (!pagada)
             IconButton(
               onPressed: () {
@@ -496,10 +508,10 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
               },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-              icon: const Icon(
+              icon: Icon(
                 Icons.remove_red_eye_outlined,
                 size: 25,
-                color: Colors.black,
+                color: highContrast ? Colors.black : Colors.black,
               ),
             ),
         ],
@@ -508,10 +520,9 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
   }
 
   /// Icono visual asociado a la obligación.
-  ///
-  /// Por ahora utiliza diferentes iconos según
-  /// el nombre para acercarnos al prototipo.
   Widget _buildObligationIcon(ObligationModel obligation) {
+    final bool highContrast = _isHighContrast(context);
+
     IconData icon = Icons.receipt_long_outlined;
     Color background = const Color(0xFFE8E8E8);
     Color color = Colors.grey;
@@ -543,8 +554,14 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
     return Container(
       width: 34,
       height: 34,
-      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-      child: Icon(icon, size: 20, color: color),
+      decoration: BoxDecoration(
+        color: highContrast ? Colors.white : background,
+        shape: BoxShape.circle,
+        border: highContrast
+            ? Border.all(color: Colors.black, width: 1.5)
+            : null,
+      ),
+      child: Icon(icon, size: 20, color: highContrast ? Colors.black : color),
     );
   }
 
@@ -579,12 +596,14 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
     final obligationProvider = Provider.of<ObligationProvider>(context);
     final budgetProvider = Provider.of<BudgetProvider>(context);
 
+    final bool highContrast = _isHighContrast(context);
+
     final obligations = _filterObligations(obligationProvider.obligations);
 
     return Scaffold(
       body: Column(
         children: [
-          /// Encabezado reutilizado de la aplicación.
+          // Encabezado reutilizado de la aplicación.
           AppHeader(
             title: 'Obligaciones',
             showAvatar: true,
@@ -603,7 +622,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: Column(
                       children: [
-                        /// Resumen superior.
+                        // Resumen superior.
                         Row(
                           children: [
                             _buildSummaryCard(
@@ -633,7 +652,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
 
                         const SizedBox(height: 12),
 
-                        /// Filtros.
+                        // Filtros.
                         Row(
                           children: [
                             _buildFilterButton('Todas'),
@@ -667,41 +686,55 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                                   Container(
                                     width: 64,
                                     height: 64,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFD7F3E5),
+                                    decoration: BoxDecoration(
+                                      color: highContrast
+                                          ? Colors.white
+                                          : const Color(0xFFD7F3E5),
                                       shape: BoxShape.circle,
+                                      border: highContrast
+                                          ? Border.all(
+                                              color: Colors.black,
+                                              width: 1.5,
+                                            )
+                                          : null,
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.calendar_month_outlined,
                                       size: 32,
-                                      color: Color(0xFF16B86A),
+                                      color: highContrast
+                                          ? Colors.black
+                                          : const Color(0xFF16B86A),
                                     ),
                                   ),
 
                                   const SizedBox(height: 14),
 
                                   // Mensaje principal.
-                                  const Text(
+                                  Text(
                                     'No tienes obligaciones registradas',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF303030),
+                                      color: highContrast
+                                          ? Colors.black
+                                          : const Color(0xFF303030),
                                     ),
                                   ),
 
                                   const SizedBox(height: 7),
 
                                   // Explicación del estado vacío.
-                                  const Text(
+                                  Text(
                                     'Registra tus obligaciones mensuales para '
                                     'llevar un mejor control de tus pagos.',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 13,
                                       height: 1.3,
-                                      color: Color(0xFF666666),
+                                      color: highContrast
+                                          ? Colors.black
+                                          : const Color(0xFF666666),
                                     ),
                                   ),
                                 ],
@@ -714,6 +747,7 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                             ),
                     ),
                   ),
+
                   // Botón fijo para registrar una nueva obligación.
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -738,9 +772,17 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
-                          elevation: 2,
+                          elevation: highContrast ? 0 : 2,
+                          side: highContrast
+                              ? const BorderSide(
+                                  color: Colors.black,
+                                  width: 1.5,
+                                )
+                              : BorderSide.none,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -752,28 +794,54 @@ class _ObligationsScreenState extends State<ObligationsScreen> {
               ),
             ),
           ),
+
           const SizedBox(height: 12),
         ],
       ),
     );
   }
 
+  /// Solicita confirmación antes de marcar una obligación como pagada.
   Future<bool> _confirmMarkAsPaid(ObligationModel obligation) async {
+    final bool highContrast = _isHighContrast(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Confirmar pago'),
+          backgroundColor: Colors.white,
+          shape: highContrast
+              ? RoundedRectangleBorder(
+                  side: const BorderSide(color: Colors.black, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                )
+              : null,
+          title: const Text(
+            'Confirmar pago',
+            style: TextStyle(color: Colors.black),
+          ),
           content: Text(
             '¿Deseas marcar la obligación "${obligation.nombre}" como pagada?',
+            style: const TextStyle(color: Colors.black),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: highContrast
+                      ? Colors.black
+                      : Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Marcar como pagada'),
             ),
           ],

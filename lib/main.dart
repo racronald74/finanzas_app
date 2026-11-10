@@ -68,21 +68,50 @@ Future<void> main() async {
   );
 }
 
-/// Widget principal de la aplicación
+/// Widget principal de la aplicación.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+    // Escucha los cambios del usuario y sus preferencias.
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.currentUser;
 
-      title: 'Finanzas App',
+        // Determina si se debe utilizar alto contraste.
+        final bool altoContraste = user?.altoContraste ?? false;
 
-      theme: AppTheme.lightTheme,
+        // Determina el tamaño de texto seleccionado.
+        final double escalaTexto = switch (user?.tamanoTexto) {
+          'grande' => 1.15,
+          'muy_grande' => 1.30,
+          _ => 1.0,
+        };
 
-      // Primera pantalla de la aplicación
-      home: const LoginScreen(),
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Finanzas App',
+
+          // Selecciona el tema según las preferencias del usuario.
+          theme: altoContraste
+              ? AppTheme.highContrastTheme
+              : AppTheme.lightTheme,
+
+          // Aplica el tamaño de texto a toda la aplicación.
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(escalaTexto)),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+
+          // Primera pantalla de la aplicación.
+          home: const LoginScreen(),
+        );
+      },
     );
   }
 }

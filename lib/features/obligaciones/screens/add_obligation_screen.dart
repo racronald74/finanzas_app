@@ -1,26 +1,18 @@
-import '../../../data/repositories/category_repository.dart';
-import '../../../data/models/category_model.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 
+import '../../../data/repositories/category_repository.dart';
+import '../../../data/models/category_model.dart';
 import '../../../data/models/obligation_model.dart';
+import '../../../data/services/obligation_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/obligation_provider.dart';
-import '../../../data/services/obligation_service.dart';
 
 /// Pantalla para registrar o editar una obligación.
 ///
-/// Si [initialObligation] es null, se utiliza para registrar
-/// una nueva obligación.
-///
-/// Si contiene una obligación, se utiliza para editarla.
+/// Si initialObligation es null, registra una obligación nueva.
+/// Si contiene una obligación, permite editarla.
 class AddObligationScreen extends StatefulWidget {
-  /// Obligación existente cuando la pantalla se utiliza
-  /// para editar.
-  ///
-  /// Si es null, la pantalla funciona como registro nuevo.
   final ObligationModel? initialObligation;
 
   const AddObligationScreen({super.key, this.initialObligation});
@@ -30,126 +22,66 @@ class AddObligationScreen extends StatefulWidget {
 }
 
 class _AddObligationScreenState extends State<AddObligationScreen> {
-  /// Indica si se está guardando una obligación.
-  bool _isSaving = false;
-
-  /// Indica si la pantalla está editando una obligación existente.
-  bool get _isEditing => widget.initialObligation != null;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F4),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                child: Column(
-                  children: [
-                    // Selector entre obligación fija y variable.
-                    _buildObligationForm(),
-
-                    const SizedBox(height: 16),
-
-                    _buildActionButtons(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Encabezado de la pantalla.
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      height: 84,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      color: const Color(0xFF3F73BC),
-      child: Row(
-        children: [
-          /// Regreso a la pantalla anterior.
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-          ),
-
-          const SizedBox(width: 2),
-
-          Expanded(
-            child: Text(
-              _isEditing ? 'Editar Obligación' : 'Agregar Obligación',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 23,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-
-          /// Avatar utilizado en el prototipo.
-          const CircleAvatar(radius: 22, child: Icon(Icons.person, size: 26)),
-        ],
-      ),
-    );
-  }
-
-  /// Controlador para el nombre de la obligación.
   final TextEditingController _nombreController = TextEditingController();
-
-  /// Controlador para el monto de la obligación.
   final TextEditingController _montoController = TextEditingController();
 
-  @override
-  void dispose() {
-    _nombreController.dispose();
-    _montoController.dispose();
-    super.dispose();
-  }
-
-  /// Repositorio utilizado para consultar categorías.
   final CategoryRepository _categoryRepository = CategoryRepository();
 
-  /// Categorías disponibles para obligaciones.
+  bool _isSaving = false;
+  bool _recordatorio = false;
+
+  DateTime? _fechaVencimiento;
+  String? _frecuenciaSeleccionada;
+  int? _selectedCategoryId;
+
   List<CategoryModel> _categories = [];
 
-  /// Categoría seleccionada.
-  int? _selectedCategoryId;
+  /// Indica si la pantalla está editando una obligación.
+  bool get _isEditing => widget.initialObligation != null;
+
+  /// Detecta si está activo el tema de alto contraste.
+  bool get _highContrast {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
+  /// Obtiene el color principal del tema.
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+
+  /// Color utilizado para los textos.
+  Color get _textColor => _highContrast ? Colors.black : Colors.black87;
+
+  /// Color utilizado para los bordes.
+  Color get _borderColor =>
+      _highContrast ? Colors.black : const Color(0xFFD5E1ED);
 
   @override
   void initState() {
     super.initState();
 
+    // Carga las categorías disponibles.
     _loadCategories();
 
+    // Recupera los datos cuando se está editando.
     final obligation = widget.initialObligation;
 
     if (obligation != null) {
-      // Datos generales.
       _nombreController.text = obligation.nombre;
       _montoController.text = obligation.monto.toStringAsFixed(0);
 
-      // Categoría.
       _selectedCategoryId = obligation.idCategoria;
-
-      // Configuración de la obligación.
       _frecuenciaSeleccionada = obligation.frecuencia;
-
-      // Recupera el estado del recordatorio guardado en SQLite.
       _recordatorio = obligation.recordatorio;
 
-      // Carga la fecha de vencimiento existente.
       _fechaVencimiento = DateTime.tryParse(obligation.fechaVencimiento);
     }
+  }
+
+  @override
+  void dispose() {
+    // Libera los controladores de texto.
+    _nombreController.dispose();
+    _montoController.dispose();
+    super.dispose();
   }
 
   /// Obtiene las categorías destinadas a obligaciones.
@@ -165,56 +97,105 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     });
   }
 
-  /// Construye el formulario único para registrar
-  /// o editar una obligación.
-  ///
-  /// La frecuencia determina si la obligación
-  /// es única o recurrente.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Cambia el fondo cuando está activo el alto contraste.
+      backgroundColor: _highContrast ? Colors.white : const Color(0xFFF4F4F4),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Column(
+                  children: [
+                    // Formulario compartido para crear y editar.
+                    _buildObligationForm(),
+                    const SizedBox(height: 16),
+                    _buildActionButtons(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Construye el encabezado de la pantalla.
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 84),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      color: const Color(0xFF3F73BC),
+      child: Row(
+        children: [
+          // Regresa a la pantalla anterior.
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 2),
+          Expanded(
+            child: Text(
+              _isEditing ? 'Editar Obligación' : 'Agregar Obligación',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 23,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const CircleAvatar(radius: 22, child: Icon(Icons.person, size: 26)),
+        ],
+      ),
+    );
+  }
+
+  /// Construye todos los campos del formulario.
   Widget _buildObligationForm() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Nombre de la obligación.
         _buildTextField(
           controller: _nombreController,
           icon: Icons.home_outlined,
           label: 'Nombre de la obligación',
           hint: 'Ej: Arriendo, Netflix, Inscripción',
         ),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 10),
-
-        Row(
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _montoController,
-                icon: Icons.attach_money,
-                label: 'Monto',
-                hint: '\$0',
-                keyboardType: TextInputType.number,
-              ),
-            ),
-
-            const SizedBox(width: 10),
-
-            Expanded(
-              child: _buildDateField(
-                icon: Icons.calendar_today_outlined,
-                title: 'Fecha de vencimiento',
-                value: _fechaVencimiento == null
-                    ? 'Seleccione fecha'
-                    : _formatDate(_fechaVencimiento!),
-                onTap: _selectDueDate,
-              ),
-            ),
-          ],
+        // Monto de la obligación.
+        _buildTextField(
+          controller: _montoController,
+          icon: Icons.attach_money,
+          label: 'Monto',
+          hint: '\$0',
+          keyboardType: TextInputType.number,
         ),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 10),
+        // Fecha de vencimiento.
+        _buildDateField(
+          icon: Icons.calendar_today_outlined,
+          title: 'Fecha de vencimiento',
+          value: _fechaVencimiento == null
+              ? 'Seleccione fecha'
+              : _formatDate(_fechaVencimiento!),
+          onTap: _selectDueDate,
+        ),
+        const SizedBox(height: 12),
 
+        // Categoría.
         _buildCategoryField(),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 10),
-
+        // Frecuencia.
         _buildDropdownField(
           icon: Icons.refresh_outlined,
           title: 'Frecuencia',
@@ -233,41 +214,15 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
             });
           },
         ),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 10),
-
+        // Recordatorio.
         _buildReminderField(),
       ],
     );
   }
 
-  /// Botón utilizado para registrar una nueva obligación.
-  Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 46,
-      child: ElevatedButton.icon(
-        onPressed: _isSaving ? null : _guardarObligacion,
-        icon: const Icon(Icons.save_outlined),
-        label: const Text(
-          'Guardar obligación',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4380E5),
-          foregroundColor: Colors.white,
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-        ),
-      ),
-    );
-  }
-
-  /// Botones principales del formulario.
-  ///
-  /// En modo registro muestra únicamente Guardar obligación.
-  /// En modo edición muestra Guardar cambios, Eliminar obligación
-  /// y Cancelar.
+  /// Construye los botones según el modo de la pantalla.
   Widget _buildActionButtons() {
     if (!_isEditing) {
       return _buildSaveButton();
@@ -275,36 +230,28 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
 
     return Column(
       children: [
-        // Guardar cambios.
+        // Guarda los cambios de la obligación.
         SizedBox(
           width: double.infinity,
           height: 46,
           child: ElevatedButton.icon(
-            onPressed: _guardarObligacion,
+            onPressed: _isSaving ? null : _guardarObligacion,
             icon: const Icon(Icons.save_outlined),
             label: const Text(
               'Guardar cambios',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4380E5),
-              foregroundColor: Colors.white,
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
-            ),
+            style: _primaryButtonStyle(),
           ),
         ),
-
         const SizedBox(height: 8),
 
-        // Eliminar obligación.
+        // Elimina la obligación existente.
         SizedBox(
           width: double.infinity,
           height: 42,
           child: OutlinedButton.icon(
-            onPressed: _eliminarObligacion,
+            onPressed: _isSaving ? null : _eliminarObligacion,
             icon: const Icon(Icons.delete_outline),
             label: const Text(
               'Eliminar obligación',
@@ -312,27 +259,29 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+              side: const BorderSide(color: Colors.red, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
           ),
         ),
-
         const SizedBox(height: 8),
 
-        // Cancelar edición.
+        // Cancela la edición.
         SizedBox(
           width: double.infinity,
           height: 42,
           child: OutlinedButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.grey.shade600,
-              side: BorderSide(color: Colors.grey.shade400),
+              foregroundColor: _highContrast
+                  ? Colors.black
+                  : Colors.grey.shade600,
+              side: BorderSide(
+                color: _highContrast ? Colors.black : Colors.grey.shade400,
+                width: _highContrast ? 1.5 : 1,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(5),
               ),
@@ -344,27 +293,46 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Elimina la obligación actualmente editada.
-  Future<void> _eliminarObligacion() async {
-    final obligation = widget.initialObligation;
-
-    if (obligation == null || obligation.idObligacion == null) {
-      return;
-    }
-
-    final provider = Provider.of<ObligationProvider>(context, listen: false);
-
-    await provider.deleteObligation(
-      obligation.idObligacion!,
-      obligation.idUsuario,
+  /// Construye el botón para registrar una nueva obligación.
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 46,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving ? null : _guardarObligacion,
+        icon: _isSaving
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.save_outlined),
+        label: const Text(
+          'Guardar obligación',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: _primaryButtonStyle(),
+      ),
     );
-
-    if (!mounted) return;
-
-    Navigator.pop(context);
   }
 
-  /// Campo de texto reutilizable para el formulario.
+  /// Define el estilo compartido de los botones principales.
+  ButtonStyle _primaryButtonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: _highContrast ? _primaryColor : const Color(0xFF4380E5),
+      foregroundColor: Colors.white,
+      elevation: _highContrast ? 0 : 1,
+      side: _highContrast
+          ? const BorderSide(color: Colors.black, width: 1.5)
+          : BorderSide.none,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+    );
+  }
+
+  /// Campo de texto reutilizable.
   Widget _buildTextField({
     required TextEditingController controller,
     required IconData icon,
@@ -373,51 +341,70 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     TextInputType? keyboardType,
   }) {
     return Container(
-      height: 58,
+      constraints: const BoxConstraints(minHeight: 58),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: const Color(0xFFD5E1ED)),
+        border: Border.all(color: _borderColor, width: _highContrast ? 1.5 : 1),
       ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        maxLines: 1,
+        style: TextStyle(color: _textColor),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.grey.shade600),
+          prefixIcon: Icon(
+            icon,
+            color: _highContrast ? Colors.black : Colors.grey.shade600,
+          ),
           labelText: label,
+          labelStyle: TextStyle(color: _textColor),
           hintText: hint,
+          hintStyle: TextStyle(
+            color: _highContrast ? Colors.black54 : Colors.grey.shade500,
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
-            vertical: 8,
+            vertical: 16,
           ),
         ),
       ),
     );
   }
 
-  /// Campo utilizado para seleccionar una categoría de obligación.
+  /// Campo para seleccionar una categoría.
   Widget _buildCategoryField() {
     return Container(
-      height: 58,
+      constraints: const BoxConstraints(minHeight: 58),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: const Color(0xFFD5E1ED)),
+        border: Border.all(color: _borderColor, width: _highContrast ? 1.5 : 1),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _selectedCategoryId,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+          dropdownColor: Colors.white,
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            color: _highContrast ? Colors.black : Colors.grey,
+          ),
           hint: Row(
             children: [
-              Icon(Icons.folder_outlined, color: Colors.grey.shade600),
+              Icon(
+                Icons.folder_outlined,
+                color: _highContrast ? Colors.black : Colors.grey.shade600,
+              ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'Seleccionar categoría',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _highContrast ? Colors.black : Colors.grey,
+                ),
               ),
             ],
           ),
@@ -426,11 +413,16 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
               value: category.idCategoria,
               child: Row(
                 children: [
-                  Icon(Icons.folder_outlined, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.folder_outlined,
+                    color: _highContrast ? Colors.black : Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 10),
-                  Text(
-                    category.nombre,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                  Flexible(
+                    child: Text(
+                      category.nombre,
+                      style: const TextStyle(fontSize: 12, color: Colors.black),
+                    ),
                   ),
                 ],
               ),
@@ -446,11 +438,7 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Campo visual utilizado para seleccionar la fecha de vencimiento.
-  ///
-  /// Muestra un único icono de calendario a la izquierda.
-  /// El texto se mantiene en una sola línea para evitar
-  /// problemas de overflow dentro del campo.
+  /// Campo adaptable para seleccionar una fecha.
   Widget _buildDateField({
     required IconData icon,
     required String title,
@@ -461,99 +449,56 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(5),
       child: Container(
-        height: 58,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        constraints: const BoxConstraints(minHeight: 65),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: const Color(0xFFD5E1ED)),
+          border: Border.all(
+            color: _borderColor,
+            width: _highContrast ? 1.5 : 1,
+          ),
         ),
-
-        // Contenido horizontal del campo.
         child: Row(
           children: [
-            // Único icono de calendario.
-            Icon(icon, color: Colors.grey.shade600),
-
-            const SizedBox(width: 10),
-
-            // Área disponible para el título y la fecha.
+            Icon(
+              icon,
+              color: _highContrast ? Colors.black : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Título del campo.
-                  // Se permiten dos líneas para mostrar
-                  // "Fecha de vencimiento" completo.
                   Text(
                     title,
-                    maxLines: 2,
                     softWrap: true,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    style: TextStyle(fontSize: 12, color: _textColor),
                   ),
-
-                  const SizedBox(height: 2),
-
-                  // Fecha seleccionada o texto de ayuda.
-                  // También se mantiene en una sola línea.
+                  const SizedBox(height: 4),
                   Text(
                     value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                     style: TextStyle(
-                      fontSize: 11,
-                      color:
-                          value == 'Seleccione fecha' ||
-                              value == 'Seleccionar día'
-                          ? Colors.grey.shade400
-                          : Colors.black87,
+                      fontSize: 13,
+                      color: value == 'Seleccione fecha' && !_highContrast
+                          ? Colors.grey.shade500
+                          : _textColor,
                     ),
                   ),
                 ],
               ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down,
+              color: _highContrast ? Colors.black : Colors.grey,
             ),
           ],
         ),
       ),
     );
   }
-
-  /// Fecha de vencimiento de una obligación variable.
-  DateTime? _fechaVencimiento;
-
-  /// Selecciona la fecha de vencimiento de una obligación variable.
-  Future<void> _selectDueDate() async {
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-
-    if (selectedDate == null) return;
-
-    setState(() {
-      _fechaVencimiento = selectedDate;
-    });
-  }
-
-  /// Convierte una fecha a formato YYYY-MM-DD.
-  ///
-  /// Este es el formato utilizado actualmente
-  /// por los modelos de la aplicación.
-  String _formatDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '${date.year}-$month-$day';
-  }
-
-  /// Frecuencia seleccionada para una obligación fija.
-  String? _frecuenciaSeleccionada;
-
-  /// Indica si la obligación tiene recordatorio activo.
-  bool _recordatorio = false;
 
   /// Selector reutilizable para opciones del formulario.
   Widget _buildDropdownField({
@@ -565,35 +510,39 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return Container(
-      height: 58,
+      constraints: const BoxConstraints(minHeight: 58),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: const Color(0xFFD5E1ED)),
+        border: Border.all(color: _borderColor, width: _highContrast ? 1.5 : 1),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey.shade600),
+          Icon(
+            icon,
+            color: _highContrast ? Colors.black : Colors.grey.shade600,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: value,
                 isExpanded: true,
+                dropdownColor: Colors.white,
                 hint: Text(
                   hint,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _highContrast ? Colors.black : Colors.grey,
+                  ),
                 ),
                 items: items.map((item) {
                   return DropdownMenuItem<String>(
                     value: item,
                     child: Text(
                       item,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.black),
                     ),
                   );
                 }).toList(),
@@ -609,25 +558,35 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
   /// Campo para activar o desactivar el recordatorio.
   Widget _buildReminderField() {
     return Container(
-      height: 58,
+      constraints: const BoxConstraints(minHeight: 58),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: const Color(0xFFD5E1ED)),
+        border: Border.all(color: _borderColor, width: _highContrast ? 1.5 : 1),
       ),
       child: Row(
         children: [
-          Icon(Icons.notifications_none_outlined, color: Colors.grey.shade600),
+          Icon(
+            Icons.notifications_none_outlined,
+            color: _highContrast ? Colors.black : Colors.grey.shade600,
+          ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
               'Recordatorio',
-              style: TextStyle(fontSize: 12, color: Colors.black87),
+              style: TextStyle(fontSize: 12, color: _textColor),
             ),
           ),
           Switch(
             value: _recordatorio,
+            activeThumbColor: _highContrast ? Colors.white : null,
+            activeTrackColor: _highContrast ? _primaryColor : null,
+            inactiveThumbColor: _highContrast ? Colors.black : null,
+            inactiveTrackColor: _highContrast ? Colors.white : null,
+            trackOutlineColor: _highContrast
+                ? WidgetStateProperty.all(Colors.black)
+                : null,
             onChanged: (value) {
               setState(() {
                 _recordatorio = value;
@@ -639,18 +598,56 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     );
   }
 
-  /// Guarda una nueva obligación o actualiza una existente.
-  ///
-  /// La frecuencia determina si la obligación es única
-  /// o recurrente:
-  ///
-  /// - Ninguna: obligación de un solo uso.
-  /// - Cualquier otra frecuencia: obligación recurrente.
+  /// Selecciona la fecha de vencimiento.
+  Future<void> _selectDueDate() async {
+    final DateTime now = DateTime.now();
+    final bool highContrast = _highContrast;
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: _fechaVencimiento ?? now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(2100),
+      helpText: 'Seleccionar fecha de vencimiento',
+      cancelText: 'Cancelar',
+      confirmText: 'Aceptar',
+      builder: (context, child) {
+        if (!highContrast) return child!;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedDate == null) return;
+
+    setState(() {
+      _fechaVencimiento = selectedDate;
+    });
+  }
+
+  /// Convierte una fecha a formato YYYY-MM-DD.
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '${date.year}-$month-$day';
+  }
+
+  /// Guarda una obligación nueva o actualiza una existente.
   Future<void> _guardarObligacion() async {
     if (_isSaving) return;
 
     final nombre = _nombreController.text.trim();
-
     final monto = double.tryParse(_montoController.text.trim());
 
     // Valida el nombre.
@@ -693,8 +690,6 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       return;
     }
 
-    // Activa el estado de guardado únicamente
-    // después de completar todas las validaciones.
     setState(() {
       _isSaving = true;
     });
@@ -730,9 +725,10 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
       listen: false,
     );
 
-    bool success;
+    bool success = false;
 
     try {
+      // Ejecuta la operación correspondiente.
       success = _isEditing
           ? await obligationProvider.updateObligation(obligation)
           : await obligationProvider.createObligation(obligation);
@@ -764,7 +760,63 @@ class _AddObligationScreenState extends State<AddObligationScreen> {
     Navigator.pop(context);
   }
 
-  /// Muestra un mensaje al usuario.
+  /// Elimina la obligación que se está editando.
+  Future<void> _eliminarObligacion() async {
+    final obligation = widget.initialObligation;
+
+    if (obligation == null || obligation.idObligacion == null) {
+      return;
+    }
+
+    // Solicita confirmación antes de eliminar.
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: _highContrast
+              ? RoundedRectangleBorder(
+                  side: const BorderSide(color: Colors.black, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                )
+              : null,
+          title: const Text('Eliminar obligación'),
+          content: const Text(
+            '¿Estás seguro de que deseas eliminar esta obligación?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = Provider.of<ObligationProvider>(context, listen: false);
+
+    await provider.deleteObligation(
+      obligation.idObligacion!,
+      obligation.idUsuario,
+    );
+
+    if (!mounted) return;
+
+    Navigator.pop(context);
+  }
+
+  /// Muestra mensajes al usuario.
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,

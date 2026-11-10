@@ -26,7 +26,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = context.read<AuthProvider>().currentUser;
 
     _nombreController = TextEditingController(text: user?.nombre ?? '');
-
     _correoController = TextEditingController(text: user?.correo ?? '');
   }
 
@@ -36,6 +35,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nombreController.dispose();
     _correoController.dispose();
     super.dispose();
+  }
+
+  /// Detecta si está activo el modo de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
   }
 
   /// Formatea la fecha de registro.
@@ -74,15 +78,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
+    final highContrast = _isHighContrast(context);
+
+    // Define los colores de los campos según el tema.
+    final textColor = highContrast ? Colors.black : null;
+    final borderColor = highContrast ? Colors.black : null;
 
     if (user == null) {
       return Scaffold(
+        backgroundColor: highContrast ? Colors.white : null,
         appBar: AppBar(title: const Text('Datos personales')),
-        body: const Center(child: Text('No hay un usuario autenticado')),
+        body: Center(
+          child: Text(
+            'No hay un usuario autenticado',
+            style: TextStyle(color: textColor),
+          ),
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: highContrast ? Colors.white : null,
       appBar: AppBar(
         title: const Text(
           'Datos personales',
@@ -102,20 +118,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: Column(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 42,
-                      child: Icon(Icons.person, size: 46),
+                      backgroundColor: highContrast
+                          ? const Color(0xFF003B8E)
+                          : null,
+                      foregroundColor: Colors.white,
+                      child: const Icon(Icons.person, size: 46),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       user.nombre,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text('Información de tu cuenta'),
+                    Text(
+                      'Información de tu cuenta',
+                      style: TextStyle(color: textColor),
+                    ),
                   ],
                 ),
               ),
@@ -123,18 +147,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 30),
 
               // Campo editable del nombre.
-              const Text(
+              Text(
                 'Nombre completo',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nombreController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                  hintText: 'Ingrese su nombre',
+                style: TextStyle(color: textColor),
+                decoration: _buildInputDecoration(
+                  icon: Icons.person_outline,
+                  hint: 'Ingrese su nombre',
+                  highContrast: highContrast,
+                  borderColor: borderColor,
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -147,18 +173,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
 
               // Campo editable del correo.
-              const Text(
+              Text(
                 'Correo electrónico',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _correoController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
-                  hintText: 'Ingrese su correo',
+                style: TextStyle(color: textColor),
+                decoration: _buildInputDecoration(
+                  icon: Icons.email_outlined,
+                  hint: 'Ingrese su correo',
+                  highContrast: highContrast,
+                  borderColor: borderColor,
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -178,28 +206,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 30),
 
               // Datos informativos de la cuenta.
-              const Text(
+              Text(
                 'Información de la cuenta',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
 
               const SizedBox(height: 12),
 
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today_outlined),
-                title: const Text('Fecha de registro'),
-                subtitle: Text(_formatDate(user.fechaRegistro)),
+                leading: Icon(Icons.calendar_today_outlined, color: textColor),
+                title: Text(
+                  'Fecha de registro',
+                  style: TextStyle(color: textColor),
+                ),
+                subtitle: Text(
+                  _formatDate(user.fechaRegistro),
+                  style: TextStyle(color: textColor),
+                ),
               ),
 
-              const Divider(),
+              Divider(
+                color: highContrast ? Colors.black : null,
+                thickness: highContrast ? 1.5 : null,
+              ),
 
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: const Text('Ingreso fijo mensual'),
+                leading: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: textColor,
+                ),
+                title: Text(
+                  'Ingreso fijo mensual',
+                  style: TextStyle(color: textColor),
+                ),
                 subtitle: Text(
                   '\$ ${user.ingresoFijoMensual.toStringAsFixed(0)}',
+                  style: TextStyle(color: textColor),
                 ),
               ),
 
@@ -224,7 +272,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     authProvider.isLoading ? 'Guardando...' : 'Guardar cambios',
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3F6DB5),
+                    backgroundColor: highContrast
+                        ? const Color(0xFF003B8E)
+                        : const Color(0xFF3F6DB5),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -234,6 +284,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Construye la decoración de los campos del formulario.
+  InputDecoration _buildInputDecoration({
+    required IconData icon,
+    required String hint,
+    required bool highContrast,
+    Color? borderColor,
+  }) {
+    // Define el borde de los campos según el tema activo.
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(4),
+      borderSide: BorderSide(
+        color: borderColor ?? Colors.grey,
+        width: highContrast ? 1.5 : 1,
+      ),
+    );
+
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: highContrast ? Colors.black : null),
+      hintText: hint,
+      hintStyle: TextStyle(color: highContrast ? Colors.black54 : null),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: highContrast
+          ? border.copyWith(
+              borderSide: const BorderSide(color: Color(0xFF003B8E), width: 2),
+            )
+          : null,
     );
   }
 }

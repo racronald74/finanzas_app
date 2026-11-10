@@ -85,6 +85,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // Formato numérico colombiano.
   final NumberFormat _numberFormat = NumberFormat.decimalPattern('es_CO');
 
+  /// Detecta si la aplicación utiliza el tema de alto contraste.
+  bool _isHighContrast(BuildContext context) {
+    return Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+  }
+
   /// Formatea los valores utilizando el símbolo $ al inicio.
   String _formatCurrency(double amount) {
     return '\$ ${_numberFormat.format(amount)}';
@@ -197,6 +202,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     int selectedMonth = initialDate.month;
     int selectedYear = initialDate.year;
 
+    final bool highContrast = _isHighContrast(context);
+
     return showDialog<DateTime>(
       context: context,
       builder: (dialogContext) {
@@ -206,7 +213,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
             final maxMonth = selectedYear == hoy.year ? hoy.month : 12;
 
             return AlertDialog(
-              title: const Text('Seleccionar período mensual'),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: highContrast
+                    ? const BorderSide(color: Colors.black, width: 2)
+                    : BorderSide.none,
+              ),
+              title: Text(
+                'Seleccionar período mensual',
+                style: TextStyle(color: highContrast ? Colors.black : null),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -300,6 +317,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final hoy = DateTime.now();
 
     int selectedYear = _yearlyYear;
+    final bool highContrast = _isHighContrast(context);
 
     final year = await showDialog<int>(
       context: context,
@@ -307,7 +325,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Seleccionar año'),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: highContrast
+                    ? const BorderSide(color: Colors.black, width: 2)
+                    : BorderSide.none,
+              ),
+              title: Text(
+                'Seleccionar año',
+                style: TextStyle(color: highContrast ? Colors.black : null),
+              ),
               content: DropdownButtonFormField<int>(
                 initialValue: selectedYear,
                 decoration: const InputDecoration(
@@ -371,8 +399,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _selectCustomPeriod() async {
     final hoy = DateTime.now();
 
+    final bool highContrast = _isHighContrast(context);
+    final ThemeData currentTheme = Theme.of(context);
+
     final selectedRange = await showDateRangePicker(
       context: context,
+      builder: (context, child) {
+        if (!highContrast) return child!;
+
+        // Refuerza los colores del selector de fechas en alto contraste.
+        return Theme(
+          data: currentTheme.copyWith(
+            colorScheme: currentTheme.colorScheme.copyWith(
+              primary: const Color(0xFF003B8E),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textTheme: currentTheme.textTheme.apply(
+              bodyColor: Colors.black,
+              displayColor: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
       firstDate: DateTime(2000),
       lastDate: hoy,
       initialDateRange: DateTimeRange(
@@ -398,8 +449,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
+
       // Botón fijo para exportar el reporte PDF.
       bottomNavigationBar: Consumer<ReportProvider>(
         builder: (context, provider, child) {
@@ -413,7 +467,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
           return SafeArea(
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-              color: Colors.white,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: highContrast
+                    ? const Border(
+                        top: BorderSide(color: Colors.black, width: 2),
+                      )
+                    : null,
+              ),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -421,7 +482,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   icon: const Icon(Icons.picture_as_pdf_outlined),
                   label: const Text('Exportar reporte PDF'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3F73BC),
+                    backgroundColor: highContrast
+                        ? const Color(0xFF003B8E)
+                        : const Color(0xFF3F73BC),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -454,9 +517,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildPeriodSelector(),
+                      _buildPeriodSelector(context),
                       const SizedBox(height: 16),
-                      _buildDateRange(),
+                      _buildDateRange(context),
                       const SizedBox(height: 22),
                       _buildSummarySection(),
                     ],
@@ -471,25 +534,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   /// Construye el selector de períodos.
-  Widget _buildPeriodSelector() {
+  Widget _buildPeriodSelector(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: highContrast ? Border.all(color: Colors.black, width: 2) : null,
       ),
       child: Row(
         children: [
-          _buildPeriodButton('Mensual', ReportPeriod.monthly),
-          _buildPeriodButton('Anual', ReportPeriod.yearly),
-          _buildPeriodButton('Personalizado', ReportPeriod.custom),
+          _buildPeriodButton(context, 'Mensual', ReportPeriod.monthly),
+          _buildPeriodButton(context, 'Anual', ReportPeriod.yearly),
+          _buildPeriodButton(context, 'Personalizado', ReportPeriod.custom),
         ],
       ),
     );
   }
 
   /// Construye cada opción del selector.
-  Widget _buildPeriodButton(String title, ReportPeriod period) {
+  Widget _buildPeriodButton(
+    BuildContext context,
+    String title,
+    ReportPeriod period,
+  ) {
+    final bool highContrast = _isHighContrast(context);
     final isSelected = _selectedPeriod == period;
 
     return Expanded(
@@ -498,8 +569,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF3F73BC) : Colors.transparent,
+            color: isSelected
+                ? (highContrast
+                      ? const Color(0xFF003B8E)
+                      : const Color(0xFF3F73BC))
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
+            border: highContrast && !isSelected
+                ? Border.all(color: Colors.black, width: 1)
+                : null,
           ),
           child: Text(
             title,
@@ -507,7 +585,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF355C7D),
+              color: isSelected
+                  ? Colors.white
+                  : (highContrast ? Colors.black : const Color(0xFF355C7D)),
             ),
           ),
         ),
@@ -516,13 +596,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   /// Muestra el período seleccionado y permite modificarlo.
-  Widget _buildDateRange() {
+  Widget _buildDateRange(BuildContext context) {
+    final bool highContrast = _isHighContrast(context);
+
+    final Color primaryColor = highContrast
+        ? const Color(0xFF003B8E)
+        : const Color(0xFF3F73BC);
+
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+
     String periodText;
 
     switch (_selectedPeriod) {
       case ReportPeriod.monthly:
         periodText = DateFormat('MMMM yyyy', 'es_CO').format(_monthlyDate);
-
         break;
 
       case ReportPeriod.yearly:
@@ -549,28 +638,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: highContrast
+                ? Border.all(color: Colors.black, width: 2)
+                : null,
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.calendar_month_outlined,
-                color: Color(0xFF3F73BC),
-              ),
+              Icon(Icons.calendar_month_outlined, color: primaryColor),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   periodText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF17324D),
+                    color: textColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const Icon(
-                Icons.edit_calendar_outlined,
-                color: Color(0xFF3F73BC),
-              ),
+              Icon(Icons.edit_calendar_outlined, color: primaryColor),
             ],
           ),
         ),
@@ -582,6 +668,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildSummarySection() {
     return Consumer<ReportProvider>(
       builder: (context, provider, child) {
+        final bool highContrast = _isHighContrast(context);
+
+        final Color textColor = highContrast
+            ? Colors.black
+            : const Color(0xFF17324D);
+
         // Muestra el indicador de carga.
         if (provider.isLoading) {
           return const Center(
@@ -598,7 +690,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Text(
               provider.errorMessage!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: highContrast ? Colors.black : Colors.red),
             ),
           );
         }
@@ -607,8 +699,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
         // Comprueba que exista información.
         if (report == null) {
-          return const Center(
-            child: Text('No hay información disponible para este período.'),
+          return Center(
+            child: Text(
+              'No hay información disponible para este período.',
+              style: TextStyle(color: textColor),
+            ),
           );
         }
 
@@ -652,13 +747,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.09),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                border: highContrast
+                    ? Border.all(color: Colors.black, width: 2)
+                    : null,
+                boxShadow: highContrast
+                    ? const []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.09),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,12 +770,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       horizontal: 16,
                       vertical: 14,
                     ),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF2459A6), Color(0xFF4A86D8)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
+                    decoration: BoxDecoration(
+                      color: highContrast ? const Color(0xFF003B8E) : null,
+                      gradient: highContrast
+                          ? null
+                          : const LinearGradient(
+                              colors: [Color(0xFF2459A6), Color(0xFF4A86D8)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
                     ),
                     child: const Text(
                       'Resumen financiero',
@@ -723,29 +826,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: highContrast
+                      ? Border.all(color: Colors.black, width: 2)
+                      : null,
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Icon(
                       Icons.insert_chart_outlined,
                       size: 35,
-                      color: Color(0xFF3F73BC),
+                      color: highContrast
+                          ? const Color(0xFF003B8E)
+                          : const Color(0xFF3F73BC),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Sin movimientos registrados',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF17324D),
+                        color: textColor,
                       ),
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Text(
                       'Cuando registres ingresos o gastos '
                       'durante este período, aparecerán aquí.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: highContrast
+                            ? Colors.black
+                            : const Color(0xFF666666),
+                      ),
                     ),
                   ],
                 ),

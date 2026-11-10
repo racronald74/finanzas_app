@@ -25,6 +25,18 @@ class ExpensesByCategoryChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    // Define los colores de los textos según el tema.
+    final Color textColor = highContrast
+        ? Colors.black
+        : const Color(0xFF17324D);
+    final Color secondaryColor = highContrast
+        ? Colors.black
+        : const Color(0xFF455468);
+
     // Ordena las categorías de mayor a menor gasto.
     final sortedCategories =
         categories.where((category) => category.totalGastos > 0).toList()
@@ -41,32 +53,37 @@ class ExpensesByCategoryChart extends StatelessWidget {
 
     return Card(
       color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: highContrast ? 0 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Gastos por categoría',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF17324D),
+                color: textColor,
               ),
             ),
             const SizedBox(height: 20),
 
             // Mensaje cuando no existen gastos.
             if (sortedCategories.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No hay gastos registrados en este período.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: TextStyle(color: secondaryColor),
                   ),
                 ),
               )
@@ -83,6 +100,9 @@ class ExpensesByCategoryChart extends StatelessWidget {
                             sortedCategories,
                             totalGastos,
                             numberFormat,
+                            highContrast,
+                            textColor,
+                            secondaryColor,
                           ),
                         ),
                         Expanded(
@@ -90,6 +110,9 @@ class ExpensesByCategoryChart extends StatelessWidget {
                             sortedCategories,
                             totalGastos,
                             numberFormat,
+                            highContrast,
+                            textColor,
+                            secondaryColor,
                           ),
                         ),
                       ],
@@ -100,9 +123,23 @@ class ExpensesByCategoryChart extends StatelessWidget {
                   // y la información de categorías debajo.
                   return Column(
                     children: [
-                      _buildDonut(sortedCategories, totalGastos, numberFormat),
+                      _buildDonut(
+                        sortedCategories,
+                        totalGastos,
+                        numberFormat,
+                        highContrast,
+                        textColor,
+                        secondaryColor,
+                      ),
                       const SizedBox(height: 12),
-                      _buildLegend(sortedCategories, totalGastos, numberFormat),
+                      _buildLegend(
+                        sortedCategories,
+                        totalGastos,
+                        numberFormat,
+                        highContrast,
+                        textColor,
+                        secondaryColor,
+                      ),
                     ],
                   );
                 },
@@ -118,6 +155,9 @@ class ExpensesByCategoryChart extends StatelessWidget {
     List<ReportCategoryModel> categories,
     double total,
     NumberFormat numberFormat,
+    bool highContrast,
+    Color textColor,
+    Color secondaryColor,
   ) {
     return SizedBox(
       height: 210,
@@ -136,6 +176,7 @@ class ExpensesByCategoryChart extends StatelessWidget {
                   categories.length,
                   (index) => _chartColors[index % _chartColors.length],
                 ),
+                highContrast: highContrast,
               ),
             ),
 
@@ -149,16 +190,16 @@ class ExpensesByCategoryChart extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       '\$ ${numberFormat.format(total)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF17324D),
+                        color: textColor,
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Gastos',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF455468)),
+                    style: TextStyle(fontSize: 13, color: secondaryColor),
                   ),
                 ],
               ),
@@ -174,6 +215,9 @@ class ExpensesByCategoryChart extends StatelessWidget {
     List<ReportCategoryModel> categories,
     double total,
     NumberFormat numberFormat,
+    bool highContrast,
+    Color textColor,
+    Color secondaryColor,
   ) {
     return Column(
       children: categories.asMap().entries.map((entry) {
@@ -193,11 +237,14 @@ class ExpensesByCategoryChart extends StatelessWidget {
                 children: [
                   // Indicador de color de la categoría.
                   Container(
-                    width: 11,
-                    height: 11,
+                    width: 13,
+                    height: 13,
                     decoration: BoxDecoration(
-                      color: color,
+                      color: highContrast ? Colors.white : color,
                       shape: BoxShape.circle,
+                      border: highContrast
+                          ? Border.all(color: Colors.black, width: 1.5)
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -209,10 +256,7 @@ class ExpensesByCategoryChart extends StatelessWidget {
                       category.nombreCategoria,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF26364A),
-                      ),
+                      style: TextStyle(fontSize: 13, color: textColor),
                     ),
                   ),
 
@@ -222,10 +266,7 @@ class ExpensesByCategoryChart extends StatelessWidget {
                     child: Text(
                       '${percentage.toStringAsFixed(1)}%',
                       textAlign: TextAlign.end,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF455468),
-                      ),
+                      style: TextStyle(fontSize: 12, color: secondaryColor),
                     ),
                   ),
 
@@ -239,10 +280,10 @@ class ExpensesByCategoryChart extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: Text(
                         '\$ ${numberFormat.format(category.totalGastos)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF17324D),
+                          color: textColor,
                         ),
                       ),
                     ),
@@ -253,10 +294,10 @@ class ExpensesByCategoryChart extends StatelessWidget {
 
             // Línea divisoria entre categorías.
             if (index < categories.length - 1)
-              const Divider(
+              Divider(
                 height: 1,
-                thickness: 0.7,
-                color: Color(0xFFE1E6ED),
+                thickness: highContrast ? 1.5 : 0.7,
+                color: highContrast ? Colors.black : const Color(0xFFE1E6ED),
               ),
           ],
         );
@@ -269,8 +310,13 @@ class ExpensesByCategoryChart extends StatelessWidget {
 class _DonutChartPainter extends CustomPainter {
   final List<double> values;
   final List<Color> colors;
+  final bool highContrast;
 
-  _DonutChartPainter({required this.values, required this.colors});
+  _DonutChartPainter({
+    required this.values,
+    required this.colors,
+    required this.highContrast,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -298,12 +344,31 @@ class _DonutChartPainter extends CustomPainter {
 
       canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
 
+      // En alto contraste agrega separadores negros entre segmentos.
+      if (highContrast) {
+        final separatorPaint = Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5;
+
+        final separatorAngle = startAngle + sweepAngle;
+
+        final startPoint = Offset(
+          center.dx + (rect.width / 2) * math.cos(separatorAngle),
+          center.dy + (rect.height / 2) * math.sin(separatorAngle),
+        );
+
+        canvas.drawLine(center, startPoint, separatorPaint);
+      }
+
       startAngle += sweepAngle;
     }
   }
 
   @override
   bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
-    return oldDelegate.values != values || oldDelegate.colors != colors;
+    return oldDelegate.values != values ||
+        oldDelegate.colors != colors ||
+        oldDelegate.highContrast != highContrast;
   }
 }

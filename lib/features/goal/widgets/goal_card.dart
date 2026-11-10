@@ -17,7 +17,6 @@ import '../../../shared/helpers/currency_formatter.dart';
 /// - Estado.
 /// - Progreso.
 /// - Fecha límite.
-
 class GoalCard extends StatelessWidget {
   /// Icono representativo de la meta.
   final IconData icon;
@@ -72,35 +71,52 @@ class GoalCard extends StatelessWidget {
       double.infinity,
     );
 
-    // Comprueba si la meta ya alcanzó su objetivo.
+    /// Comprueba si la meta ya alcanzó su objetivo.
     final bool isGoalCompleted = remainingAmount <= 0;
 
     /// Indica si la pantalla corresponde a un dispositivo móvil.
     final bool isMobile = ResponsiveHelper.isMobile(context);
 
+    /// Detecta si está activo el tema de alto contraste.
+    final bool highContrast =
+        Theme.of(context).colorScheme.primary == const Color(0xFF003B8E);
+
+    /// Obtiene los colores del tema actual.
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+    final Color textColor = highContrast ? Colors.black : AppColors.textPrimary;
+    final Color secondaryColor = highContrast
+        ? Colors.black
+        : AppColors.textSecondary;
+    final Color surfaceColor = Theme.of(context).colorScheme.surface;
+
     return Card(
-      color: Colors.white,
+      // Adapta el fondo y el borde al tema activo.
+      color: surfaceColor,
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: highContrast ? 0 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: highContrast
+            ? const BorderSide(color: Colors.black, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // ============================================
-            // Encabezado de la meta
-            // ============================================
+            // Encabezado de la meta.
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Icono representativo de la meta.
-                // Se mantiene alineado en la parte superior del contenido.
                 CircleAvatar(
                   radius: isMobile ? 24 : 28,
-                  backgroundColor: AppColors.iconBackground,
+                  backgroundColor: highContrast
+                      ? Colors.white
+                      : AppColors.iconBackground,
                   child: Icon(
                     icon,
-                    color: AppColors.primary,
+                    color: primaryColor,
                     size: isMobile ? 24 : 28,
                   ),
                 ),
@@ -121,16 +137,19 @@ class GoalCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
+                                color: textColor,
                                 fontSize: isMobile ? 16 : 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-
                           const SizedBox(width: 6),
 
                           // Estado mostrado junto al nombre.
-                          AppStatusChip(text: status, color: AppColors.info),
+                          AppStatusChip(
+                            text: status,
+                            color: highContrast ? Colors.black : AppColors.info,
+                          ),
                         ],
                       ),
 
@@ -141,10 +160,7 @@ class GoalCard extends StatelessWidget {
                           description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: secondaryColor, fontSize: 14),
                         ),
                       ],
                     ],
@@ -154,16 +170,13 @@ class GoalCard extends StatelessWidget {
                 const SizedBox(width: 8),
 
                 // Porcentaje de progreso.
-                // Se mantiene alineado en la parte superior de la tarjeta.
                 AppProgressCircle(value: progress, size: isMobile ? 46 : 54),
               ],
             ),
 
             const SizedBox(height: 8),
 
-            // ============================================
-            // Montos y dinero restante
-            // ============================================
+            // Montos y dinero restante.
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -175,7 +188,9 @@ class GoalCard extends StatelessWidget {
                         TextSpan(
                           text: CurrencyFormatter.format(savedAmount),
                           style: TextStyle(
-                            color: AppColors.success,
+                            color: highContrast
+                                ? Colors.black
+                                : AppColors.success,
                             fontSize: isMobile ? 15 : 17,
                             fontWeight: FontWeight.bold,
                           ),
@@ -183,7 +198,7 @@ class GoalCard extends StatelessWidget {
                         TextSpan(
                           text: ' / ${CurrencyFormatter.format(targetAmount)}',
                           style: TextStyle(
-                            color: Colors.black87,
+                            color: textColor,
                             fontSize: isMobile ? 13 : 15,
                           ),
                         ),
@@ -196,18 +211,15 @@ class GoalCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
+                    Text(
                       'Restan',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: secondaryColor, fontSize: 13),
                     ),
                     const SizedBox(height: 1),
                     Text(
                       CurrencyFormatter.format(remainingAmount),
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: TextStyle(
+                        color: primaryColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -219,97 +231,89 @@ class GoalCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // ============================================
-            // Barra de progreso
-            // ============================================
+            // Barra de progreso.
             AppProgressBar(value: progress, height: 8),
 
             const SizedBox(height: 12),
 
-            const Divider(height: 1),
+            // Separador visual.
+            Divider(
+              height: 1,
+              thickness: highContrast ? 1.5 : 1,
+              color: highContrast ? Colors.black : null,
+            ),
 
             const SizedBox(height: 10),
 
-            // ============================================
-            // Fecha límite y acciones
-            // ============================================
-            // La fecha ocupa toda la fila superior.
-            // Los botones se colocan debajo para evitar
-            // desbordamientos en dispositivos pequeños.
+            // Fecha límite y acciones.
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Fecha límite.
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    // Fecha límite de la meta.
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_month,
-                          size: 17,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 6),
+                    Icon(Icons.calendar_month, size: 17, color: primaryColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Límite:',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
 
-                        const Text(
-                          'Límite:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
+                    // La fecha ocupa el espacio disponible.
+                    Expanded(
+                      child: Text(
+                        deadline,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: highContrast
+                              ? Colors.black
+                              : AppColors.success,
+                          fontSize: 13,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
 
-                        const SizedBox(width: 5),
+                const SizedBox(height: 10),
 
-                        // La fecha ocupa el espacio disponible.
-                        Expanded(
-                          child: Text(
-                            deadline,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.success,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
+                // Botones ubicados debajo de la fecha.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    // Botón para ver el detalle.
+                    SizedBox(
+                      width: 100,
+                      height: 33,
+                      child: AppChipButton(
+                        text: 'Ver detalle',
+                        primaryColor: highContrast
+                            ? primaryColor
+                            : AppColors.success,
+                        onPressed: onDetails,
+                      ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(width: 6),
 
-                    // Botones ubicados debajo de la fecha
-                    // y alineados a la izquierda.
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        // Botón para ver el detalle.
-                        SizedBox(
-                          width: 100,
-                          height: 33,
-                          child: AppChipButton(
-                            text: 'Ver detalle',
-                            primaryColor: AppColors.success,
-                            onPressed: onDetails,
-                          ),
-                        ),
-
-                        const SizedBox(width: 6),
-
-                        // Botón para registrar un aporte.
-                        SizedBox(
-                          width: 85,
-                          height: 33,
-                          child: AppChipButton(
-                            text: 'Aportar',
-                            isPrimary: true,
-                            primaryColor: AppColors.success,
-                            // Deshabilita el aporte cuando la meta está completada.
-                            onPressed: isGoalCompleted ? null : onContribute,
-                          ),
-                        ),
-                      ],
+                    // Botón para registrar un aporte.
+                    SizedBox(
+                      width: 85,
+                      height: 33,
+                      child: AppChipButton(
+                        text: 'Aportar',
+                        isPrimary: true,
+                        primaryColor: highContrast
+                            ? primaryColor
+                            : AppColors.success,
+                        // Deshabilita el aporte cuando la meta está completada.
+                        onPressed: isGoalCompleted ? null : onContribute,
+                      ),
                     ),
                   ],
                 ),
