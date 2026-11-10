@@ -19,6 +19,14 @@ import '../../reportes/screens/reports_screen.dart';
 import '../../notificaciones/screens/notifications_screen.dart';
 import '../../notificaciones/screens/notification_settings_screen.dart';
 
+// Provider del Dashboard.
+import '../../dashboard/providers/dashboard_provider.dart';
+
+// Providers utilizados para consolidar los datos financieros.
+import '../../../providers/goal_provider.dart';
+import '../../../providers/obligation_provider.dart';
+import '../../../providers/debt_provider.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -98,8 +106,52 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  /// Actualiza la información financiera del Dashboard.
   Future<void> _refreshDashboard() async {
-    // Lo implementaremos más adelante.
+    // Obtiene el usuario autenticado.
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final usuario = authProvider.currentUser;
+
+    // No continúa si no existe una sesión activa.
+    if (usuario == null) return;
+
+    // Obtiene los providers necesarios para cargar el resumen.
+    final dashboardProvider = Provider.of<DashboardProvider>(
+      context,
+      listen: false,
+    );
+
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+
+    final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+
+    final obligationProvider = Provider.of<ObligationProvider>(
+      context,
+      listen: false,
+    );
+
+    final debtProvider = Provider.of<DebtProvider>(context, listen: false);
+
+    // Consolida los datos financieros del usuario.
+    await dashboardProvider.loadDashboard(
+      idUsuario: usuario.idUsuario!,
+      registrationDate: DateTime.parse(usuario.fechaRegistro),
+      fixedIncome: usuario.ingresoFijoMensual,
+      budgetProvider: budgetProvider,
+      incomeProvider: incomeProvider,
+      expenseProvider: expenseProvider,
+      goalProvider: goalProvider,
+      obligationProvider: obligationProvider,
+      debtProvider: debtProvider,
+    );
   }
 
   int _selectedIndex = 0;
@@ -147,6 +199,7 @@ class _MainScreenState extends State<MainScreen> {
         screen: DashboardScreen(
           onAvatarPressed: _openDrawer,
           onNotificationPressed: _openNotifications,
+          onRetry: _refreshDashboard, // Permite reintentar la carga.
         ),
         title: 'Dashboard',
         isDashboard: true,
@@ -189,6 +242,13 @@ class _MainScreenState extends State<MainScreen> {
         title: 'Más',
       ),
     ];
+
+    // Carga los datos del Dashboard después de construir la pantalla.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _refreshDashboard();
+      }
+    });
   }
 
   @override

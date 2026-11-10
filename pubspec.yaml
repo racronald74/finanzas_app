@@ -76,18 +76,20 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
   assets:
+    # Imágenes utilizadas en la aplicación.
     - assets/images/logo_finanzasApp.png
     - assets/images/logo_carga.png
     - assets/images/logo_icon_background.png
     - assets/images/logo_icon_foreground.png
     - assets/images/fondo_splash.png
+
+    # Iconos del Dashboard.
+    - assets/images/ahorro_acumulado.png
+    - assets/images/gastos_del_mes.png
+    - assets/images/ingresos_del_mes.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

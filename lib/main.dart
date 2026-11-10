@@ -27,6 +27,9 @@ import 'features/auth/screens/login_screen.dart';
 
 import 'shared/themes/app_theme.dart';
 
+// Provider del Dashboard.
+import 'features/dashboard/providers/dashboard_provider.dart';
+
 /// Punto de entrada principal de la aplicación.
 Future<void> main() async {
   // Inicializa Flutter antes de configurar la aplicación.
@@ -52,6 +55,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => IncomeProvider()),
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => ContributionProvider()),
         ChangeNotifierProvider(create: (_) => ObligationProvider()),
