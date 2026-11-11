@@ -256,6 +256,9 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       key: _scaffoldKey,
 
+      // Evita que el teclado redimensione la pantalla principal.
+      resizeToAvoidBottomInset: false,
+
       drawer: const AppDrawer(),
       body: IndexedStack(
         index: _selectedIndex,

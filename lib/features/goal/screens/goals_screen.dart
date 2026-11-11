@@ -163,9 +163,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   width: double.infinity,
                                   child: Card(
                                     color: Colors.white,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(24),
+                                    child: SingleChildScrollView(
+                                      // Permite desplazar el contenido cuando aumenta el tamaño del texto.
+                                      padding: const EdgeInsets.all(16),
                                       child: Column(
+                                        mainAxisSize: MainAxisSize.min,
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [

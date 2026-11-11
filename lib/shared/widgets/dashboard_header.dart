@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+// Permite consultar la cantidad de notificaciones sin leer.
+import '../../providers/notification_provider.dart';
 
 /// Encabezado utilizado exclusivamente por el Dashboard.
 ///
@@ -105,14 +107,57 @@ class DashboardHeader extends StatelessWidget {
                 ),
               ),
 
-              // Botón de notificaciones.
+              // Botón de notificaciones con indicador de mensajes sin leer.
               if (showNotification)
-                IconButton(
-                  onPressed: onNotificationPressed,
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                  ),
+                Consumer<NotificationProvider>(
+                  builder: (context, provider, child) {
+                    // Obtiene la cantidad de notificaciones pendientes de lectura.
+                    final unreadCount = provider.unreadCount;
+
+                    return IconButton(
+                      onPressed: onNotificationPressed,
+                      icon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Icono principal de la campana.
+                          const Icon(
+                            Icons.notifications_none,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+
+                          // Muestra el indicador rojo cuando existen notificaciones sin leer.
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: -8,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  unreadCount > 99
+                                      ? '99+'
+                                      : unreadCount.toString(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
             ],
           ),

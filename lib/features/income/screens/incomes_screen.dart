@@ -205,6 +205,8 @@ class _IncomesScreenState extends State<IncomesScreen> {
         : AppColors.primary;
 
     return Scaffold(
+      // Evita que el teclado reduzca el espacio de la pantalla principal.
+      resizeToAvoidBottomInset: false,
       body: AppBackground(
         child: Column(
           children: [
@@ -431,9 +433,12 @@ class _IncomesScreenState extends State<IncomesScreen> {
                                         )
                                       : BorderSide.none,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
+                                child: SingleChildScrollView(
+                                  // Permite desplazar el contenido si el texto aumenta.
+                                  padding: const EdgeInsets.all(16),
                                   child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       // Icono representativo del estado vacío.
                                       Icon(

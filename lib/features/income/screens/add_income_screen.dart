@@ -69,7 +69,8 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   Widget build(BuildContext context) {
     final highContrast = _highContrast;
     final textColor = highContrast ? Colors.black : null;
-    final borderColor = highContrast ? Colors.black : null;
+    // Define el color del borde según el modo de visualización.
+    final borderColor = highContrast ? Colors.black : const Color(0xFF666666);
 
     // Define el estilo de los campos sin alterar sus valores ni validaciones.
     final inputDecoration = InputDecoration(
@@ -127,9 +128,11 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
             // Permite seleccionar la fecha del ingreso.
             Container(
               decoration: BoxDecoration(
-                border: highContrast
-                    ? Border.all(color: borderColor!, width: 1.5)
-                    : null,
+                border: Border.all(
+                  // Reutiliza el color definido para ambos modos.
+                  color: borderColor,
+                  width: highContrast ? 1.5 : 1,
+                ),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: ListTile(
@@ -177,24 +180,32 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
             // Selector de categorías de ingreso.
             DropdownButtonFormField<String>(
               initialValue: _categoriaSeleccionada,
-              dropdownColor: highContrast ? Colors.white : null,
-              style: TextStyle(color: textColor),
+
+              // Fondo blanco en modo normal y contraste.
+              dropdownColor: Colors.white,
+
+              // Texto oscuro en modo normal y contraste.
+              style: const TextStyle(color: Colors.black),
+
               decoration: inputDecoration.copyWith(labelText: 'Categoria'),
+
               items: _categorias.map((categoria) {
                 return DropdownMenuItem<String>(
                   value: categoria.idCategoria.toString(),
                   child: Text(
                     categoria.nombre,
-                    style: TextStyle(color: textColor),
+                    style: const TextStyle(color: Colors.black),
                   ),
                 );
               }).toList(),
+
               onChanged: (value) {
                 setState(() {
                   _categoriaSeleccionada = value;
                 });
               },
             ),
+
             const SizedBox(height: 16),
 
             TextField(

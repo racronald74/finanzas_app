@@ -133,64 +133,61 @@ class MoreScreen extends StatelessWidget {
 
   // Muestra el saludo y la descripción de la pantalla.
   Widget _buildWelcomeSection(String nombre, bool highContrast) {
-    return SizedBox(
-      height: 116,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: highContrast
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(10),
-                border: highContrast
-                    ? Border.all(color: Colors.black, width: 1.5)
-                    : null,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Hola, $nombre',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(left: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: highContrast
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(10),
+              border: highContrast
+                  ? Border.all(color: Colors.black, width: 1.5)
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Hola, $nombre',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
                   ),
-                  const SizedBox(height: 7),
-                  const Text(
-                    'Explora más herramientas\nde tu gestión financiera.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.25,
-                      color: Colors.black,
-                    ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Explora más herramientas\nde tu gestión financiera.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.25,
+                    color: Colors.black,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Container(
-            width: 88,
-            height: 88,
-            margin: const EdgeInsets.only(right: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFBE3D),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_rounded,
-              size: 46,
-              color: Color(0xFF99542F),
-            ),
+        ),
+        Container(
+          width: 88,
+          height: 88,
+          margin: const EdgeInsets.only(right: 8),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFBE3D),
+            shape: BoxShape.circle,
           ),
-        ],
-      ),
+          child: const Icon(
+            Icons.account_balance_wallet_rounded,
+            size: 46,
+            color: Color(0xFF99542F),
+          ),
+        ),
+      ],
     );
   }
 
@@ -218,55 +215,53 @@ class MoreScreen extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        child: SizedBox(
-          height: 78,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                // Icono representativo de la opción.
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: iconBackground,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: iconColor, size: 24),
+        child: Padding(
+          // Permite que la tarjeta crezca según el tamaño del texto.
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            children: [
+              // Icono representativo de la opción.
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.2,
-                          color: Colors.black,
-                        ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.2,
+                        color: Colors.black,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 29,
-                  color: Colors.black,
-                ),
-              ],
-            ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 29,
+                color: Colors.black,
+              ),
+            ],
           ),
         ),
       ),

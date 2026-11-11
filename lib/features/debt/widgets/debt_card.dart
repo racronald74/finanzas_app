@@ -387,9 +387,17 @@ class DebtCard extends StatelessWidget {
             onPressed: _isPaid ? null : onPay,
             icon: const Icon(Icons.payments_outlined),
             label: const Text('Pagar'),
+
             style: ElevatedButton.styleFrom(
-              backgroundColor: highContrast ? primaryColor : null,
+              // Verde en modo normal y color principal en alto contraste.
+              backgroundColor: highContrast
+                  ? primaryColor
+                  : const Color(0xFF16B86A),
+
+              // Mantiene el texto y el icono blancos.
               foregroundColor: Colors.white,
+
+              // Borde negro únicamente en alto contraste.
               side: highContrast
                   ? const BorderSide(color: Colors.black, width: 1.5)
                   : BorderSide.none,

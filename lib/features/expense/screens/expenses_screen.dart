@@ -279,10 +279,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                         )
                                       : BorderSide.none,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
+                                child: SingleChildScrollView(
+                                  // Permite desplazar el contenido si aumenta el tamaño del texto.
+                                  padding: const EdgeInsets.all(16),
                                   child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
+                                      // Icono representativo del estado vacío.
                                       Icon(
                                         Icons.receipt_long,
                                         size: 60,
@@ -290,9 +294,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                             ? Colors.black
                                             : Colors.grey,
                                       ),
+
                                       const SizedBox(height: 16),
+
+                                      // Mensaje principal.
                                       Text(
                                         'No hay gastos registrados',
+                                        textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -301,7 +309,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                               : null,
                                         ),
                                       ),
+
                                       const SizedBox(height: 8),
+
+                                      // Explicación del estado vacío.
                                       Text(
                                         'Registra tu primer gasto para comenzar a controlar tus finanzas.',
                                         textAlign: TextAlign.center,
